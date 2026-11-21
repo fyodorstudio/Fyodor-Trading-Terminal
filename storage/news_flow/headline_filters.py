@@ -6,6 +6,7 @@ The reader and both notification channels consume the same relevance decision.
 import re
 
 from .rules import normalized
+from .signals import market_signal
 
 _bank = re.compile(r'\b(?:fed|fomc|ecb|boe|boj|boc|rba|rbnz|snb|central bank|federal reserve|bank of (?:japan|england|canada)|reserve bank of (?:australia|new zealand)|swiss national bank)\b')
 _fx = re.compile(r'\b(?:yen|jpy|franc|currency|currencies|fx|forex|foreign exchange|exchange rate)\b')
@@ -13,7 +14,7 @@ _authority = re.compile(r'\b(?:japan|japanese (?:officials|authorities|finance m
 _warning = re.compile(r'\b(?:warns?|warnings?|(?:ready|prepared) to (?:act|intervene|take (?:decisive )?action)|won.t rule out|will not rule out|all options|rate checks?|(?:excessive|one-sided|disorderly|speculative)(?: \w+){0,2} (?:moves|movements))\b')
 _intervention = re.compile(r'\b(?:interven\w*|rate checks?|excessive|one-sided|disorderly|speculative)\b')
 _guidance = re.compile(r'\b(?:says?|said|signals?|warns?|urges?|calls? for|plans? to|expects?|noted|vows?|sees?)\b.{0,100}\b(?:faster|further|more|another|swift|nimble|continue|keep|pause|stop|halt|resume|delay|warrant|above neutral|overshoot)\b.{0,65}\b(?:hikes?|cuts?|tighten\w*|eas\w*|rates?|inflation|consideration)\b')
-_data = re.compile(r'\b(?:cpi|pce|ppi|inflation|payrolls|nfp|gdp|unemployment|employment|jobs report|retail sales|pmi|ism)\b')
+_data = re.compile(r'\b(?:cpi|pce|ppi|inflation|payrolls|nfp|gdp|unemployment|employment|jobs report|retail sales|home sales|industrial production|factory output|inventories|pmi|ism)\b')
 _surprise = re.compile(r'\b(?:unexpectedly|surpris(?:e|es|ed)|(?:above|below|beats?|misses?) (?:estimates|expectations|consensus|forecasts))\b')
 _number = r'(?P<{}>[+-]?\d[\d,]*(?:\.\d+)?)\s*(?P<{}>%|percent|k|m|billion|million|thousand)?'
 _comparison = re.compile(_number.format('actual', 'actual_unit') + r'\s*(?:(?:yoy|mom|qoq|in [a-z]+|in q[1-4])[, ]*){0,3}\s*[,;]?\s*(?:vs\.?|versus|against)\s*' + _number.format('forecast', 'forecast_unit') + r'\s*(?:expected|forecast|consensus|estimat\w*)\b')
@@ -66,9 +67,11 @@ def catalyst_reason(title):
     return ''
 
 
-def routine_reason(title, company=False):
+def routine_reason(title, company=False, summary=''):
     """Return a reason only for identified noise, keeping ambiguous news eligible."""
     text = normalized(title)
+    if market_signal(title, summary)[0]:
+        return ''
     if re.search(r'\bfed\b.{0,45}\b(?:staff|regional-bank staff)\b.{0,45}\bpay (?:increases|raises)|\bfed cuts pay raises\b', text):
         return 'central-bank internal personnel news'
     if re.search(r'\bsanctions (?:bid|motion)\b.{0,65}\b(?:evidence|court|lawsuit|cases)\b', text):
@@ -89,6 +92,10 @@ def routine_reason(title, company=False):
         return 'routine analyst currency outlook'
     if _procurement.search(text):
         return 'routine corporate procurement notice'
+    if re.search(r'^final trade:|\bcramer.{0,30}lightning round|\b(?:names?|appoints?)\b.{0,60}\b(?:board of directors|to (?:the )?board)\b', text):
+        return 'routine stock picks or board appointment'
+    if re.search(r'\b(?:people miss|tech elite lament|celebrate.{0,30}leadership|left the company in|tuned instagram|trademark dispute|concept for diy restaurants|would welcome.{0,40}return|key deals this week|global patent filings)\b', text):
+        return 'corporate personality or product detail'
     if not _broad_market.search(text) and not _company_change.search(text):
         if company and _gossip.search(text):
             return 'corporate personality or promotional story'

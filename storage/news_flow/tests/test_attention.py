@@ -28,6 +28,14 @@ class NewsAttentionTests(unittest.TestCase):
             'Banking crisis sparks flight to gold',
             'Hawkish BOJ policymaker Takata calls for swift hike in rates',
         ]
+        high += [
+            'Fed Waller delivers hawkish remarks',
+            'Gold steadies as hawkish Fed caps gains',
+            'US Dollar momentum extends on Fed repricing',
+            'Goldman forecasts oil supply cuts',
+            'Fed cuts rate expectations',
+            'Nvidia sinks 88% as Fed hike odds rise',
+        ]
         routine = [
             'RBA holds cash rate as expected',
             'Markets implied an 88% chance of the November 3 RBA hike',
@@ -37,14 +45,12 @@ class NewsAttentionTests(unittest.TestCase):
             'RBA Raised Rates as Price Risks Remained to Upside, Minutes Show',
             'Minutes: RBA raised cash rate at previous meeting',
             'Fed urges banks to raise lending rates',
-            'Fed Waller delivers hawkish remarks', 'Bank of Canada speech: Edmonton Chamber of Commerce',
+            'Bank of Canada speech: Edmonton Chamber of Commerce',
             'RBA expected to cut interest rates', 'Fed may cut rates next month',
-            'British Pound: Limited downside versus US Dollar', 'Gold steadies as hawkish Fed caps gains',
-            'US Dollar momentum extends on Fed repricing',
+            'British Pound: Limited downside versus US Dollar',
             'Markets expect RBA hike', 'US payrolls preview ahead of Friday release',
-            'Goldman forecasts oil supply cuts', 'Fed says 88% of households face higher prices',
-            'Fed cuts rate expectations', 'Could Iran agree a ceasefire?',
-            'Nvidia sinks 88% as Fed hike odds rise',
+            'Fed says 88% of households face higher prices',
+            'Could Iran agree a ceasefire?',
         ]
         for title in high:
             with self.subTest(title=title):

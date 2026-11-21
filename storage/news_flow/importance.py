@@ -3,12 +3,12 @@ from .relevance import classify, profile_rules
 from .priority import attention_reason
 
 
-def decision(title, source_id='', url='', feed_url='', include='', exclude='', enabled=False, pinned=False, filter_policy=''):
+def decision(title, source_id='', url='', feed_url='', include='', exclude='', enabled=False, pinned=False, filter_policy='', summary=''):
     # The relevance cache interns profiles; stars remain separate mutable state.
-    relevant = classify(title, source_id, url, feed_url, *profile_rules(include, exclude, enabled, filter_policy))
+    relevant = classify(title, source_id, url, feed_url, *profile_rules(include, exclude, enabled, filter_policy), summary=summary)
     explicit_exclude = relevant['reason'].startswith('Excluded keyword')
     reason = ('Manually starred' if pinned and not explicit_exclude else
-              attention_reason(title) if relevant['included'] else '')
+              attention_reason(title, summary[:8000] if enabled else '', semantic=enabled) if relevant['included'] else '')
     tier = 'priority' if reason else 'included' if relevant['included'] else 'excluded'
     return {**relevant, 'included': relevant['included'] or bool(reason), 'tier': tier, 'priority_reason': reason}
 

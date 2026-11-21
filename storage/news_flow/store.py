@@ -34,7 +34,7 @@ class NewsStore:
                 db.row_factory = sqlite3.Row
                 db.create_function('casefold', 1, lambda value: value.casefold())
                 db.create_function('news_matches', 2, matches, deterministic=True)
-                db.create_function('news_level', 9, level, deterministic=True)
+                db.create_function('news_level', 10, level, deterministic=True)
                 db.create_function('news_headline_key', 1, headline_key, deterministic=True)
                 db.create_function('news_priority', 2, priority_reason, deterministic=True)
                 db.create_function('news_banks', 5, lambda *args: '|'.join(policy_currencies(*args)), deterministic=True)
@@ -194,7 +194,7 @@ class NewsStore:
             args.extend(sources)
         if mode in ('included', 'excluded', 'priority'):
             # Reader tiers are disjoint: Priority 1, Priority 2 and Excluded.
-            clauses.append('news_level(i.title,i.source_id,i.url,s.url,?,?,?,p.url IS NOT NULL,?)' +
+            clauses.append('news_level(i.title,i.source_id,i.url,s.url,?,?,?,p.url IS NOT NULL,?,i.summary)' +
                            {'excluded': '=0', 'included': '=1', 'priority': '=2'}[mode])
             args.extend((include, exclude, market_relevance, filter_policy))
         bank_expression = 'news_banks(i.title,i.summary,i.source_id,i.url,s.url)'
@@ -229,7 +229,7 @@ class NewsStore:
             rows = db.execute(candidates + 'SELECT *,news_priority(title,summary) AS priority_reason FROM candidates WHERE duplicate=1' +
                               (' ORDER BY pinned DESC,' if priority else ' ORDER BY ') + f'{sort_column} {direction},id {direction} LIMIT ? OFFSET ?', [*args, limit, offset])
             return {'items': [{**{key: value for key, value in dict(row).items() if key not in ('duplicate', 'source_feed')},
-                               'relevance': decision(row['title'], row['source_id'], row['url'], row['source_feed'], include, exclude, market_relevance, row['pinned'], filter_policy),
+                               'relevance': decision(row['title'], row['source_id'], row['url'], row['source_feed'], include, exclude, market_relevance, row['pinned'], filter_policy, row['summary']),
                                **policy_details(row['title'], row['summary'], row['source_id'], row['url'], row['source_feed'])} for row in rows], 'total': total}
 
     def export_headlines(self, **scope):
@@ -257,7 +257,7 @@ class NewsStore:
                 args.extend((now - max_age_seconds * 1000, now))
             if mode in ('priority', 'included'):
                 # Delivery can select Priority 1 only or Priority 1 + Priority 2.
-                clauses.append('news_level(i.title,i.source_id,i.url,s.url,?,?,?,p.url IS NOT NULL,?)' + ('=2' if mode == 'priority' else '>0'))
+                clauses.append('news_level(i.title,i.source_id,i.url,s.url,?,?,?,p.url IS NOT NULL,?,i.summary)' + ('=2' if mode == 'priority' else '>0'))
                 args.extend((include, exclude, market_relevance, filter_policy))
             if hidden:
                 clauses.append('i.source_id NOT IN (' + ','.join('?' for _ in hidden) + ')')
@@ -267,7 +267,7 @@ class NewsStore:
                 # so separate polling batches still suppress title republication.
                 previous = ['earlier.sequence<a.sequence', 'earlier.received_at>=a.received_at-7200000',
                             'news_headline_key(e.title)=news_headline_key(i.title)',
-                            'news_level(e.title,e.source_id,e.url,es.url,?,?,?,ep.url IS NOT NULL,?)=2']
+                            'news_level(e.title,e.source_id,e.url,es.url,?,?,?,ep.url IS NOT NULL,?,e.summary)=2']
                 args.extend((include, exclude, market_relevance, filter_policy))
                 if hidden:
                     previous.append('e.source_id NOT IN (' + ','.join('?' for _ in hidden) + ')')
@@ -281,7 +281,7 @@ class NewsStore:
                                ' AND '.join(previous) + ')')
             rows = db.execute('SELECT i.*,' + TIMELINE + ' AS timeline_at,s.name AS source_name,s.url AS source_feed,p.url IS NOT NULL AS pinned,a.sequence,a.received_at FROM arrivals a JOIN items i ON i.id=a.item_id JOIN sources s ON s.id=i.source_id LEFT JOIN pins p ON p.url=i.url WHERE ' + ' AND '.join(clauses) + ' ORDER BY a.sequence LIMIT 200', args)
             items = [{**{key: value for key, value in dict(row).items() if key != 'source_feed'},
-                      'relevance': decision(row['title'], row['source_id'], row['url'], row['source_feed'], include, exclude, market_relevance, row['pinned'], filter_policy)} for row in rows]
+                      'relevance': decision(row['title'], row['source_id'], row['url'], row['source_feed'], include, exclude, market_relevance, row['pinned'], filter_policy, row['summary'])} for row in rows]
             # A large batch must not skip eligible arrivals beyond this page.
             return {'cursor': items[-1]['sequence'] if len(items) == 200 else cursor, 'items': items}
 

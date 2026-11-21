@@ -1,6 +1,7 @@
 """Deterministic target-market relevance, shared by every reader and alert path.
 
-This is a relevance filter, not a volatility forecast. No article bodies or LLMs.
+This is a relevance filter, not a volatility forecast. Uses supplied feed text,
+never fetched article bodies or LLMs.
 The editable vocabulary and context patterns live beside this module in JSON.
 """
 from functools import lru_cache
@@ -9,9 +10,10 @@ from pathlib import Path
 import re
 from urllib.parse import urlsplit, parse_qs
 
-from .rules import MAX_RULE_CHARS, matches, normalized, patterns
+from .rules import MAX_RULE_CHARS, combined_pattern, matches, normalized, patterns
 from .filter_policy import canonical_policy, parse_policy
 from .headline_filters import catalyst_reason, routine_reason
+from .signals import market_signal
 
 PROFILE = json.loads(Path(__file__).with_name('relevance.json').read_text(encoding='utf-8'))
 PRESET = PROFILE['preset']
@@ -89,9 +91,18 @@ def tags(value):
     return list(dict.fromkeys(term.strip() for term in value.split(',') if term.strip()))
 
 
-def matching_terms(title, value, aliases=True):
+def matching_terms(title, value, aliases=True, first=False):
     text = normalized(title)
-    return [term for term, pattern in term_patterns(value, aliases) if pattern.search(text)]
+    combined = combined_pattern(value, aliases)
+    if not combined or not combined.search(text):
+        return []
+    found = []
+    for term, pattern in term_patterns(value, aliases):
+        if pattern.search(text):
+            found.append(term)
+            if first:
+                break
+    return found
 
 
 def first_literal_term(text, value):
@@ -164,28 +175,40 @@ def profile_rules(include, exclude, enabled, filter_policy=''):
     return include, exclude, bool(enabled), canonical_policy(filter_policy)
 
 
-def classify(title, source_id='', url='', feed_url='', include='', exclude='', enabled=False, filter_policy=''):
-    return _classify(title, source_id, url, feed_url, profile_rules(include, exclude, bool(enabled), filter_policy))
+@lru_cache(maxsize=128)
+def broad_profile(include):
+    selected = {normalized(term) for term in tags(include)}
+    return len(selected & {normalized(term) for term in PRESET}) >= len(PRESET) * .75
+
+
+@lru_cache(maxsize=128)
+def strong_terms(include):
+    return ','.join(term for term in tags(include) if normalized(term) not in CONTEXTUAL)
+
+
+def classify(title, source_id='', url='', feed_url='', include='', exclude='', enabled=False, filter_policy='', summary=''):
+    return _classify(title, source_id, url, feed_url, profile_rules(include, exclude, bool(enabled), filter_policy), summary[:8000])
 
 
 @lru_cache(maxsize=32768)
-def _classify(title, source_id, url, feed_url, profile):
+def _classify(title, source_id, url, feed_url, profile, summary):
     include, exclude, enabled, filter_policy = profile
     options = parse_policy(filter_policy)
-    exclusion = next(iter(matching_terms(title, exclude)), '')
+    exclusion = next(iter(matching_terms(title, exclude, first=True)), '')
     if exclusion:
         return {'included': False, 'reason': 'Excluded keyword · ' + exclusion, 'keyword': exclusion}
+    signal = market_signal(title, summary)[0] if enabled else ''
     if enabled:
         headline = title = _publisher_suffix.sub('', title)
         if options.metadata and (_not_release.search(title) or _category.search(title)):
             return {'included': False, 'reason': 'Excluded · quote/category page or routine filing/invitation', 'keyword': ''}
         if options.non_market and (_consumer.search(title) or re.search(r'\b(?:pattinson|007|bezos)\b.{0,70}\bbond\b|\bbond\b.{0,70}\b(?:pattinson|007)\b|\bpick.{0,45}as bond\b', title, re.I)) and not _company_event.search(title):
             return {'included': False, 'reason': 'Excluded · consumer/entertainment or nonfinancial meaning', 'keyword': ''}
-        if options.routine and _treasury_notice.search(title) and not _notice_driver.search(title) and not matches(title, _banks) and not matches(title, _companies):
+        if options.routine and not signal and _treasury_notice.search(title) and not _notice_driver.search(title) and not matches(title, _banks) and not matches(title, _companies):
             return {'included': False, 'reason': 'Excluded · routine Treasury crime notice', 'keyword': ''}
-        if options.routine and (_promotion.search(title) or (_retrospective_quote.search(title) and not _material_driver.search(market_text(title) if options.subject_context else title))):
+        if options.routine and (_promotion.search(title) or (_retrospective_quote.search(title) and not signal and not _material_driver.search(market_text(title) if options.subject_context else title))):
             return {'included': False, 'reason': 'Excluded · promotion or routine single-stock recap', 'keyword': ''}
-        if options.routine and ((_routine.search(title) and not _systemic.search(title)) or (_invitation.search(title) and not official_policy(title, url, feed_url) and not matches(title, _banks))):
+        if options.routine and not signal and ((_routine.search(title) and not _systemic.search(title)) or (_invitation.search(title) and not official_policy(title, url, feed_url) and not matches(title, _banks))):
             return {'included': False, 'reason': 'Excluded · routine personnel/promotional/retrospective story', 'keyword': ''}
         if options.subject_context:
             title = market_text(title)
@@ -196,37 +219,51 @@ def _classify(title, source_id, url, feed_url, profile):
     if enabled and options.protect_official and official_host(url, feed_url, PROFILE['official_fiscal_domains']) and _rx['official_fiscal_release'].search(title):
         return {'included': True, 'reason': 'Official funding/intervention/sanctions release', 'keyword': ''}
     if enabled and options.routine:
-        noise = routine_reason(_publisher_attribution.sub('publisher reports', headline), company=bool(matches(title, _companies)))
+        noise = routine_reason(_publisher_attribution.sub('publisher reports', headline), company=bool(matches(title, _companies)), summary=summary)
         if noise:
             return {'included': False, 'reason': 'Excluded · ' + noise, 'keyword': ''}
     if enabled and options.protect_remarks and financial_remarks(title, url, feed_url):
         return {'included': True, 'reason': 'Target-market remarks · financial news source', 'keyword': ''}
-    hits = matching_terms(title, include)
-    if not hits:
+    matched_text = title
+    hits = matching_terms(matched_text, include, first=True)
+    # A broad trading profile also recognizes mechanisms with no literal ticker
+    # (e.g. "The Big Rotation Out of Equities"). Curated Include lists keep scope.
+    semantic = bool(signal and broad_profile(include))
+    if enabled and not hits:
+        matched_text = market_text(summary) if options.subject_context else summary
+        hits = matching_terms(matched_text, include, first=True)
+    if not hits and not semantic:
         return {'included': False, 'reason': 'No include match', 'keyword': ''}
     if not enabled:
         return {'included': True, 'reason': 'Included · ' + hits[0], 'keyword': hits[0]}
     text = normalized(title)
+    keyword = hits[0] if hits else ''
     # These are topic guards, not global country/crypto exclusions. Cross-asset
     # transmission, named index companies and explicit user Exclude stay visible.
-    if options.crypto_only and _rx['crypto'].search(text) and not _rx['crypto_bridge'].search(text) and not matches(text, _companies):
-        return {'included': False, 'reason': 'Excluded · crypto-only news', 'keyword': hits[0]}
+    if options.crypto_only and _rx['crypto'].search(text) and not _rx['crypto_bridge'].search(normalized(title + ' ' + summary)) and not matches(text, _companies):
+        return {'included': False, 'reason': 'Excluded · crypto-only news', 'keyword': keyword}
     if options.retail_quotes and _rx['local_quote'].search(text) and not _rx['local_quote_bridge'].search(text):
-        return {'included': False, 'reason': 'Excluded · local retail metal quote', 'keyword': hits[0]}
+        return {'included': False, 'reason': 'Excluded · local retail metal quote', 'keyword': keyword}
     geopolitics = _rx['geopolitics'].search(text) and _rx['geo_event'].search(text)
     other_market = first_literal_term(text, options.other_market_terms) if options.other_markets else ''
     exception, currency_driver, cross_market = '', None, False
     if other_market and options.cross_market:
         exception = first_literal_term(text, options.exceptions)
-        currency_driver = _currency_driver.search(text) or _macro_driver.search(text) or _fiscal_driver.search(text)
+        driver_text = normalized(title + ' ' + summary)
+        currency_driver = _currency_driver.search(driver_text) or _macro_driver.search(driver_text) or _fiscal_driver.search(driver_text)
         cross_market = exception or currency_driver or _rx['semiconductor_policy'].search(text) or _rx['sector_bellwethers'].search(text) or _cross_market_risk.search(text) or geopolitics or _systemic.search(text)
+        # A trade's tracked-market participant and explicit global transmission
+        # matter even when the other participant is in the domestic-noise list.
+        cross_market = cross_market or bool(signal and (re.search(r'\b(?:global|world markets|wall street|nasdaq|s&p|carry.trade|trade (?:deal|agreement)|export controls)\b', driver_text) or _rx['crypto_bridge'].search(normalized(summary))))
     if options.other_markets and other_market and not cross_market:
-        return {'included': False, 'reason': 'Excluded · other-market domestic news · ' + other_market, 'keyword': hits[0]}
+        return {'included': False, 'reason': 'Excluded · other-market domestic news · ' + other_market, 'keyword': keyword}
     if options.non_market and _rx['noise'].search(text) and not matches(text, _companies) and not _market_event.search(text):
-        return {'included': False, 'reason': 'Excluded · non-market topic', 'keyword': hits[0]}
+        return {'included': False, 'reason': 'Excluded · non-market topic', 'keyword': keyword}
+    if signal and (semantic or hits):
+        return {'included': True, 'reason': 'Included · ' + signal, 'keyword': keyword}
     catalyst = catalyst_reason(text)
     if catalyst:
-        return {'included': True, 'reason': 'Included · ' + catalyst, 'keyword': hits[0]}
+        return {'included': True, 'reason': 'Included · ' + catalyst, 'keyword': keyword}
     if options.other_markets and other_market and cross_market:
         why = exception or (currency_driver[0] if currency_driver else 'global policy, sector or systemic event')
         return {'included': True, 'reason': 'Included · cross-market exception · ' + why, 'keyword': hits[0]}
@@ -234,9 +271,9 @@ def _classify(title, source_id, url, feed_url, profile):
     market_context = matches(text, _strong) or country_macro or _rx['global_market'].search(text) or _rx['market_transmission'].search(text) or _rx['semiconductor_policy'].search(text) or _rx['sector_bellwethers'].search(text) or (_rx['crypto'].search(text) and _rx['crypto_bridge'].search(text))
     politics = _rx['politics'].search(text)
     # Avoid a broad geography tag becoming its own circular market context.
-    for term in hits:
-        if not options.broad_context or normalized(term) not in CONTEXTUAL:
-            return {'included': True, 'reason': 'Included · ' + term, 'keyword': term}
+    strong_hit = hits if not options.broad_context or normalized(keyword) not in CONTEXTUAL else matching_terms(matched_text, strong_terms(include), first=True)
+    if strong_hit:
+        return {'included': True, 'reason': 'Included · ' + strong_hit[0], 'keyword': strong_hit[0]}
     if market_context or geopolitics or politics:
         context = 'macro' if country_macro else 'geopolitics' if geopolitics else 'policy/fiscal' if politics else 'target market'
         return {'included': True, 'reason': f'Included · {hits[0]} ({context})', 'keyword': hits[0]}

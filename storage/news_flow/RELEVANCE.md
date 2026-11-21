@@ -2,12 +2,13 @@
 
 News Flow targets eight major currencies, Brent, gold/silver and broad stock
 indices. Related policy, bonds, companies, commodities and geopolitics qualify
-when the headline connects them to those markets.
+when the headline or source-provided feed summary connects them to those markets.
 
 ## Implementation
 
-`relevance.py` classifies headlines; `priority.py` selects strict Priority 1
-catalysts and `importance.py` combines that result with manual stars. `relevance.json` owns tag defaults, aliases and context patterns.
+`relevance.py` classifies supplied feed text; `signals.py` recognizes trading
+mechanisms and `priority.py` selects Priority 1. `importance.py` combines that
+result with manual stars. `relevance.json` owns tag defaults, aliases and context patterns.
 `headline_filters.py` recognizes explicit catalysts and routine headline formats;
 `rules.py` handles literal matching and normalization. The frontend imports shared
 defaults and displays the backend result rather than running a second classifier.
@@ -23,31 +24,37 @@ reader/export tiers; Excluded contains the rest. All remains available for brows
    a literal Include hit. Source checks use article/feed domains or dedicated
    Google site scopes, rather than editable provider names. Administrative content
    does not receive this protection.
-3. The routine filter excludes technical forecasts, recurring previews/recaps,
-   analyst currency outlooks, stock recommendations, ordinary company results/deals
-   and personality stories. Explicit intervention warnings, policy guidance,
-   economic surprises and cross-market shocks remain eligible. Material company
-   guidance changes, funding problems and leadership exits remain eligible too.
+3. Fundamental, risk, policy-pricing and cross-asset content protects a story
+   from routine-format exclusion. Analyst attribution, technical levels, recap
+   formatting and conditional language do not override useful mechanisms.
+   Pure technical forecasts, stock picks, ordinary company results/deals and
+   personality stories can still be excluded. Material company guidance changes,
+   funding problems and leadership exits remain eligible too.
 4. Target-country financial commentary and configured speaker aliases can qualify
    with policy context.
 5. Strong target terms can qualify directly. Broad tags such as country names,
-   AI, earnings and guidance need market context.
+   AI, earnings and guidance need market context. A broad preset-based Include
+   profile also recognizes trading mechanisms without a literal ticker match.
+   Short curated Include lists retain their keyword scope. Feed summaries can
+   establish relevance; explicit Exclude continues to match the original headline.
 6. Topic guards exclude crypto-only prices, local retail metal quotes, non-market
    topics and unrelated domestic-market stories. Cross-market exceptions keep
    relevant policy, energy, metals, index companies and systemic events included.
 
-Priority 1 requires direct headline evidence of FX intervention warnings/readiness,
-specific central-bank rate guidance, major economic surprises, actual policy/trade
-changes, physical energy-supply shocks, systemic stress or exceptional index moves.
-Reported index moves qualify at 3% and VIX moves at 20%; exchange-listing labels
-and another asset's percentage move do not establish an index shock. These
-thresholds live in `priority.py`.
+Priority 1 favors keeping potentially important information: FX intervention,
+hawkish/dovish policy and rate-path repricing, risk appetite/aversion, haven flows,
+carry unwinds, capital rotation, positioning, credit/liquidity stress, trade/fiscal
+risk and commodity supply/demand. Research and conditional scenarios can qualify;
+the reason label describes their mechanism without claiming a confirmed event.
+Price reactions and recaps qualify when they contain that context. Both risk-on
+and risk-off developments matter, including information that challenges a thesis.
 
-Routine rate odds, expected holds, analyst predictions, generic inflation remarks,
-price-reaction articles, recaps and historical intervention reports stay out of
-Priority 1. Official-source protection establishes relevance, not Priority 1.
-Ambiguous relevant news stays in Priority 2. No price confirmation is needed for
-an explicit qualifying catalyst; priority is not a prediction of price direction.
+Explicit policy/data surprises, energy shocks and exceptional index moves also
+qualify. The fallback index thresholds in `priority.py` (3%, or 20% for VIX) are
+not prerequisites for recognizing risk sentiment or cross-asset transmission.
+Other relevant context remains Priority 2. No price confirmation is required;
+priority predicts neither direction nor information novelty. Source-provided
+summaries use at most 8,000 characters; article bodies are not fetched.
 
 Publisher suffixes and reporting attributions are removed for contextual matching. Currency pairs, Unicode
 punctuation and common stock/bond/yield forms normalize consistently. Literal mode
@@ -65,7 +72,7 @@ Disabling it restores broader keyword-based reading; disabling Trading relevance
 restores literal matching. Manual stars can promote filtered stories unless an
 explicit Exclude matches. All preserves collected stories and provider collection
 is unaffected. The All notification mode intentionally bypasses relevance filters;
-use Priority 1 only for strict alerts or Priority 1 + Priority 2 for broader alerts.
+use Priority 1 only for important trading context or both priorities for broader alerts.
 
 Off / Priority 1 only / Priority 1 + Priority 2 / All and publication-age limits are
 shared by desktop and Android. Existing delivery selections remain saved. The API

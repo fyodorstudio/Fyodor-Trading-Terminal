@@ -69,6 +69,7 @@ class NotificationRules(BaseModel):
 
 class HeadlineCheck(NotificationRules):
     title: str = Field(min_length=1, max_length=2000)
+    summary: str = Field(default='', max_length=8000)
     url: str = Field(default='', max_length=2000)
     feed_url: str = Field(default='', max_length=4000)
 
@@ -139,7 +140,7 @@ def news_router(store, collector, notifier=None):
         validate_rules(body.include, body.exclude)
         return {'relevance': decision(body.title, url=body.url, feed_url=body.feed_url,
                                       include=body.include, exclude=body.exclude, enabled=body.market_relevance,
-                                      filter_policy=body.filter_policy or '{}'),
+                                      filter_policy=body.filter_policy or '{}', summary=body.summary),
                 'matched_include': matching_terms(body.title, body.include),
                 'matched_exclude': matching_terms(body.title, body.exclude)}
 

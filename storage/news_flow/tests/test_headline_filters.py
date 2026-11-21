@@ -65,14 +65,17 @@ KEEP = [
     'TSX futures edge lower ahead of Nvidia earnings',
     "Nvidia has lost $2 trillion in value. Here's what options traders expect from earnings",
 ]
+KEEP += [
+    'Silver Price Forecast: XAG/USD holds losses amid hawkish Fed tone',
+    'Japanese Yen: BoJ tightening plans support against US Dollar – MUFG - FXStreet',
+    'US Dollar: Fed tightening supports gains – UBS',
+    'Australian Dollar hits ten-month low before RBA minutes and jobs data',
+]
 NOISE = [
     'USD/JPY Price Forecast: Fresh upside likely above 160.40',
-    'Silver Price Forecast: XAG/USD holds losses amid hawkish Fed tone',
     'EUR/USD technical analysis: RSI nears oversold territory',
     'Nasdaq tests the 50% retracement ahead of earnings',
     'Euro: Downside risk toward 1.1000 against US Dollar – UOB',
-    'Japanese Yen: BoJ tightening plans support against US Dollar – MUFG - FXStreet',
-    'US Dollar: Fed tightening supports gains – UBS',
     'Forex Today: Gold extends slide despite US Dollar pullback',
     'investingLive European news wrap: Markets remain cautious',
     'EUR/USD Weekly Forecast: The bears are winning',
@@ -94,7 +97,6 @@ NOISE = [
     'Wonder explores sale of Grubhub, Wall Street Journal reports - Reuters',
     'China Military Bans SF Express From Procurement Over Misconduct',
     'Gold holds steady near $3,850 ahead of FOMC Minutes',
-    'Australian Dollar hits ten-month low before RBA minutes and jobs data',
     'Nvidia explores sale of subsidiary, Wall Street Journal reports',
 ]
 
@@ -130,9 +132,6 @@ class HeadlineFilterTests(unittest.TestCase):
             'Australia unemployment 4.9% vs 4.7% previous',
             'US payrolls 1 million vs 100 thousand expected',
             'Australia unemployment expected to rise to 4.9% vs 4.7% expected',
-            'Goldman Sachs says Fed will keep raising rates',
-            'Fed expected to keep raising rates – UBS',
-            'The Odds of a Fed Rate Hike Are 100%. Why That Would Be 100% Bad.',
             'Could Japan warn of currency intervention?',
             'Guinea miners stockpile gold after refinery rules halted exports',
         ]
@@ -143,9 +142,10 @@ class HeadlineFilterTests(unittest.TestCase):
     def test_controls_official_protections_stars_and_narrow_watchlists(self):
         for title in CATALYSTS + KEEP:
             self.assertFalse(self.classify(title, exclude=title, pinned=True)['included'])
-        for title in NOISE[:25]:
+        for title in NOISE:
             # Literal mode and the existing routine switch remain user overrides.
             self.assertTrue(self.classify(title, include=title, enabled=False)['included'])
+        for title in [NOISE[0], 'Nvidia earnings preview', 'investingLive European news wrap: Markets remain cautious']:
             self.assertTrue(self.classify(title, include=INCLUDE + ', news wrap', filter_policy='{"routine":false}')['included'], title)
         self.assertFalse(self.classify(CATALYSTS[0], include='EUR, GBP')['included'])
         self.assertTrue(self.classify(NOISE[0], pinned=True)['included'])

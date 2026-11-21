@@ -22,7 +22,7 @@ export function NewsAlarmControls({ settings, onChange }: { settings: NewsSettin
       if (mode !== 'off') void enableNewsSound()
       void saveNewsAlertProfile(mode, age)
     }}><option value="off">Off</option><option value="priority">Priority 1 only</option><option value="included">Priority 1 + Priority 2</option><option value="all">All new headlines</option></select></label>
-    <p className="news-alert-note">One trigger for desktop sound, Windows popups and phone notifications. Choose Priority 1 only for strict catalyst alerts.</p>
+    <p className="news-alert-note">One trigger for desktop sound, Windows popups and phone notifications. Priority 1 includes important catalysts, risk sentiment and fundamental repricing.</p>
     <form className="news-alert-age" onSubmit={event => { event.preventDefault(); if (valid && !disabled) void saveNewsAlertProfile(profile.data!.mode, seconds) }}>
       <label className="news-checkbox"><input aria-label="Limit news publication age" type="checkbox" disabled={disabled} checked={value.enabled} onChange={event => setDraft({ ...value, enabled: event.target.checked })} />Only alert on recent publications</label>
       <div className="news-alert-age-range"><label>Published within<input aria-label="News publication age amount" type="number" min="1" max={value.unit === 'hours' ? 8760 : 365} step="1" disabled={disabled || !value.enabled} value={value.amount} onChange={event => setDraft({ ...value, amount: event.target.value })} /></label>

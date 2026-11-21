@@ -30,7 +30,7 @@ class NewsDeliveryPolicyTests(unittest.TestCase):
             with self.subTest(title=title):
                 self.assertEqual(decision(title, include=', '.join(PRESET), enabled=True)['tier'], 'excluded')
 
-    def test_strict_priority_one_keeps_catalysts_and_rejects_context(self):
+    def test_priority_one_keeps_catalysts_and_fundamental_context(self):
         high = [
             "Japan's Katayama warns of one-sided yen moves near 160, will coordinate with US Treasury",
             'Hawkish BOJ policymaker Takata calls for swift hike in rates',
@@ -51,21 +51,26 @@ class NewsDeliveryPolicyTests(unittest.TestCase):
             'Fed Waller says central bank may need to shock people with half-point rate hike',
             'Japan issues fresh FX intervention warnings',
         ]
-        context = [
+        high += [
+            'Kashkari says markets see more Fed hikes than officials do',
             'Gold Steadies Near 14-Month Low as Fed Signals More Rate Hikes',
+            'Asian markets trade mixed as Nvidia earnings lift Kospi and Nikkei; Hong Kong slips on US chip curbs',
+            'China says it will take countermeasures if US imposes new chip curbs',
+            'Chinese firms turn to US AI models for training as export restrictions tighten',
+            'Biggest risk for 2027 is Fed tightening too quickly, says Nuveen Saira Malik',
+            'Bitcoin could slide into the $50,000s as Fed rate hike bets build, Wintermute says',
+            'Canada retail sales 0.8% vs 0.7% expected',
+        ]
+        context = [
             'British Pound declines as UK CPI misses estimates',
             'Canadian home sales edge higher as BoC raises interest rates',
             'Fed has more work to do to bring down inflation',
             'RBA holds cash rate as expected', 'RBA hike is 80% priced',
-            'Kashkari says markets see more Fed hikes than officials do',
             'Donald Trump seeks Ukraine peace deal before January',
             'Oil Futures Halt Slide Awaiting Clarity on Middle East Talks',
             'Applied Materials sinks 11% amid broad chip stock pullback (AMAT:NASDAQ)',
             'PDF Solutions sinks 12% as tech stocks retreat (PDFS:NASDAQ)',
             'UK Stocks, AI Adoption Drive FTSE 250 Gains as Oil Drops 20%',
-            'Asian markets trade mixed as Nvidia earnings lift Kospi and Nikkei; Hong Kong slips on US chip curbs',
-            'China says it will take countermeasures if US imposes new chip curbs',
-            'Chinese firms turn to US AI models for training as export restrictions tighten',
             'Trump weighs another strike on Iran as Hormuz shipping risks mount',
             'Diamondback strikes $5bn deal to expand drilling in oil-rich Permian Basin',
             'The Oil Market Is Brimming With Crude Despite Tanker Attacks',
@@ -73,15 +78,12 @@ class NewsDeliveryPolicyTests(unittest.TestCase):
             'European gas futures climb as recovering oil exports overshadow shipping attacks',
             'US Treasury confirms currency intervention in July',
             'Japan confirms currency intervention in July',
-            'Canada retail sales 0.8% vs 0.7% expected',
             'VIX jumps 5% as traders await Fed meeting',
             'Nasdaq falls 0.5% as traders await Fed meeting',
             'Japan could warn of currency intervention later today',
             'Japan expected to issue currency intervention warning',
             'Fed could signal faster rate increases next week',
             'BOJ Ueda Says Food Sales Tax Cut Likely to Help Spur Growth',
-            'Biggest risk for 2027 is Fed tightening too quickly, says Nuveen Saira Malik',
-            'Bitcoin could slide into the $50,000s as Fed rate hike bets build, Wintermute says',
             'Bank of Canada Says April Scenario Analysis Telegraphed Hike',
             'Vujcic Says Bets on ECB Hike in 2027 Do Not Seem Unreasonable',
         ]
@@ -96,7 +98,7 @@ class NewsDeliveryPolicyTests(unittest.TestCase):
         baseline = self.store.arrivals()['cursor']
         self.notifier.configure({'include': ', '.join(PRESET)})
         self.add('critical', self.now, 'Japan warns of currency intervention to support yen')
-        self.add('context', self.now, 'Gold steadies as hawkish Fed caps gains')
+        self.add('context', self.now, 'Gold steadies')
         self.add('noise', self.now, 'Top software stocks to buy now')
         async def run():
             prefix = '/api/v1/news-flow'

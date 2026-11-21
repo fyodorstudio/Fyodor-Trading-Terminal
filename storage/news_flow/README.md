@@ -12,7 +12,7 @@ of MT5 and whether the news panel is open.
 | `collector.py`, `feeds.py` | Scheduled RSS/Atom fetching and parsing |
 | `store.py` | Cache, reader queries, exports and arrival cursors |
 | `relevance.py`, `relevance.json` | Trading relevance and editable defaults |
-| `importance.py`, `priority.py` | Strict Priority 1 classification and manual stars |
+| `signals.py`, `importance.py`, `priority.py` | Fundamental mechanisms, Priority 1 classification and manual stars |
 | `rules.py`, `filter_policy.py`, `policy.py` | Matching, user overrides and delivery selection |
 | `history.py` | Historical lookup for supported sources |
 | `diagnostics.py` | Provider check summaries and collector status |

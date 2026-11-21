@@ -256,12 +256,13 @@ class NewsRelevanceTests(unittest.TestCase):
                                             url=f'https://example.com/nov18/{i}', published_at=now if i != 5 else now - 6*86400000)], '', '', now+1)
             scope = dict(include=INCLUDE, exclude='', market_relevance=True)
             expected = set(titles[:3] + [titles[5]])
-            self.assertEqual(store.query(mode='included', limit=1, **scope)['total'], 4)
-            self.assertEqual({r['title'] for r in store.query(mode='included', **scope)['items']}, expected)
-            exported = store.export_headlines(mode='included', **scope)
-            self.assertEqual(exported['count'], 4)
+            tiers = ('included', 'priority')
+            self.assertEqual(sum(store.query(mode=mode, limit=1, **scope)['total'] for mode in tiers), 4)
+            self.assertEqual({r['title'] for mode in tiers for r in store.query(mode=mode, **scope)['items']}, expected)
+            exports = [store.export_headlines(mode=mode, **scope) for mode in tiers]
+            self.assertEqual(sum(exported['count'] for exported in exports), 4)
             for title in expected:
-                self.assertIn(title, exported['text'])
+                self.assertTrue(any(title in exported['text'] for exported in exports))
             arrival = store.arrivals(cursor, max_age_seconds=3600, **scope)
             self.assertEqual({r['title'] for r in arrival['items']}, set(titles[:3]), 'Old relevant articles remain research-only under the age limit')
             sent = []; notifier = NewsNotifier(store, lambda setup, message: sent.append(message))
@@ -453,18 +454,20 @@ class NewsRelevanceTests(unittest.TestCase):
             store.success(source, entries, '', '', now+1)
             (notifier.root / 'setup.json').write_text(json.dumps({'topic': 'local-test'}), encoding='utf-8')
             relevant = store.query(include=INCLUDE, mode='included', market_relevance=True)
+            important = store.query(include=INCLUDE, mode='priority', market_relevance=True)
             rejected = store.query(include=INCLUDE, mode='excluded', market_relevance=True)
-            self.assertEqual(relevant['total'], 12); self.assertEqual(rejected['total'], 12)
-            expected = {item['url'] for item in relevant['items']}
+            self.assertEqual(relevant['total'] + important['total'], 12); self.assertEqual(rejected['total'], 12)
+            expected = {item['url'] for page in (relevant, important) for item in page['items']}
             arrivals = store.arrivals(baseline, INCLUDE, now=now+2, market_relevance=True)
             self.assertEqual({item['url'] for item in arrivals['items']}, expected)
             copied = store.export_headlines(include=INCLUDE, mode='included', market_relevance=True)
-            self.assertEqual(copied['count'], 12)
-            self.assertEqual({url for url in copied['text'].splitlines() if url.startswith('https://')}, expected)
+            priority_copy = store.export_headlines(include=INCLUDE, mode='priority', market_relevance=True)
+            self.assertEqual(copied['count'] + priority_copy['count'], 12)
+            self.assertEqual({url for text in (copied['text'], priority_copy['text']) for url in text.splitlines() if url.startswith('https://')}, expected)
             page = store.query(include=INCLUDE, market_relevance=True)['items']
             self.assertTrue(all(item['relevance']['included'] == (item['url'] in expected) for item in page))
             notifier.tick()
-            self.assertEqual(notifier.last_sent['count'], relevant['total'])
+            self.assertEqual(notifier.last_sent['count'], len(expected))
             self.assertEqual(len(sent), 1, 'The backend phone notifier uses the same relevance selection')
 
     def test_migration_preserves_custom_excludes_and_pauses_only_known_retired_feed(self):

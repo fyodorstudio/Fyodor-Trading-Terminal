@@ -1,9 +1,10 @@
-"""Conservative Priority 1 selection from explicit headline evidence."""
+"""Priority 1 selection favoring recall of meaningful trading mechanisms."""
 from functools import lru_cache
 import re
 
 from .headline_filters import catalyst_reason
 from .rules import normalized
+from .signals import market_signal
 
 INDEX_SHOCK_PERCENT = 3
 VIX_SHOCK_PERCENT = 20
@@ -16,7 +17,7 @@ _dated_intervention = re.compile(r'\b(?:in|since) (?:january|february|march|apri
 _research = re.compile(r'^(?:goldman sachs|ubs|morgan stanley|deutsche bank|barclays|commerzbank|societe generale)\b.{0,45}\b(?:forecasts?|predicts?|sees?|expects?|recommends?)\b|\s+[–—-]\s+(?:ing|uob|mufg|bbh|ocbc|bny|ubs|commerzbank|danske bank|deutsche bank|societe generale)\s*$', re.I)
 _reaction = re.compile(r'^(?:[a-z]{3}[ /][a-z]{3}|us dollar(?: index)?|united states dollar(?: index)?|dollar|japanese yen|euro|british pound|pound sterling|swiss franc|canadian dollar|australian dollar|new zealand dollar|gold|silver|bullion|oil|crude|brent|wti|european gas|natural gas)\s+(?:(?:prices?|futures|index)\s+)?(?:falls?|drops?|declines?|gains?|rises?|rallies|rebounds?|slides?|slips?|steadies|holds?|trades?|edges?|finds?|softens?|weakens?|strengthens?|surges?|plunges?|slumps?|extends?|climbs?|stabiliz\w*|caught)\b')
 _format = re.compile(r'\b(?:price (?:news and )?forecast|technical analysis|elliott wave|news wrap|markets? wrap|market news:|forex today|week ahead|podcast)\b|^the oil market\b')
-_major_data = re.compile(r'\b(?:cpi|pce|inflation|payrolls|nfp|gdp|employment|unemployment|pmi|ism)\b')
+_major_data = re.compile(r'\b(?:cpi|pce|ppi|inflation|payrolls|nfp|gdp|employment|unemployment|pmi|ism|retail sales|home sales|industrial production|factory output|inventories)\b')
 _policy_action = re.compile(r'\b(?:(?:rate|rates) (?:hikes?|cuts?|increases?|reductions?)|(?:swift|nimble|further|more|another|gradual|faster|half[ -]point|quarter[ -]point) (?:rate )?(?:hikes?|cuts?)|hikes? (?:of )?(?:more than )?\d+(?:\.\d+)? (?:bps|basis points)|tighten\w*|easing|raising (?:key )?rates?|lowering rates|pause (?:rate|hikes|cuts)|stop (?:raising|cutting))\b')
 _policy_statement = re.compile(r'\b(?:says?|said|urges?|calls? for|expects?|plans?|signals?|noted|vows?|thinks?|warns?)\b')
 _policy_speaker = re.compile(r'^(?:(?:hawkish|dovish|st\. louis|cleveland|new york|boston|chicago)\s+)?' + _bank + r'\b|^waller\b.{0,30}\b' + _bank + r'\b')
@@ -39,7 +40,10 @@ _shock = re.compile(r'^\s*(?:(?:100|250|500)\s+)?(?:index\s+)?(?:plung\w*|crash\
 
 
 @lru_cache(maxsize=8192)
-def attention_reason(title):
+def attention_reason(title, summary='', semantic=True):
+    signal, important = market_signal(title, summary)
+    if semantic and important:
+        return signal
     text = normalized(title)
     # Exchange listings are metadata, not evidence that the index itself moved.
     text = re.sub(r'\s*\([^)]*:[^)]*\)\s*$', '', text)
