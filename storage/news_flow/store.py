@@ -12,6 +12,7 @@ from .rules import matches, priority_reason
 from .policy import policy_currencies, policy_details
 from .diagnostics import SCHEMA, record_check, snapshot as diagnostic_snapshot
 from .importance import decision, level
+from .relevance import headline_key
 
 # Freeze the fallback against first collection, so a scheduled date never promotes
 # an old announcement when wall-clock time catches up with the feed timestamp.
@@ -34,6 +35,7 @@ class NewsStore:
                 db.create_function('casefold', 1, lambda value: value.casefold())
                 db.create_function('news_matches', 2, matches, deterministic=True)
                 db.create_function('news_level', 9, level, deterministic=True)
+                db.create_function('news_headline_key', 1, headline_key, deterministic=True)
                 db.create_function('news_priority', 2, priority_reason, deterministic=True)
                 db.create_function('news_banks', 5, lambda *args: '|'.join(policy_currencies(*args)), deterministic=True)
                 if not self.initialized:
@@ -55,6 +57,7 @@ class NewsStore:
                         CREATE TABLE IF NOT EXISTS arrivals (
                             sequence INTEGER PRIMARY KEY AUTOINCREMENT, item_id TEXT NOT NULL UNIQUE,
                             received_at INTEGER NOT NULL);
+                        CREATE INDEX IF NOT EXISTS news_arrival_time ON arrivals(received_at,sequence);
                         CREATE TABLE IF NOT EXISTS history_searches (
                             source_id TEXT NOT NULL, url TEXT NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL,
                             searched_at INTEGER NOT NULL, found INTEGER NOT NULL, error TEXT NOT NULL,
@@ -190,9 +193,9 @@ class NewsStore:
             clauses.append('i.source_id IN (' + ','.join('?' for _ in sources) + ')')
             args.extend(sources)
         if mode in ('included', 'excluded', 'priority'):
-            # Included is the complete relevant feed, with Priority as a subset.
+            # Reader tiers are disjoint: Priority 1, Priority 2 and Excluded.
             clauses.append('news_level(i.title,i.source_id,i.url,s.url,?,?,?,p.url IS NOT NULL,?)' +
-                           {'excluded': '=0', 'included': '>0', 'priority': '=2'}[mode])
+                           {'excluded': '=0', 'included': '=1', 'priority': '=2'}[mode])
             args.extend((include, exclude, market_relevance, filter_policy))
         bank_expression = 'news_banks(i.title,i.summary,i.source_id,i.url,s.url)'
         # Compatibility for old research links. Current reading tabs use
@@ -252,13 +255,30 @@ class NewsStore:
                 clauses.extend(('i.published_at IS NOT NULL', 'i.published_at-i.first_seen<60000',
                                 'i.published_at>=?', 'i.published_at<=?'))
                 args.extend((now - max_age_seconds * 1000, now))
-            if mode == 'included':
-                # Match the Included reading/export scope: both relevant levels.
-                clauses.append('news_level(i.title,i.source_id,i.url,s.url,?,?,?,p.url IS NOT NULL,?)>0')
+            if mode in ('priority', 'included'):
+                # Delivery can select Priority 1 only or Priority 1 + Priority 2.
+                clauses.append('news_level(i.title,i.source_id,i.url,s.url,?,?,?,p.url IS NOT NULL,?)' + ('=2' if mode == 'priority' else '>0'))
                 args.extend((include, exclude, market_relevance, filter_policy))
             if hidden:
                 clauses.append('i.source_id NOT IN (' + ','.join('?' for _ in hidden) + ')')
                 args.extend(hidden)
+            if mode == 'priority':
+                # Both delivery channels derive suppression from arrival history,
+                # so separate polling batches still suppress title republication.
+                previous = ['earlier.sequence<a.sequence', 'earlier.received_at>=a.received_at-7200000',
+                            'news_headline_key(e.title)=news_headline_key(i.title)',
+                            'news_level(e.title,e.source_id,e.url,es.url,?,?,?,ep.url IS NOT NULL,?)=2']
+                args.extend((include, exclude, market_relevance, filter_policy))
+                if hidden:
+                    previous.append('e.source_id NOT IN (' + ','.join('?' for _ in hidden) + ')')
+                    args.extend(hidden)
+                if max_age_seconds is not None:
+                    previous.extend(('e.published_at IS NOT NULL', 'e.published_at-e.first_seen<60000',
+                                     'e.published_at>=earlier.received_at-?', 'e.published_at<=earlier.received_at'))
+                    args.append(max_age_seconds * 1000)
+                clauses.append('NOT EXISTS (SELECT 1 FROM arrivals earlier JOIN items e ON e.id=earlier.item_id '
+                               'JOIN sources es ON es.id=e.source_id LEFT JOIN pins ep ON ep.url=e.url WHERE ' +
+                               ' AND '.join(previous) + ')')
             rows = db.execute('SELECT i.*,' + TIMELINE + ' AS timeline_at,s.name AS source_name,s.url AS source_feed,p.url IS NOT NULL AS pinned,a.sequence,a.received_at FROM arrivals a JOIN items i ON i.id=a.item_id JOIN sources s ON s.id=i.source_id LEFT JOIN pins p ON p.url=i.url WHERE ' + ' AND '.join(clauses) + ' ORDER BY a.sequence LIMIT 200', args)
             items = [{**{key: value for key, value in dict(row).items() if key != 'source_feed'},
                       'relevance': decision(row['title'], row['source_id'], row['url'], row['source_feed'], include, exclude, market_relevance, row['pinned'], filter_policy)} for row in rows]

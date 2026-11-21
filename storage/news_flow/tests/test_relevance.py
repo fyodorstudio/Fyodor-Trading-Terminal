@@ -236,7 +236,7 @@ class NewsRelevanceTests(unittest.TestCase):
         for title in ['OCR held at 2.75%', 'OCR increased by 25 basis points to 2.75%', 'OCR on hold at 2.25%']:
             with self.subTest(title=title):
                 result = decision(title, feed_url='https://www.rbnz.govt.nz/rss', include=INCLUDE, enabled=True)
-                self.assertEqual(result['tier'], 'priority', result)
+                self.assertEqual(result['tier'], 'priority' if 'increased' in title else 'included', result)
                 self.assertFalse(decision(title, feed_url='https://www.rbnz.govt.nz/rss', include=INCLUDE, exclude='OCR', enabled=True)['included'])
         self.assertFalse(classify('New OCR software reads banknotes', include=INCLUDE, enabled=True)['included'])
         for title in ['Energy supply and demand, 2025', 'Monthly credit aggregates, August 2026', 'New motor vehicle sales, September 2026']:
@@ -378,7 +378,8 @@ class NewsRelevanceTests(unittest.TestCase):
                     expected.add(url)
             page = store.query(include=INCLUDE, market_relevance=True, limit=200)
             self.assertEqual({i['url'] for i in page['items'] if i['relevance']['included']}, expected)
-            export = store.export_headlines(include=INCLUDE, mode='included', market_relevance=True)
+            copies = [store.export_headlines(include=INCLUDE, mode=mode, market_relevance=True) for mode in ('priority', 'included')]
+            export = {'count': sum(copy['count'] for copy in copies), 'text': '\n\n'.join(copy['text'] for copy in copies)}
             self.assertEqual(export['count'], len(expected))
             self.assertEqual({line for line in export['text'].splitlines() if line.startswith('https://')}, expected)
             arrivals = store.arrivals(cursor, INCLUDE, market_relevance=True, max_age_seconds=86400)

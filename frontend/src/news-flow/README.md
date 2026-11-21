@@ -22,8 +22,9 @@ models, classification results and server-backed notification settings.
 
 ## Reader behavior
 
-Tabs are All, Priority, Included and Excluded. Included contains Priority as well
-as regular relevant headlines. Classification comes from the backend; the frontend
+Tabs are All, Priority 1, Priority 2 and Excluded. Priority 1 holds strict catalyst
+alerts and manual stars; Priority 2 holds other relevant context and research. The
+two priority tabs are disjoint. Classification comes from the backend; the frontend
 uses the result for labels, colours and filtering. [Filter rules](../../../storage/news_flow/RELEVANCE.md)
 describe the shared classifier. `relevance.json` supplies tag defaults and aliases.
 
@@ -43,7 +44,9 @@ Add Wildcard opens the existing manual editor in `frontend/src/wildcards/`.
 
 ## Alerts and phone
 
-The bell and Global settings share Off/Included/All and publication-age controls.
+The bell and Global settings share Off / Priority 1 only / Priority 1 + Priority 2 /
+All and publication-age controls. Priority 1-only selects the same filtered arrivals
+for desktop sounds, popups and phone delivery.
 Provider and keyword changes synchronize to storage. Desktop sounds, browser
 popup permission and phone setup have their own controls. Startup loads and
 historical imports stay silent; blocked sounds can recover after a user gesture

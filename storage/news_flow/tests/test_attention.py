@@ -19,9 +19,7 @@ class NewsAttentionTests(unittest.TestCase):
         high = [
             'Fed cuts interest rates to keep the economy growing',
             'Fed cuts interest rates minutes before stocks close',
-            'ECB cuts interest rates by 25 basis points', 'RBA holds cash rate as expected',
-            'Markets implied an 88% chance of the November 3 RBA hike',
-            'RBA hike is around 80% priced',
+            'ECB cuts interest rates by 25 basis points',
             'Fed ends balance sheet runoff', 'Japan confirms currency intervention to support yen',
             'US payrolls unexpectedly rise above estimates', 'UK CPI misses expectations',
             'OPEC announces production cuts', 'Hormuz closure disrupts oil supply',
@@ -31,6 +29,9 @@ class NewsAttentionTests(unittest.TestCase):
             'Hawkish BOJ policymaker Takata calls for swift hike in rates',
         ]
         routine = [
+            'RBA holds cash rate as expected',
+            'Markets implied an 88% chance of the November 3 RBA hike',
+            'RBA hike is around 80% priced',
             'Fed to raise rates once more in December: Reuters poll',
             'Bank of England to wait until February to next raise rates, say economists',
             'RBA Raised Rates as Price Risks Remained to Upside, Minutes Show',
@@ -62,7 +63,7 @@ class NewsAttentionTests(unittest.TestCase):
         self.assertEqual(decision('ECB cuts rates', include=INCLUDE, exclude='ECB', enabled=True, pinned=True)['tier'], 'excluded')
         self.assertEqual(decision('My research headline', include=INCLUDE, enabled=True, pinned=True)['tier'], 'priority')
 
-    def test_included_contains_priority_in_reader_export_and_delivery(self):
+    def test_reader_tiers_are_disjoint_and_combined_delivery_covers_both(self):
         with TemporaryDirectory() as root:
             store = NewsStore(root); source = store.sources()[0]; now = int(time.time()*1000)
             store.success(source, [], '', '', now)
@@ -76,23 +77,23 @@ class NewsAttentionTests(unittest.TestCase):
             store.success(next(s for s in store.sources() if s['id'] == overlap), [entries[0]], '', '', now+2)
             store.pin(entries[-1]['url'], True)
             scopes = {mode: store.query(mode=mode, include=INCLUDE, market_relevance=True) for mode in ('priority','included','excluded')}
-            self.assertEqual([scopes[mode]['total'] for mode in scopes], [2,3,1])
+            self.assertEqual([scopes[mode]['total'] for mode in scopes], [2,1,1])
             urls = {mode: {r['url'] for r in page['items']} for mode,page in scopes.items()}
-            self.assertLess(urls['priority'], urls['included'])
+            self.assertFalse(urls['priority'] & urls['included'])
             self.assertFalse(urls['included'] & urls['excluded'])
             self.assertEqual(store.export_headlines(mode='priority', include=INCLUDE, market_relevance=True)['count'], 2)
             copied = store.export_headlines(mode='included', include=INCLUDE, market_relevance=True)
-            self.assertEqual(copied['count'], 3)
+            self.assertEqual(copied['count'], 1)
             self.assertEqual({line for line in copied['text'].splitlines() if line.startswith('https://')}, urls['included'])
-            self.assertEqual(copied['text'].count(entries[0]['title']), 1)
-            self.assertEqual(store.query(mode='included', include=INCLUDE, market_relevance=True, limit=1)['total'], 3)
+            self.assertNotIn(entries[0]['title'], copied['text'])
+            self.assertEqual(store.query(mode='included', include=INCLUDE, market_relevance=True, limit=1)['total'], 1)
             notifier.tick()
             self.assertEqual(notifier.last_sent['count'], 3, 'Included delivery covers Priority and Included')
             self.assertEqual(sent[0]['title'], 'News Flow · 3 new headlines')
             self.assertNotIn('Football final', sent[0]['message'])
             store.pin(entries[-1]['url'], False)
             self.assertEqual(store.query(mode='priority', include=INCLUDE, market_relevance=True)['total'], 1)
-            self.assertEqual(store.query(mode='included', include=INCLUDE, market_relevance=True)['total'], 2)
+            self.assertEqual(store.query(mode='included', include=INCLUDE, market_relevance=True)['total'], 1)
             self.assertEqual(store.query(mode='included', include=INCLUDE, exclude='ECB', market_relevance=True)['total'], 1)
 
     def test_collection_sort_is_stable_and_does_not_change_publication_date_scope(self):
@@ -145,13 +146,13 @@ class NewsAttentionTests(unittest.TestCase):
         self.assertEqual(batch['message'].count('Collected '),1)
         self.assertEqual(batch['message'].count('FXStreet'),1)
         self.assertEqual(batch['message'].count('Published '),4)
-        self.assertEqual(batch['message'].count('Included'),1)
+        self.assertEqual(batch['message'].count('Priority 2'),1)
         mixed = payload([items[0],{**items[1],'publisher':'Reuters','received_at':at+60000},
                          {**items[2],'relevance':{'tier':'priority'}}],'test')
         self.assertEqual(mixed['message'].count('Collected '),1)
         self.assertEqual(mixed['message'].count('FXStreet'),1)
         self.assertEqual(mixed['message'].count('Reuters'),1)
-        self.assertIn('Priority',mixed['message']); self.assertIn('Included',mixed['message'])
+        self.assertIn('Priority 1',mixed['message']); self.assertIn('Priority 2',mixed['message'])
         self.assertIn('9:44 PM WIB',mixed['message']); self.assertIn('9:45 PM WIB',mixed['message'])
 
     def test_api_validates_sorting_and_exposes_new_mode(self):

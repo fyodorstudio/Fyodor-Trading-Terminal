@@ -12,17 +12,17 @@ export function NewsGlobalSettings({ settings, onChange }: { settings: NewsSetti
     <NewsAlarmControls settings={settings} onChange={onChange} />
     <PhoneNewsSettings />
     <fieldset><legend>Headline colours · all providers</legend>
-      <label>Relevant (Priority + Included)<input type="color" aria-label="Included headline colour" value={settings.includedColor} onChange={event => onChange({ ...settings, includedColor: event.target.value })} /></label>
+      <label>Priority 1 + Priority 2<input type="color" aria-label="Priority headline colour" value={settings.includedColor} onChange={event => onChange({ ...settings, includedColor: event.target.value })} /></label>
       <label>Excluded<input type="color" aria-label="Excluded headline colour" value={settings.excludedColor} onChange={event => onChange({ ...settings, excludedColor: event.target.value })} /></label>
       <p>Colours classify relevance. They do not indicate buy/sell direction. Headlines without relevant context are Excluded.</p>
     </fieldset>
   </section><section><fieldset><legend>Keywords · all providers</legend>
     <label className="news-checkbox"><input type="checkbox" aria-label="Trading relevance" checked={settings.marketRelevance} onChange={event => onChange({ ...settings, marketRelevance: event.target.checked })} />Trading relevance: eight currencies, Brent, gold/silver and stock indices</label>
-    <p>Priority highlights explicit developments and your stars. Included contains Priority and other relevant news. Excluded contains headlines rejected by the current keyword/filter settings. Included alerts cover both relevant levels.</p>
+    <p>Priority 1 contains concrete high-impact catalysts and manual stars. Priority 2 contains other relevant context and research. Excluded contains noise rejected by your filters. The two priority tabs are separate; the alert trigger can select Priority 1 only or both tiers.</p>
     <KeywordTags label="Include" value={settings.include} groups={keywordGroups} onChange={include => onChange({ ...settings, include })} />
     <KeywordTags label="Exclude" value={settings.exclude} onChange={exclude => onChange({ ...settings, exclude })} />
     <p>Broad tags need market context. Verified official policy and economic releases remain eligible without keywords. Routine personnel, promotions, crypto-only stories and local retail quotes are filtered with cross-market exceptions.</p>
-    <p>Explicit Exclude always wins, including over stars. Uncheck Trading relevance for literal matching. All keeps everything inspectable. Priority is an attention candidate, not a prediction of volatility or direction.</p>
+    <p>Explicit Exclude always wins, including over stars. Uncheck Trading relevance for literal matching. All keeps everything inspectable. Priority 1 is an attention flag, not a prediction of price direction.</p>
     <button type="button" onClick={() => {
       const tags = keywordTags([settings.include, ...starterKeywords].join(',')), include = tags.join(', ')
       if (tags.length > keywordLimit || include.length > keywordCharacters) setKeywordError(`The combined preset would exceed ${keywordLimit} tags or ${keywordCharacters} characters. Remove some tags first.`)

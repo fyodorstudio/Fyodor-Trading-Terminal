@@ -20,7 +20,7 @@ def provider(item):
 
 def label(item):
     tier = item.get('relevance', {}).get('tier', 'included')
-    return {'priority': 'Priority', 'included': 'Included', 'excluded': 'Excluded · All headlines mode'}[tier]
+    return {'priority': 'Priority 1', 'included': 'Priority 2', 'excluded': 'Excluded · All headlines mode'}[tier]
 
 
 def publication(item):

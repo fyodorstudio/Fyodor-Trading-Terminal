@@ -577,7 +577,7 @@ class NewsFlowTests(unittest.TestCase):
         self.assertEqual(self.store.export_headlines(**{**scope, 'start': self.now + 1, 'end': self.now + 2})['count'], 0)
         self.store.pin(entries[-1]['url'], True)
         self.assertEqual(self.store.export_headlines(**{**scope, 'mode': 'priority'})['text'], 'Oil headline 204\nhttps://example.com/copy/204')
-        self.assertEqual(self.store.export_headlines(**scope)['count'], 205, 'Promoted stars remain in Included exports')
+        self.assertEqual(self.store.export_headlines(**scope)['count'], 204, 'Stars move from Priority 2 into Priority 1 exports')
         with patch('storage.news_flow.store.MAX_EXPORT_ITEMS', 2), self.assertRaises(OverflowError):
             self.store.export_headlines(**scope)
 

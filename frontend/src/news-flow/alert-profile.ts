@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
 
 export type NewsAlertProfile = {
-  mode: 'off' | 'included' | 'all'; max_age_seconds: number | null; unified_alerts: boolean
+  mode: 'off' | 'priority' | 'included' | 'all'; max_age_seconds: number | null; unified_alerts: boolean
   connection: null | { server: string; reader: string; topic: string; reader_password: string }
   error: string; last_sent: null | { at: number; count: number; title: string; url: string }
 }
@@ -11,7 +11,7 @@ const listeners = new Set<() => void>()
 let poll: AbortController | null = null, mutation: AbortController | null = null, timer = 0, revision = 0
 function update(change: Partial<Snapshot>) { snapshot = { ...snapshot, ...change }; for (const listener of listeners) listener() }
 function valid(value: NewsAlertProfile) {
-  return value && ['off', 'included', 'all'].includes(value.mode) &&
+  return value && ['off', 'priority', 'included', 'all'].includes(value.mode) &&
     (value.max_age_seconds == null || Number.isInteger(value.max_age_seconds) && value.max_age_seconds >= 3600 && value.max_age_seconds <= 31536000)
 }
 async function load() {

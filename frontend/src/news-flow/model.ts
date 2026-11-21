@@ -82,6 +82,14 @@ export function headlineTier(item: NewsItem, settings: NewsSettings) {
   return item.relevance?.tier ?? (relevance.included ? 'included' : 'excluded')
 }
 
+export function headlineLabel(tier: 'priority' | 'included' | 'excluded') {
+  return { priority: 'Priority 1', included: 'Priority 2', excluded: 'Excluded' }[tier]
+}
+
+export function headlineReason(reason: string) {
+  return reason.replace(/^(?:Included|Excluded) · /, '')
+}
+
 // Matches the backend's stable timeline; old responses can omit timeline_at.
 export function newsTimestamp(item: NewsItem) {
   return item.timeline_at ?? (item.published_at === null || item.published_at - item.first_seen >= 60000 ? item.first_seen : item.published_at)

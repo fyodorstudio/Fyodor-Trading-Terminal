@@ -73,7 +73,16 @@ def market_text(title):
     text = re.sub(r'\badp(?= stock\b)', 'payroll company', text)
     text = re.sub(r'\b(?:credo|research solutions) technology(?= shares?\b)', 'company', text)
     text = re.sub(r'\bglobal-e online\b', 'online retailer', text)
+    text = re.sub(r'\bfed up\b', 'frustrated', text)
     return text
+
+
+@lru_cache(maxsize=8192)
+def headline_key(title):
+    """Recognize title republication, retaining every figure and release period."""
+    text = _publisher_suffix.sub('', title)
+    text = re.sub(r'\s+By (?:Reuters|Investing\.com)\s*$', '', text, flags=re.I)
+    return normalized(text)
 
 
 def tags(value):

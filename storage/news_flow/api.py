@@ -79,11 +79,11 @@ class HeadlineCheck(NotificationRules):
 
 
 class NotificationInput(NotificationRules):
-    mode: Literal['off', 'included', 'all']
+    mode: Literal['off', 'priority', 'included', 'all']
 
 
 class NotificationDelivery(BaseModel):
-    mode: Literal['off', 'included', 'all']
+    mode: Literal['off', 'priority', 'included', 'all']
     max_age_seconds: int | None = Field(default=86400, ge=3600, le=31536000, multiple_of=3600, strict=True)
 
 
@@ -208,7 +208,7 @@ def news_router(store, collector, notifier=None):
     @router.get('/arrivals')
     def arrivals(after: int | None = Query(default=None, ge=0), include: str = Query(default='', max_length=MAX_RULE_CHARS),
                  exclude: str = Query(default='', max_length=MAX_RULE_CHARS), hidden: list[str] = Query(default=[]),
-                 mode: Literal['included', 'all'] = 'included', market_relevance: bool = False, configured: bool = False,
+                 mode: Literal['priority', 'included', 'all'] = 'included', market_relevance: bool = False, configured: bool = False,
                  filter_policy: str = Query(default='', max_length=16000)):
         if configured:
             profile = notifier.settings()

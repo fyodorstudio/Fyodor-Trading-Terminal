@@ -12,7 +12,7 @@ of MT5 and whether the news panel is open.
 | `collector.py`, `feeds.py` | Scheduled RSS/Atom fetching and parsing |
 | `store.py` | Cache, reader queries, exports and arrival cursors |
 | `relevance.py`, `relevance.json` | Trading relevance and editable defaults |
-| `importance.py` | Priority classification and manual stars |
+| `importance.py`, `priority.py` | Strict Priority 1 classification and manual stars |
 | `rules.py`, `filter_policy.py`, `policy.py` | Matching, user overrides and delivery selection |
 | `history.py` | Historical lookup for supported sources |
 | `diagnostics.py` | Provider check summaries and collector status |
@@ -28,7 +28,7 @@ There is one in-flight request per provider, eight workers and at most two per
 host. Provider visibility and collection can be changed independently.
 
 Reader filters apply before counting, deduplication, pagination and export.
-Tabs are All, Priority, Included and Excluded. Included also contains Priority.
+Tabs are All, Priority 1, Priority 2 and Excluded. The two priority tiers are disjoint.
 The backend supplies classification to desktop, phone, copying and notifications;
 see [filter rules](RELEVANCE.md) and the [source catalogue](SOURCES.md).
 
@@ -39,10 +39,11 @@ queries and Treasury's yearly index where supported; other feeds use the cache.
 
 ## Notifications and phone
 
-Off/Included/All, selected providers, keywords and publication-age limits are
+Off / Priority 1 only / Priority 1 + Priority 2 / All, selected providers, keywords and publication-age limits are
 shared across desktop and Android. New live arrivals can notify once; startup
 loads, historical imports and duplicate links stay silent. Failed delivery keeps
-the cursor for retry. Desktop sounds and browser popups are handled by the frontend.
+the cursor for retry. Priority 1-only delivery also suppresses identical republished
+titles within two hours across URLs/providers, retaining changed figures and periods. Desktop sounds and browser popups are handled by the frontend.
 
 The phone reader listens on LAN port 8005 with reader authentication and proxies
 only news read routes. Local ntfy uses port 8004 with separate reader/writer

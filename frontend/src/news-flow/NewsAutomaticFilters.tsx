@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { NewsSettings } from './model'
 import { KeywordTags } from './KeywordTags'
 import { defaultFilterPolicy, encodeFilterPolicy, keywordGroups, type NewsFilterPolicy } from './filter-policy'
+import { headlineLabel, headlineReason } from './model'
 
 const filters: [keyof NewsFilterPolicy, string, string][] = [
   ['other_markets', 'Hide other-market domestic news', 'Applies only to the keywords below. Traded-market exceptions can keep a story relevant.'],
@@ -41,7 +42,7 @@ export function NewsAutomaticFilters({ settings, onChange }: { settings: NewsSet
 
 function HeadlineCheck({ scope, title, onTitle }: { scope: string; title: string; onTitle: (value: string) => void }) {
   const [busy, setBusy] = useState(false), [error, setError] = useState('')
-  const [result, setResult] = useState<{ relevance: { tier: string; reason: string; priority_reason?: string }; matched_include: string[]; matched_exclude: string[] } | null>(null)
+  const [result, setResult] = useState<{ relevance: { tier: 'priority' | 'included' | 'excluded'; reason: string; priority_reason?: string }; matched_include: string[]; matched_exclude: string[] } | null>(null)
   const request = useRef<AbortController | null>(null)
   useEffect(() => () => request.current?.abort(), [])
   async function check() {
@@ -61,7 +62,7 @@ function HeadlineCheck({ scope, title, onTitle }: { scope: string; title: string
       <label>Check a headline<input aria-label="Check headline text" maxLength={2000} value={title} placeholder="Paste a headline to see its keyword matches and decision" onChange={event => { request.current?.abort(); setBusy(false); setResult(null); setError(''); onTitle(event.target.value) }} /></label>
       <button type="submit" aria-label="Check headline" disabled={!title.trim() || busy}>{busy ? 'Checking…' : 'Check headline'}</button>
       <p>Checks text only; official-source protections need the original feed/article context. This never fetches an article or sends an alert.</p>
-      {result && <div role="status"><strong>{result.relevance.tier === 'priority' ? 'Priority (also Included)' : result.relevance.tier === 'included' ? 'Included' : 'Excluded'}</strong><p>{result.relevance.reason}{result.relevance.priority_reason ? ` · ${result.relevance.priority_reason}` : ''}</p><p>Include matches: {result.matched_include.join(', ') || 'None'}<br />Exclude matches: {result.matched_exclude.join(', ') || 'None'}</p></div>}
+      {result && <div role="status"><strong>{headlineLabel(result.relevance.tier)}</strong><p>{headlineReason(result.relevance.reason)}{result.relevance.priority_reason ? ` · ${result.relevance.priority_reason}` : ''}</p><p>Include matches: {result.matched_include.join(', ') || 'None'}<br />Exclude matches: {result.matched_exclude.join(', ') || 'None'}</p></div>}
     {error && <p role="alert">{error}</p>}
     </form>
 }

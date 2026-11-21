@@ -16,5 +16,5 @@ export function NewsTabs({ label, value, items, onChange, controls }: { label: s
 
 export function NewsFilterTabs({ value, onChange, controls }: { value: NewsMode; onChange: (value: NewsMode) => void; controls: string }) {
   return <NewsTabs label="Headline classification" value={value} onChange={value => onChange(value as NewsMode)} controls={controls}
-    items={[{ id: 'all', label: 'All' }, { id: 'priority', label: 'Priority' }, { id: 'included', label: 'Included' }, { id: 'excluded', label: 'Excluded' }]} />
+    items={[{ id: 'all', label: 'All' }, { id: 'priority', label: 'Priority 1' }, { id: 'included', label: 'Priority 2' }, { id: 'excluded', label: 'Excluded' }]} />
 }

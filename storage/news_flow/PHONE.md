@@ -14,7 +14,7 @@ private local phone service. No Docker, paid API or public ntfy account is neede
    Add this user for that server in ntfy if the app requests authentication.
 5. Allow Android notifications; keep ntfy **Instant delivery** enabled. If Android
    restricts its background connection, allow the app's background/battery access.
-6. Choose **Included headlines** or **All new headlines** for News alert trigger, then
+6. Choose **Priority 1 only** for strict alerts, **Priority 1 + Priority 2** for broader coverage, or **All new headlines** for News alert trigger, then
    press **Send test notification**. Confirm receipt on the actual phone.
 7. Open **Phone news page** in your phone browser. Use the same reader login.
    Bookmark it or add a home-screen shortcut. Notification taps open the publisher
@@ -101,7 +101,7 @@ No ntfy subscription or login changes are required. See [RELEVANCE.md](RELEVANCE
 
 `notification_format.py` owns the plain-text payload. Single cards put the full
 headline once in the title (UTF-8 bounded to 1000 bytes); the body has source,
-Priority/Included/Excluded level and Jakarta (WIB, UTC+7) publication/collection times in AM/PM.
+Priority 1 / Priority 2 / Excluded level and Jakarta (WIB, UTC+7) publication/collection times in AM/PM.
 Unknown/future publication times are labelled unavailable. Raw links are kept
 in click/view actions, never repeated in the body. Single-story taps open the
 article; batches open the LAN reader when its runtime address is available.
@@ -110,7 +110,7 @@ Batches preserve one notification/sound and preview at most eight headlines.
 Bodies stay below 4096 bytes and titles below 1024 bytes; no URL shortener or
 extra network lookup is needed. Earlier saved ntfy cards are not rewritten.
 Android urgency remains unchanged and is separate from the market-attention tier.
-Included delivery includes Priority + Included; Off/All and credentials are retained.
+The combined delivery option includes Priority 1 + Priority 2; Off/All and credentials are retained.
 
 Batch cards print collection time once (a range when needed) and group previews
 by provider, with one provider header per group. Shared relevance labels appear
@@ -118,7 +118,7 @@ once per group; mixed levels and individual publication times stay explicit.
 
 ## Shared alert policy
 
-News alerts has one Off / Included / All trigger for desktop and ntfy. The server
+News alerts has one Off / Priority 1 only / Priority 1 + Priority 2 / All trigger for desktop and ntfy. The server
 owns this mode and max_age_seconds; alert-profile.ts shares one subscription and
 save state across controls. Keyword/provider sync cannot overwrite delivery policy.
 The one-time browser migration preserves an enabled phone or legacy desktop

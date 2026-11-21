@@ -167,10 +167,10 @@ class HeadlineFilterTests(unittest.TestCase):
             store.success(source, entries, '', '', now + 1)
             scope = dict(include=INCLUDE, market_relevance=True)
             expected = set(CATALYSTS + KEEP)
-            self.assertEqual(store.query(mode='included', limit=1, **scope)['total'], len(expected))
-            self.assertEqual({r['title'] for r in store.query(mode='included', **scope)['items']}, expected)
-            copied = store.export_headlines(mode='included', **scope)
-            self.assertEqual(copied['count'], len(expected))
+            tiers = [store.query(mode=mode, **scope) for mode in ('priority', 'included')]
+            self.assertFalse({r['title'] for r in tiers[0]['items']} & {r['title'] for r in tiers[1]['items']})
+            self.assertEqual({r['title'] for tier in tiers for r in tier['items']}, expected)
+            self.assertEqual(sum(store.export_headlines(mode=mode, **scope)['count'] for mode in ('priority', 'included')), len(expected))
             self.assertEqual({r['title'] for r in store.arrivals(cursor, now=now+2, **scope)['items']}, expected)
             self.assertEqual(store.query(mode='all', **scope)['total'], len(titles))
             sent = []

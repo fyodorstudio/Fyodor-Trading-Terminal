@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { newsQuery, newsTimestamp, delayedCollection, headlineClassification, headlineTier } from '../model'
+import { newsQuery, newsTimestamp, delayedCollection, headlineClassification, headlineTier, headlineLabel, headlineReason } from '../model'
 import { useNewsSettings } from '../settings'
 import { useNewsPage, useNewsSources } from '../useNewsFlow'
 import { NewsProviderSelector } from '../NewsProviderSelector'
@@ -69,7 +69,7 @@ export function MobileNews() {
           <a href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a>
           <p>{item.publisher || item.source_name} · {collected ? 'First collected ' : 'Published '}<time dateTime={new Date(at).toISOString()}>{new Date(at).toLocaleString()}</time>
             {!collected && (delayedCollection(item) || settings.sortBy === 'collected') && <> · Collected <time data-sort-time={settings.sortBy === 'collected'} dateTime={new Date(item.first_seen).toISOString()}>{new Date(item.first_seen).toLocaleString()}</time></>}</p>
-          <small>{tier === 'priority' ? `Priority · ${item.relevance?.priority_reason || 'Manually starred'}` : relevance.reason}</small>
+          <small>{headlineLabel(tier)} · {tier === 'priority' ? item.relevance?.priority_reason || 'Manually starred' : headlineReason(relevance.reason)}</small>
         </article>
       })}
       {page && !page.items.length && <p>No collected headlines match this view.</p>}

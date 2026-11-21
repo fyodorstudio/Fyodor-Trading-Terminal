@@ -6,15 +6,15 @@ when the headline connects them to those markets.
 
 ## Implementation
 
-`relevance.py` classifies headlines; `importance.py` assigns Priority and handles
-manual stars. `relevance.json` owns tag defaults, aliases and context patterns.
+`relevance.py` classifies headlines; `priority.py` selects strict Priority 1
+catalysts and `importance.py` combines that result with manual stars. `relevance.json` owns tag defaults, aliases and context patterns.
 `headline_filters.py` recognizes explicit catalysts and routine headline formats;
 `rules.py` handles literal matching and normalization. The frontend imports shared
 defaults and displays the backend result rather than running a second classifier.
 
 Classification runs before counting, pagination, copying and alert selection.
-Desktop and phone use the same rules. Included contains Priority and other relevant
-headlines; Excluded contains the rest. All remains available for browsing.
+Desktop and phone use the same rules. Priority 1 and Priority 2 are separate
+reader/export tiers; Excluded contains the rest. All remains available for browsing.
 
 ## Decision order
 
@@ -36,11 +36,18 @@ headlines; Excluded contains the rest. All remains available for browsing.
    topics and unrelated domestic-market stories. Cross-market exceptions keep
    relevant policy, energy, metals, index companies and systemic events included.
 
-Priority recognizes reported FX intervention warnings and readiness, substantive
-central-bank guidance and unequal actual/forecast figures with matching units.
-It does not infer a policy change from generic hawkish/dovish labels, or treat
-"few surprises" and previous-value comparisons as economic surprises. These are
-headline attention labels, not verified novelty or trading signals.
+Priority 1 requires direct headline evidence of FX intervention warnings/readiness,
+specific central-bank rate guidance, major economic surprises, actual policy/trade
+changes, physical energy-supply shocks, systemic stress or exceptional index moves.
+Reported index moves qualify at 3% and VIX moves at 20%; exchange-listing labels
+and another asset's percentage move do not establish an index shock. These
+thresholds live in `priority.py`.
+
+Routine rate odds, expected holds, analyst predictions, generic inflation remarks,
+price-reaction articles, recaps and historical intervention reports stay out of
+Priority 1. Official-source protection establishes relevance, not Priority 1.
+Ambiguous relevant news stays in Priority 2. No price confirmation is needed for
+an explicit qualifying catalyst; priority is not a prediction of price direction.
 
 Publisher suffixes and reporting attributions are removed for contextual matching. Currency pairs, Unicode
 punctuation and common stock/bond/yield forms normalize consistently. Literal mode
@@ -58,9 +65,15 @@ Disabling it restores broader keyword-based reading; disabling Trading relevance
 restores literal matching. Manual stars can promote filtered stories unless an
 explicit Exclude matches. All preserves collected stories and provider collection
 is unaffected. The All notification mode intentionally bypasses relevance filters;
-use Included for filtered desktop and phone alerts.
+use Priority 1 only for strict alerts or Priority 1 + Priority 2 for broader alerts.
 
-Off/Included/All and publication-age limits are shared by desktop and Android.
+Off / Priority 1 only / Priority 1 + Priority 2 / All and publication-age limits are
+shared by desktop and Android. Existing delivery selections remain saved. The API
+retains `priority` and `included` identifiers for compatibility; `included` delivery
+means both priorities, while the `included` reader/export mode means Priority 2 only.
+Priority 1-only delivery suppresses identical publisher-normalized titles for two
+hours across polling batches and URLs. Changed numbers/periods remain eligible;
+different wording about the same event can still produce another alert.
 Changing rules keeps the arrival cursor; it does not replay historical alerts.
 Desktop sound and popup permissions remain local to the browser.
 

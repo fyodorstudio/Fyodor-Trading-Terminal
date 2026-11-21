@@ -61,6 +61,12 @@ try {
   await reply(ageSave,{...phone,mode:'included',max_age_seconds:21600})
   assert.equal(control('News publication age amount').value,'6')
   assert.equal(control('News publication age unit').value,'hours')
+  await change('News alert trigger', 'priority')
+  const prioritySave = pending('/notifications/settings')
+  assert.deepEqual(JSON.parse(prioritySave.body), { mode: 'priority', max_age_seconds: 21600 })
+  await reply(prioritySave, { ...phone, mode: 'priority', max_age_seconds: 21600 })
+  assert.equal(control('News alert trigger').value, 'priority', 'Priority 1 is accepted and persisted by the shared profile')
+  assert.deepEqual([...control('News alert trigger').options].map(option => option.textContent), ['Off', 'Priority 1 only', 'Priority 1 + Priority 2', 'All new headlines'])
   await React.act(async () => [...host.querySelectorAll('button')].find(button => button.textContent === 'Send test notification').click())
   const test = pending('/notifications/test')
   assert.equal(test.method, 'POST')
@@ -97,13 +103,13 @@ try {
   query=new URL(pending('/items').url,'http://localhost').searchParams
   assert.equal(query.get('sort_by'),'published'); assert.equal(query.get('order'),'oldest')
   assert.equal(query.get('start'),originalStart); assert.equal(query.get('end'),originalEnd)
-  await click('Priority')
+  await click('Priority 1')
   query=new URL(pending('/items').url,'http://localhost').searchParams
   assert.equal(query.get('mode'),'priority')
   const priority={...headline,relevance:{included:true,tier:'priority',reason:'Included · Japan',keyword:'Japan',priority_reason:'Reported currency intervention'}}
   await reply(pending('/items'),{items:[priority],total:1})
   assert.equal(host.querySelector('article').dataset.newsCategory,'priority')
-  assert.match(host.textContent,/Priority · Reported currency intervention/)
+  assert.match(host.textContent,/Priority 1 · Reported currency intervention/)
   assert.ok(requests.slice(before).every(request => !request.method || request.method === 'GET'), 'Phone browsing only reads the API')
   assert.equal(pending('/history'), undefined, 'Phone dates do not initiate external historical searches')
   await React.act(async () => root.render(null))

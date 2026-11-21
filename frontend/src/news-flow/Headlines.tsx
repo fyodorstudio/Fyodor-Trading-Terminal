@@ -1,6 +1,6 @@
 import { useDisplayClock } from '../appearance/time-display/useDisplayClock'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { newsAge, newsTimestamp, delayedCollection, headlineClassification, headlineTier, type NewsItem, type NewsSettings } from './model'
+import { newsAge, newsTimestamp, delayedCollection, headlineClassification, headlineTier, headlineLabel, headlineReason, type NewsItem, type NewsSettings } from './model'
 import type { useNewsHistory } from './useNewsFlow'
 import { pinNews } from './useNewsFlow'
 import { useNewsSettings } from './settings'
@@ -49,13 +49,13 @@ function Headline({ item, dated, settings, now }: { item: NewsItem; dated: boole
   return <article data-news-category={category} style={{ '--news-category': category !== 'excluded' ? settings.includedColor : settings.excludedColor } as CSSProperties}>
     <div className="news-row-heading"><a href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a>
       <div className="news-row-actions"><button type="button" title="Add Wildcard" aria-label={`Add Wildcard: ${item.title}`} disabled={!wildcards?.snapshot || wildcards.saving} onClick={addWildcard}>✦</button>
-        <button type="button" title={pinned ? 'Remove manual star' : 'Add to Priority'} aria-label={`${pinned ? 'Unstar' : 'Star'} headline: ${item.title}`} aria-pressed={pinned} disabled={pinning} onClick={() => void togglePin()}>{pinned ? '★' : '☆'}</button></div></div>
+        <button type="button" title={pinned ? 'Remove manual star' : 'Add to Priority 1'} aria-label={`${pinned ? 'Unstar' : 'Star'} headline: ${item.title}`} aria-pressed={pinned} disabled={pinning} onClick={() => void togglePin()}>{pinned ? '★' : '☆'}</button></div></div>
     <div className="news-byline"><span>{item.publisher || item.source_name}</span><span>·</span>
       <time dateTime={new Date(displayedAt).toISOString()} title={timeTitle}>
         {collected ? 'First collected ' : 'Published '}{dated ? clock.utc(displayedAt) : newsAge(displayedAt, now)}</time>
       {!collected && (delayedCollection(item) || settings.sortBy === 'collected') && <><span>·</span><time data-sort-time={settings.sortBy === 'collected'} dateTime={new Date(item.first_seen).toISOString()} title={collectionTitle}>Collected {dated ? clock.utc(item.first_seen) : newsAge(item.first_seen, now)}</time></>}
     </div>
-    <div className="news-row-footer"><div className="news-row-labels"><span title={relevance.reason}>{category === 'priority' ? `Priority · ${pinned ? 'Manually starred' : item.relevance?.priority_reason || 'Attention candidate'}` : relevance.reason}</span>
+    <div className="news-row-footer"><div className="news-row-labels"><span title={headlineReason(relevance.reason)}>{headlineLabel(category)} · {category === 'priority' ? pinned ? 'Manually starred' : item.relevance?.priority_reason || 'High-impact catalyst' : headlineReason(relevance.reason)}</span>
     </div><div className="news-row-age">
       <time dateTime={new Date(displayedAt).toISOString()} title={timeTitle}>{collected ? 'First collected ' : 'Published '}{newsAge(displayedAt, now)}</time>
       {!collected && (delayedCollection(item) || settings.sortBy === 'collected') && <time dateTime={new Date(item.first_seen).toISOString()} title={collectionTitle}>Collected {newsAge(item.first_seen, now)}</time>}

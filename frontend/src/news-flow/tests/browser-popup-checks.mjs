@@ -71,7 +71,7 @@ export async function checkBrowserPopups({ server, dom, root, React, control, pe
     await reply(pending('/arrivals'), { cursor: 11, items: [item('fresh', { sequence: 11 })] })
     assert.equal(shown.length, 2, 'A new eligible headline displays even when audio is blocked')
     assert.equal(shown[1].title, 'Nvidia news fresh')
-    assert.match(shown[1].options.body, /Reuters · Priority/)
+    assert.match(shown[1].options.body, /Reuters · Priority 1/)
     assert.match(shown[1].options.body, /Published.*(?:AM|PM) WIB/)
     assert.match(shown[1].options.body, /Collected/)
     assert.equal(shown[1].options.requireInteraction, false)

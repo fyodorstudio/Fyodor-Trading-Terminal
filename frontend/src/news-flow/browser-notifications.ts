@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import type { NewsItem } from './model'
+import { headlineLabel } from './model'
 
 const journalKey = 'fyodor.news-flow.popups.v1'
 const listeners = new Set<() => void>(), open = new Set<Notification>()
@@ -78,7 +79,7 @@ export async function showNewsPopups(items: NewsItem[], active: () => boolean, e
       const published = item.published_at !== null && item.published_at <= Date.now() && item.published_at - item.first_seen < 60000
         ? `Published ${stamp(item.published_at)}` : 'Publication time unavailable'
       const provider = item.publisher || item.source_name
-      banner(item.title, `${provider}${item.relevance?.tier === 'priority' ? ' · Priority' : ''}\n${published}\nCollected ${stamp(collected)}`, `fyodor-news-${key}`, url.href)
+      banner(item.title, `${provider} · ${headlineLabel(item.relevance?.tier ?? 'included')}\n${published}\nCollected ${stamp(collected)}`, `fyodor-news-${key}`, url.href)
       remember(key)
     }
     report('')
