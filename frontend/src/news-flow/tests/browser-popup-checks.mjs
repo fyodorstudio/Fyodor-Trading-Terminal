@@ -35,12 +35,22 @@ export async function checkBrowserPopups({ server, dom, root, React, control, pe
     const [settings, change] = useNewsSettings()
     return React.createElement(React.Fragment, null, React.createElement(NewsSoundAlerts), React.createElement(NewsAlarmControls, { settings, onChange: change }))
   }
+  async function save() {
+    await click('Save news alert settings')
+    const request = pending('/notifications/settings')
+    if (request) await reply(request, { ...JSON.parse(request.body), unified_alerts: true, connection: null, error: '', last_sent: null })
+  }
+  function PopupHarness() {
+    const [settings, change] = useNewsSettings()
+    return React.createElement(NewsPopupSettings, { enabled: settings.browserNotifications, onChange: enabled => change(old => ({ ...old, browserNotifications: enabled })) })
+  }
   async function tick() {
     const timer = [...timers].find(([, value]) => value.ms === 1000)
     assert.ok(timer, 'Arrival listener timer')
     await React.act(async () => { timers.delete(timer[0]); timer[1].fn() })
   }
   try {
+    dom.localStorage.removeItem('fyodor.news-flow.alert-cursor.v1')
     dom.localStorage.setItem('fyodor.news-flow.v1', JSON.stringify({ ...readNewsSettings(), browserNotifications: 'true' }))
     assert.equal(readNewsSettings().browserNotifications, false, 'Only explicit boolean opt-in enables popups')
     dom.localStorage.setItem('fyodor.news-flow.v1', JSON.stringify({ ...readNewsSettings(), browserNotifications: false, soundEnabled: false }))
@@ -61,6 +71,8 @@ export async function checkBrowserPopups({ server, dom, root, React, control, pe
     Toast.permission = 'default'
     await click('Windows headline popups')
     assert.equal(Toast.prompts, 1)
+    assert.equal(readNewsSettings().browserNotifications, false, 'Permission does not save the draft')
+    await save()
     assert.equal(readNewsSettings().browserNotifications, true)
     await click('Test Windows headline popup')
     assert.equal(shown.length, 1)
@@ -94,11 +106,13 @@ export async function checkBrowserPopups({ server, dom, root, React, control, pe
     assert.equal(shown.length, 2)
 
     await click('Windows headline popups')
+    await save()
     assert.equal(readNewsSettings().browserNotifications, false)
     assert.equal(shown[0].closed, true, 'Disabling closes outstanding banners')
     await tick()
     await reply(pending('/arrivals'), { cursor: 15, items: [item('off', { sequence: 15 })] })
     await click('Windows headline popups')
+    await save()
     assert.equal(Toast.prompts, 1, 'Existing browser permission is reused')
     await tick()
     await reply(pending('/arrivals'), { cursor: 15, items: [item('off', { sequence: 15 })] })
@@ -112,7 +126,9 @@ export async function checkBrowserPopups({ server, dom, root, React, control, pe
     await reply(pending('/arrivals'), { cursor: 17, items: [item('toggle-queued', { sequence: 17 })] })
     assert.equal(typeof releaseToggle, 'function')
     await click('Windows headline popups')
+    await save()
     await click('Windows headline popups')
+    await save()
     await React.act(async () => releaseToggle())
     assert.equal(shown.length, 3, 'Off/on invalidates already queued work even when permission remains granted')
     Object.defineProperty(dom.navigator, 'locks', { configurable: true, value: undefined })
@@ -161,7 +177,7 @@ export async function checkBrowserPopups({ server, dom, root, React, control, pe
     let allowLate
     const originalRequest = Toast.requestPermission
     Toast.requestPermission = () => new Promise(resolve => { allowLate = () => { Toast.permission = 'granted'; resolve('granted') } })
-    await React.act(async () => root.render(React.createElement(NewsPopupSettings)))
+    await React.act(async () => root.render(React.createElement(PopupHarness)))
     await click('Windows headline popups')
     await React.act(async () => root.render(null))
     await React.act(async () => allowLate())

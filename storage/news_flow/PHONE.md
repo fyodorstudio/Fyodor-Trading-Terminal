@@ -8,14 +8,14 @@ private local phone service. No Docker, paid API or public ntfy account is neede
 
 1. Install **ntfy** from Google Play. Connect the phone to the PC's home router.
 2. On the desktop open **News Flow -> bell** (immediately right of Search).
-3. Under Android notifications, copy the displayed **Server** and **Topic** into
+3. Expand **Phone connection and delivery test**, then copy **Server** and **Topic** into
    a new ntfy subscription. Select your own server, not the default ntfy.sh.
 4. Use **Show reader login** for username `reader` and the generated password.
    Add this user for that server in ntfy if the app requests authentication.
 5. Allow Android notifications; keep ntfy **Instant delivery** enabled. If Android
    restricts its background connection, allow the app's background/battery access.
 6. Choose **Priority 1 only** for strict alerts, **Priority 1 + Priority 2** for broader coverage, or **All new headlines** for News alert trigger, then
-   press **Send test notification**. Confirm receipt on the actual phone.
+   press **Save settings**. Use **Send test notification** to confirm receipt on the actual phone.
 7. Open **Phone news page** in your phone browser. Use the same reader login.
    Bookmark it or add a home-screen shortcut. Notification taps open the publisher
    link directly. Reading the full feed happens on the separate phone news page.
@@ -58,8 +58,11 @@ research to fetch older material. Copy includes all matching collected pages.
 
 New live collection from a primed source creates a monotonic arrival. Publication
 may be much earlier. Backfill, first-source loads, updates and known URLs do not
-create alerts. Service/listener startup establishes a silent baseline. Enabling
-phone alerts does not replay items collected while off. Rule edits keep the cursor.
+create alerts. Phone delivery saves its processed cursor on disk; desktop delivery
+saves its cursor in the browser. Restart resumes unprocessed live arrivals collected
+within the last 15 minutes, subject to the shared trigger and publication-age limit.
+A browser without a saved cursor can recover arrivals collected since service startup.
+Enabling alerts does not replay items collected while off. Rule edits keep the cursor.
 
 The backend polls arrivals every 0.5 seconds and coalesces a batch into one ntfy
 notification (up to eight compact previews, count retained). Failed publishing
@@ -126,9 +129,12 @@ trigger, then marks unified_alerts=true. Sound selection remains desktop-local;
 Android chooses the phone sound. Credentials and subscriptions are preserved.
 
 Publication age defaults to 24 hours. Choose a whole number of hours or days and
-Apply age limit; disabling the checkbox permits any age. The backend enforces
+press Save settings; disabling the checkbox permits any age. Trigger, age limit,
+desktop sound and Windows popup preference stay draft until that single save.
+Sound previews and notification tests run immediately. The backend enforces
 this for both phone and configured desktop arrivals, including All mode. Unknown,
 future or originally scheduled publication dates cannot pass an enabled limit.
 Reader/history/export remain available; suppressed arrivals advance the cursor
 and are not replayed by later widening the limit. Desktop rechecks age before
-playing a buffered sound. Initial snapshots/history/repeats stay silent.
+playing a buffered sound. Historical imports and consumed arrivals stay silent;
+unprocessed startup collections remain eligible within the recovery window.

@@ -26,6 +26,7 @@ class NewsNotifier:
         self.lock, self.stopped = RLock(), Event()
         self.thread = None
         self.cursor = None
+        self.desktop_cursor = None
         self.retry_at = 0
         self.error = ''
         self.last_sent = None
@@ -61,6 +62,8 @@ class NewsNotifier:
             if mode is not None:
                 if current['mode'] == 'off' and mode != 'off':
                     self.cursor = self.store.arrivals(mode='all')['cursor']
+                    self.desktop_cursor = self.cursor
+                    self._checkpoint()
                 current['mode'] = mode
             current.update(rules)
             self.root.mkdir(parents=True, exist_ok=True)
@@ -97,11 +100,29 @@ class NewsNotifier:
     def start(self):
         if self.thread is not None:
             return
-        # Existing arrivals are not replayed after service restart.
-        self.cursor = self.store.arrivals(mode='all')['cursor']
+        # Establish the desktop bootstrap before collection can add arrivals.
+        # Phone resumes its last processed batch; store.arrivals bounds recovery
+        # to recent live discoveries and still applies publication-age rules.
+        self.desktop_cursor = self.store.arrivals(mode='all')['cursor']
+        self.cursor = self._resume_cursor(self.desktop_cursor)
         self.stopped.clear()
         self.thread = Thread(target=self._run, name='news-notifications', daemon=True)
         self.thread.start()
+
+    def _resume_cursor(self, latest):
+        try:
+            value = json.loads((self.root / 'delivery-cursor.json').read_text(encoding='utf-8'))
+            if type(value) is int and 0 <= value <= latest:
+                return value
+        except (OSError, ValueError):
+            pass
+        return latest
+
+    def _checkpoint(self, cursor=None):
+        self.root.mkdir(parents=True, exist_ok=True)
+        temporary = self.root / 'delivery-cursor.json.tmp'
+        temporary.write_text(json.dumps(self.cursor if cursor is None else cursor), encoding='utf-8')
+        temporary.replace(self.root / 'delivery-cursor.json')
 
     def stop(self):
         self.stopped.set()
@@ -125,6 +146,8 @@ class NewsNotifier:
             if time.time() < self.retry_at:
                 return
             config = self.settings()
+            if self.cursor is None:
+                self.cursor = self._resume_cursor(self.store.arrivals(mode='all')['cursor'])
             page = self.store.arrivals(self.cursor, config['include'], config['exclude'], config['hidden'],
                                        mode='all' if config['mode'] == 'off' else config['mode'], market_relevance=config.get('market_relevance', True), max_age_seconds=config['max_age_seconds'], filter_policy=config.get('filter_policy', '{}'))
             if config['mode'] != 'off' and page['items']:
@@ -139,5 +162,7 @@ class NewsNotifier:
                 self.last_sent = {'at': int(time.time() * 1000), 'count': len(items),
                                   'title': first['title'], 'url': first['url'],
                                   'received_at': first['received_at'], 'published_at': first['published_at']}
-            self.cursor = page['cursor']
+            if self.cursor != page['cursor'] or not (self.root / 'delivery-cursor.json').exists():
+                self._checkpoint(page['cursor'])
+                self.cursor = page['cursor']
             self.retry_at, self.error = 0, ''

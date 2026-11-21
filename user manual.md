@@ -340,11 +340,17 @@ notification urgency is separate from the market Priority label. Existing ntfy
 subscriptions and credentials need no change. Old notification cards are unchanged.
 
 News Flow alarms now have one **News alerts - desktop + phone** trigger. Off
-stops both, Included covers Priority + Included, and All covers every relevance
-level. **Only alert on recent publications** defaults to 24 hours. Enter hours
-or days and choose **Apply age limit**. Older/unknown/scheduled publications stay
+stops both, **Priority 1 only** covers important headlines, **Priority 1 + Priority 2**
+includes both tiers, and **All new headlines** covers every relevance level.
+**Only alert on recent publications** defaults to 24 hours. Enter hours
+or days, choose the sound and Windows popup preference, then use **Save settings**.
+Older/unknown/scheduled publications stay
 readable but silent; disabling the limit allows any age. Desktop sound selection
-is local; ntfy/Android chooses the phone sound.
+is local; ntfy/Android chooses the phone sound. Saved delivery cursors recover
+unprocessed live collections from the last 15 minutes after restart, subject to
+the trigger and age limit. Historical imports and consumed arrivals stay silent.
+Use **Preview sound** to unlock browser audio. Expand **Phone connection and
+delivery test** for ntfy setup and a phone test.
 
 Price alert crossings now retain pending sound until it starts, for up to five
 minutes. Interaction can unlock browser audio; a notice remains visible outside

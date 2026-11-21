@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import type { NewsSettings } from './model'
 import { useNewsSettings } from './settings'
 import { enableNewsSound, playNewsSound } from './sound'
@@ -7,38 +7,57 @@ import { useDisplayClock } from '../appearance/time-display/useDisplayClock'
 import { saveNewsAlertProfile, useNewsAlertProfile } from './alert-profile'
 import { NewsPopupSettings } from './NewsPopupSettings'
 
+type AlertDraft = { mode: 'off' | 'priority' | 'included' | 'all'; enabled: boolean; amount: string; unit: 'hours' | 'days'; sound: NewsSettings['sound']; popups: boolean }
+
 export function NewsAlarmControls({ settings, onChange }: { settings: NewsSettings; onChange: (settings: NewsSettings) => void }) {
   const status = useNewsAlertStatus(), clock = useDisplayClock(), profile = useNewsAlertProfile()
-  const [previewError, setPreviewError] = useState('')
-  const age = profile.data?.max_age_seconds === undefined ? 86400 : profile.data.max_age_seconds
-  const [draft, setDraft] = useState<{ base: number | null; enabled: boolean; amount: string; unit: 'hours' | 'days' } | null>(null)
-  const value = draft?.base === age ? draft : { base: age, enabled: age !== null, amount: String(age === null ? 24 : age % 86400 === 0 ? age / 86400 : age / 3600), unit: age !== null && age % 86400 === 0 ? 'days' as const : 'hours' as const }
+  const [previewError, setPreviewError] = useState(''), [saved, setSaved] = useState(false)
+  const [draft, setDraft] = useState<AlertDraft | null>(null)
+  const latestSettings = useRef(settings)
+  useLayoutEffect(() => { latestSettings.current = settings }, [settings])
+  const age = profile.data?.max_age_seconds ?? 86400
+  const current: AlertDraft = { mode: profile.data?.mode ?? 'off', enabled: profile.data?.max_age_seconds !== null,
+    amount: String(age % 86400 === 0 ? age / 86400 : age / 3600), unit: age % 86400 === 0 ? 'days' : 'hours',
+    sound: settings.sound, popups: settings.browserNotifications }
+  const value = draft ?? current
   const seconds = value.enabled ? Number(value.amount) * (value.unit === 'days' ? 86400 : 3600) : null
   const valid = seconds === null || Number.isInteger(Number(value.amount)) && Number(value.amount) >= 1 && seconds <= 31536000
   const disabled = !profile.data || profile.loading || profile.saving
+  const dirty = value.mode !== current.mode || seconds !== profile.data?.max_age_seconds || value.sound !== current.sound || value.popups !== current.popups
+  function edit(change: Partial<AlertDraft>) { setDraft(old => ({ ...(old ?? current), ...change })); setSaved(false) }
+  async function save() {
+    if (!valid || disabled) return
+    if (value.mode !== 'off') void enableNewsSound()
+    const policyUnchanged = value.mode === profile.data!.mode && seconds === profile.data!.max_age_seconds
+    if (policyUnchanged || await saveNewsAlertProfile(value.mode, seconds)) {
+      onChange({ ...latestSettings.current, sound: value.sound, browserNotifications: value.popups })
+      setDraft(null); setSaved(true)
+    }
+  }
   return <fieldset className="news-alert-settings"><legend>News alerts · desktop + phone</legend>
-    <label>Alert trigger<select aria-label="News alert trigger" disabled={disabled} value={profile.data?.mode ?? 'off'} onChange={event => {
-      const mode = event.target.value as 'off' | 'priority' | 'included' | 'all'
-      if (mode !== 'off') void enableNewsSound()
-      void saveNewsAlertProfile(mode, age)
-    }}><option value="off">Off</option><option value="priority">Priority 1 only</option><option value="included">Priority 1 + Priority 2</option><option value="all">All new headlines</option></select></label>
-    <p className="news-alert-note">One trigger for desktop sound, Windows popups and phone notifications. Priority 1 includes important catalysts, risk sentiment and fundamental repricing.</p>
-    <form className="news-alert-age" onSubmit={event => { event.preventDefault(); if (valid && !disabled) void saveNewsAlertProfile(profile.data!.mode, seconds) }}>
-      <label className="news-checkbox"><input aria-label="Limit news publication age" type="checkbox" disabled={disabled} checked={value.enabled} onChange={event => setDraft({ ...value, enabled: event.target.checked })} />Only alert on recent publications</label>
-      <div className="news-alert-age-range"><label>Published within<input aria-label="News publication age amount" type="number" min="1" max={value.unit === 'hours' ? 8760 : 365} step="1" disabled={disabled || !value.enabled} value={value.amount} onChange={event => setDraft({ ...value, amount: event.target.value })} /></label>
-        <label>Unit<select aria-label="News publication age unit" disabled={disabled || !value.enabled} value={value.unit} onChange={event => setDraft({ ...value, unit: event.target.value as 'hours' | 'days' })}><option value="hours">Hours</option><option value="days">Days</option></select></label>
-        <button type="submit" disabled={disabled || !valid || seconds === age}>Apply age limit</button></div>
-      <p>Applies to both devices. Older headlines stay readable but silent. Missing or scheduled publication times cannot pass an enabled limit.</p>
+    <form className="news-alert-form" onSubmit={event => { event.preventDefault(); void save() }}>
+      <label>Alert trigger<select aria-label="News alert trigger" disabled={disabled} value={value.mode} onChange={event => edit({ mode: event.target.value as AlertDraft['mode'] })}>
+        <option value="off">Off</option><option value="priority">Priority 1 only</option><option value="included">Priority 1 + Priority 2</option><option value="all">All new headlines</option>
+      </select></label>
+      <p className="news-alert-note">Shared by desktop sound, Windows popups and phone. Priority 1 covers important catalysts, risk sentiment and fundamental repricing.</p>
+      <div className="news-alert-age">
+        <label className="news-checkbox"><input aria-label="Limit news publication age" type="checkbox" disabled={disabled} checked={value.enabled} onChange={event => edit({ enabled: event.target.checked })} />Only alert on recent publications</label>
+        <div className="news-alert-age-range"><label>Published within<input aria-label="News publication age amount" type="number" min="1" max={value.unit === 'hours' ? 8760 : 365} step="1" disabled={disabled || !value.enabled} value={value.amount} onChange={event => edit({ amount: event.target.value })} /></label>
+          <label>Unit<select aria-label="News publication age unit" disabled={disabled || !value.enabled} value={value.unit} onChange={event => edit({ unit: event.target.value as 'hours' | 'days' })}><option value="hours">Hours</option><option value="days">Days</option></select></label></div>
+        <p>{value.enabled ? 'Publication time controls this limit, even when a headline is collected just now. Older, undated or scheduled headlines stay readable but silent.' : 'No publication-age limit. Newly collected headlines can alert even when published earlier.'}</p>
+        {!valid && <p role="alert">Choose a whole number from 1 to {value.unit === 'hours' ? '8,760 hours' : '365 days'}.</p>}
+      </div>
+      <NewsPopupSettings enabled={value.popups} disabled={disabled} onChange={popups => edit({ popups })} />
+      <div className="news-alert-row"><label>Desktop sound<select aria-label="News alert sound" disabled={disabled} value={value.sound} onChange={event => edit({ sound: event.target.value as NewsSettings['sound'] })}>
+        <option value="chime">Chime</option><option value="bell">Bell</option><option value="pulse">Pulse</option>
+      </select></label>
+        <button type="button" aria-label="Preview news sound" onClick={() => void enableNewsSound().then(ok => setPreviewError(ok && playNewsSound(value.sound) ? '' : 'Audio unavailable in this browser.'))}>Preview sound</button></div>
+      <p role="status">{profile.data?.mode !== 'off' ? status.ready ? 'Desktop audio ready' : 'Click Preview sound to enable desktop audio' : 'News alerts off'}{status.pending ? ` · ${status.pending} waiting` : ''}</p>
+      {(previewError || status.error || profile.error) && <p role="alert">{previewError || status.error || profile.error}</p>}
+      <p>On restart, recent unprocessed collections can alert. Historical imports and consumed headlines stay silent. Desktop needs this page open; phone needs the PC services running.</p>
+      <div className="news-alert-save"><span role="status">{profile.saving ? 'Saving…' : dirty ? 'Unsaved changes' : saved ? 'Settings saved' : 'Settings up to date'}</span>
+        <button type="submit" aria-label="Save news alert settings" disabled={disabled || !valid || !dirty}>{profile.saving ? 'Saving…' : 'Save settings'}</button></div>
     </form>
-    {profile.error && <p role="alert">{profile.error}</p>}
-    <NewsPopupSettings />
-    <label>Desktop sound<select aria-label="News alert sound" value={settings.sound} onChange={event => onChange({ ...settings, sound: event.target.value as NewsSettings['sound'] })}>
-      <option value="chime">Chime</option><option value="bell">Bell</option><option value="pulse">Pulse</option>
-    </select></label>
-    <button type="button" aria-label="Preview news sound" onClick={() => void enableNewsSound().then(ok => setPreviewError(ok && playNewsSound(settings.sound) ? '' : 'Audio unavailable in this browser.'))}>Preview / enable audio</button>
-    <p role="status">{profile.data?.mode !== 'off' ? status.ready ? 'Desktop audio ready' : 'Desktop audio needs a click to enable' : 'News alerts off'}{status.pending ? ` · ${status.pending} waiting` : ''}</p>
-    {(previewError || status.error) && <p role="alert">{previewError || status.error}</p>}
-    <p>New collection can alert only when it passes the shared trigger and publication-age limit. Startup, historical imports and repeat headlines stay silent. Desktop audio requires this page open; phone delivery needs the PC services running.</p>
     {status.last && <div className="news-last-alert"><strong>{status.last.played ? 'Last sound' : 'Last alert · sound blocked'} · {clock.utc(status.last.at)}</strong>
       {status.last.items.map(item => <p key={item.id}><a href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a><br />
         Collected {clock.utc(item.received_at ?? item.first_seen)}{item.published_at !== null ? ` · Feed publication ${clock.utc(item.published_at)}` : ' · Publication time unavailable'}</p>)}</div>}
@@ -82,6 +101,21 @@ export function PhoneNewsSettings() {
 export function NewsAlarmButton() {
   const [settings, change] = useNewsSettings(), status = useNewsAlertStatus(), profile = useNewsAlertProfile()
   const [open, setOpen] = useState(false), container = useRef<HTMLDivElement>(null), trigger = useRef<HTMLButtonElement>(null)
+  const [placement, setPlacement] = useState<CSSProperties>({})
+  useLayoutEffect(() => {
+    if (!open) return
+    function position() {
+      const rect = trigger.current?.getBoundingClientRect()
+      if (!rect) return
+      const width = Math.min(540, window.innerWidth - 32)
+      const top = Math.max(16, Math.min(rect.bottom + 8, window.innerHeight - 160))
+      setPlacement({ left: Math.max(16, Math.min(rect.right - width, window.innerWidth - width - 16)), top,
+        maxHeight: Math.min(820, window.innerHeight - top - 16) })
+    }
+    position()
+    window.addEventListener('resize', position)
+    return () => window.removeEventListener('resize', position)
+  }, [open])
   useEffect(() => {
     if (!open) return
     container.current?.querySelector<HTMLSelectElement>('select')?.focus()
@@ -96,8 +130,10 @@ export function NewsAlarmButton() {
       data-enabled={!!profile.data && profile.data.mode !== 'off'} data-attention={status.pending > 0} onClick={() => { setOpen(value => !value); if (profile.data?.mode !== 'off') void enableNewsSound() }}>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg>
     </button>
-    {open && <div className="news-alarm-options" id="news-alarm-options" role="group" aria-label="Headline alarm settings">
-      <NewsAlarmControls settings={settings} onChange={change} /><PhoneNewsSettings />
+    {open && <div className="news-alarm-options" id="news-alarm-options" role="group" aria-label="Headline alarm settings" style={placement}>
+      <div className="news-alarm-heading"><strong>News alerts</strong><button type="button" aria-label="Close news alert settings" onClick={() => { setOpen(false); trigger.current?.focus() }}>Close</button></div>
+      <NewsAlarmControls settings={settings} onChange={change} /><details className="news-phone-details"><summary>Phone connection and delivery test</summary><PhoneNewsSettings /></details>
+      {profile.data?.error && <p role="alert">{profile.data.error}</p>}
     </div>}
   </div>
 }

@@ -40,9 +40,10 @@ queries and Treasury's yearly index where supported; other feeds use the cache.
 ## Notifications and phone
 
 Off / Priority 1 only / Priority 1 + Priority 2 / All, selected providers, keywords and publication-age limits are
-shared across desktop and Android. New live arrivals can notify once; startup
-loads, historical imports and duplicate links stay silent. Failed delivery keeps
-the cursor for retry. Priority 1-only delivery also suppresses identical republished
+shared across desktop and Android. One Save settings button applies the alert
+controls. Recent unprocessed live arrivals can notify after restart; saved cursors
+keep consumed arrivals silent. First-source loads, historical imports and duplicate
+links stay silent. Failed delivery keeps the cursor for retry. Priority 1-only delivery also suppresses identical republished
 titles within two hours across URLs/providers, retaining changed figures and periods. Desktop sounds and browser popups are handled by the frontend.
 
 The phone reader listens on LAN port 8005 with reader authentication and proxies

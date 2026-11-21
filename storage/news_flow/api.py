@@ -209,15 +209,20 @@ def news_router(store, collector, notifier=None):
     @router.get('/arrivals')
     def arrivals(after: int | None = Query(default=None, ge=0), include: str = Query(default='', max_length=MAX_RULE_CHARS),
                  exclude: str = Query(default='', max_length=MAX_RULE_CHARS), hidden: list[str] = Query(default=[]),
-                 mode: Literal['priority', 'included', 'all'] = 'included', market_relevance: bool = False, configured: bool = False,
+                 mode: Literal['priority', 'included', 'all'] = 'included', market_relevance: bool = False, configured: bool = False, resume: bool = False,
                  filter_policy: str = Query(default='', max_length=16000)):
         if configured:
             profile = notifier.settings()
+            resumed = after is None and resume and notifier.desktop_cursor is not None
+            if resumed:
+                after = notifier.desktop_cursor
             page = store.arrivals(after, profile['include'], profile['exclude'], profile['hidden'],
                                   mode='all' if profile['mode'] == 'off' else profile['mode'],
                                   market_relevance=profile.get('market_relevance', True), max_age_seconds=profile['max_age_seconds'], filter_policy=profile.get('filter_policy', '{}'))
             if profile['mode'] == 'off':
                 page['items'] = []
+            if resumed:
+                page['resumed'] = True
             return page
         validate_rules(include, exclude)
         try:

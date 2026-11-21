@@ -123,6 +123,27 @@ class NewsDeliveryPolicyTests(unittest.TestCase):
             self.assertEqual((await request(self.app, 'GET', prefix+f'/arrivals?mode=priority&include=yen&after={baseline}'))[0], 200)
         asyncio.run(run())
 
+    def test_desktop_bootstrap_recovers_collections_before_browser_load(self):
+        self.notifier.configure({'include': 'oil', 'max_age_seconds': 3600})
+        self.notifier.desktop_cursor = self.store.arrivals()['cursor']
+        self.add('opening', self.now, 'Oil supply surprise')
+        self.add('too-old', self.now - 7200000, 'Oil supply surprise elsewhere')
+        async def run():
+            route = '/api/v1/news-flow/arrivals?configured=true'
+            normal = json.loads((await request(self.app, 'GET', route))[1])
+            self.assertEqual(normal['items'], [], 'Unrequested snapshots retain the silent API contract')
+            recovered = json.loads((await request(self.app, 'GET', route+'&resume=true'))[1])
+            self.assertTrue(recovered['resumed'])
+            self.assertEqual([r['url'] for r in recovered['items']], ['https://example.com/opening'])
+            following = json.loads((await request(self.app, 'GET', route+f'&resume=true&after={recovered["cursor"]}'))[1])
+            self.assertEqual(following['items'], [])
+            self.notifier.configure({}, 'off')
+            self.add('while-off', self.now, 'Oil supply shock')
+            self.notifier.configure({}, 'all')
+            enabled = json.loads((await request(self.app, 'GET', route+'&resume=true'))[1])
+            self.assertEqual(enabled['items'], [], 'Enabling establishes a new baseline')
+        asyncio.run(run())
+
     def test_priority_one_republication_is_silent_across_batches_and_keeps_changed_figures(self):
         baseline = self.store.arrivals()['cursor']
         self.add('first', self.now, 'OPEC announces production cuts')

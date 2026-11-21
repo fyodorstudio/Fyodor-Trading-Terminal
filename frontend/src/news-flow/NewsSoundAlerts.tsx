@@ -7,6 +7,20 @@ import { saveNewsAlertProfile, useNewsAlertProfile } from './alert-profile'
 import { showNewsPopups, stopNewsPopups, useNewsPopupError } from './browser-notifications'
 import { encodeFilterPolicy } from './filter-policy'
 
+const cursorKey = 'fyodor.news-flow.alert-cursor.v1'
+function savedCursor(): number | null {
+  try {
+    const value = JSON.parse(window.localStorage.getItem(cursorKey) ?? 'null')
+    return Number.isSafeInteger(value) && value >= 0 ? value : null
+  } catch { return null }
+}
+function rememberCursor(value: number | null) {
+  try {
+    if (value === null) window.localStorage.removeItem(cursorKey)
+    else window.localStorage.setItem(cursorKey, JSON.stringify(value))
+  } catch { /* In-memory delivery still works when browser storage is unavailable. */ }
+}
+
 function publicationAllowed(item: NewsItem, seconds: number | null) {
   const now = Date.now()
   return seconds === null || item.published_at !== null && item.published_at <= now && item.published_at - item.first_seen < 60000 && item.published_at >= now - seconds * 1000
@@ -16,10 +30,11 @@ function publicationAllowed(item: NewsItem, seconds: number | null) {
 // rule edits; aborted requests cannot sound using the previous scope.
 export function NewsSoundAlerts() {
   const [settings, save] = useNewsSettings(), status = useNewsAlertStatus(), profile = useNewsAlertProfile()
-  const popupError = useNewsPopupError(), popupEnabled = useRef(settings.browserNotifications), popupCursor = useRef<number | null>(null)
+  const [initialCursor] = useState(savedCursor)
+  const popupError = useNewsPopupError(), popupEnabled = useRef(settings.browserNotifications), popupCursor = useRef<number | null>(initialCursor)
   const popupVersion = useRef(0)
   const [synchronized, setSynchronized] = useState(''), [syncError, setSyncError] = useState('')
-  const cursor = useRef<number | null>(null)
+  const cursor = useRef<number | null>(initialCursor)
   const blockedSince = useRef(0)
   const migrationRetryAt = useRef(0)
   useEffect(() => { save(old => old) }, [save])
@@ -56,7 +71,7 @@ export function NewsSoundAlerts() {
     mode: profile.data.mode, max_age_seconds: profile.data.max_age_seconds, rules, sound: settings.sound }) : ''
   useEffect(() => {
     if (!scope) {
-      if (profile.data?.mode === 'off' && !profile.saving) { cursor.current = null; popupCursor.current = null; blockedSince.current = 0 }
+      if (profile.data?.mode === 'off' && !profile.saving) { cursor.current = null; popupCursor.current = null; blockedSince.current = 0; rememberCursor(null) }
       updateNewsAlertStatus({ pending: 0, error: '' }); return
     }
     const active = JSON.parse(scope), controller = new AbortController()
@@ -68,6 +83,7 @@ export function NewsSoundAlerts() {
       const eligible = pending.filter(item => publicationAllowed(item, active.max_age_seconds))
       if (expired || !eligible.length || playNewsSound(active.sound)) {
         cursor.current = Math.max(cursor.current ?? 0, pendingCursor)
+        rememberCursor(cursor.current)
         updateNewsAlertStatus({ pending: 0, error: '', ...(!expired && eligible.length ? { last: { items: eligible.slice(-10), at: Date.now(), played: true } } : {}) })
         pending = []; blockedSince.current = 0
       }
@@ -75,7 +91,7 @@ export function NewsSoundAlerts() {
     window.addEventListener('pointerdown', unlock); window.addEventListener('keydown', unlock)
     async function poll() {
       try {
-        const query = new URLSearchParams({ configured: 'true' })
+        const query = new URLSearchParams({ configured: 'true', resume: 'true' })
         if (cursor.current !== null) query.set('after', String(cursor.current))
         const response = await fetch(`/storage-api/news-flow/arrivals?${query}`, { signal: controller.signal })
         if (!response.ok) throw new Error('News sound alerts unavailable; retrying.')
@@ -83,18 +99,22 @@ export function NewsSoundAlerts() {
         if (!Number.isSafeInteger(body.cursor) || body.cursor < 0 || !validNewsPage({ ...body, total: body.items?.length })) throw new Error('Invalid news alert response; retrying.')
         if (!controller.signal.aborted) {
           updateNewsAlertStatus({ error: '' })
+          if (cursor.current !== null && body.cursor < cursor.current) {
+            // A restored/replaced news database can restart the sequence.
+            cursor.current = body.cursor; popupCursor.current = body.cursor; blockedSince.current = 0
+          }
           const items = body.items.filter((item: NewsItem) => (item.sequence === undefined || item.sequence > (cursor.current ?? -1)) && publicationAllowed(item, active.max_age_seconds))
           // Popup progress is independent of blocked/retried audio. Track it even
           // while disabled, so switching popups on cannot replay pending sounds.
           const previousPopupCursor = popupCursor.current
           popupCursor.current = Math.max(popupCursor.current ?? 0, body.cursor)
-          if (popupEnabled.current && previousPopupCursor !== null) {
-            const fresh = items.filter((item: NewsItem) => (item.sequence ?? body.cursor) > previousPopupCursor)
+          if (popupEnabled.current && (previousPopupCursor !== null || body.resumed === true)) {
+            const fresh = items.filter((item: NewsItem) => (item.sequence ?? body.cursor) > (previousPopupCursor ?? -1))
             const version = popupVersion.current
             void showNewsPopups(fresh, () => !controller.signal.aborted && popupEnabled.current && popupVersion.current === version,
               item => publicationAllowed(item, active.max_age_seconds))
           }
-          if (cursor.current !== null && body.cursor > cursor.current && items.length) {
+          if ((cursor.current !== null || body.resumed === true) && body.cursor > (cursor.current ?? -1) && items.length) {
             const expired = blockedSince.current > 0 && Date.now() - blockedSince.current > 60000
             const played = !expired && playNewsSound(active.sound)
             if (played || expired) { cursor.current = body.cursor; pending = []; blockedSince.current = 0 }
@@ -102,6 +122,7 @@ export function NewsSoundAlerts() {
             updateNewsAlertStatus({ ready: played, pending: pending.length,
               last: { items: items.slice(-10), at: Date.now(), played } })
           } else { cursor.current = body.cursor; pending = []; blockedSince.current = 0; updateNewsAlertStatus({ pending: 0 }) }
+          rememberCursor(cursor.current)
         }
       } catch (cause) { if (!controller.signal.aborted) updateNewsAlertStatus({ error: cause instanceof Error ? cause.message : 'News sound alerts unavailable; retrying.' }) }
       finally { if (!controller.signal.aborted) timer = window.setTimeout(poll, 1000) }

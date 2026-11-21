@@ -97,6 +97,61 @@ class NewsNotificationTests(unittest.TestCase):
         self.assertEqual(self.notifier.last_sent['count'], 15)
         self.assertNotIn('publisher_password', self.notifier.status())
 
+    def test_restart_recovers_unsent_live_collection_without_replaying_sent_items(self):
+        self.notifier.configure({'include': 'oil', 'exclude': '', 'hidden': [], 'max_age_seconds': 86400}, 'included')
+        self.add('sent')
+        self.notifier.tick()
+        self.add('missed', published=self.now - 6*3600000)
+        self.add('history', history=True)
+        restarted = NewsNotifier(self.store, lambda setup, body: self.sent.append(body))
+        restarted.tick()
+        self.assertEqual(len(self.sent), 2)
+        self.assertEqual(self.sent[-1]['click'], 'https://example.com/missed')
+        again = NewsNotifier(self.store, lambda setup, body: self.sent.append(body))
+        again.tick()
+        self.assertEqual(len(self.sent), 2, 'Successful delivery checkpoints survive repeated restarts')
+
+    def test_restart_retries_failed_delivery_and_keeps_age_limits(self):
+        self.notifier.configure({'include': 'oil', 'exclude': '', 'hidden': [], 'max_age_seconds': 3600}, 'included')
+        self.add('old', published=self.now - 6*3600000)
+        self.add('fresh')
+        with patch.object(self.notifier, 'sender', side_effect=OSError('offline')):
+            with self.assertRaises(OSError):
+                self.notifier.tick()
+        restarted = NewsNotifier(self.store, lambda setup, body: self.sent.append(body))
+        restarted.tick()
+        self.assertEqual(len(self.sent), 1)
+        self.assertEqual(self.sent[0]['click'], 'https://example.com/fresh')
+        self.assertEqual(restarted.last_sent['count'], 1)
+
+    def test_cursor_corruption_restore_and_expired_discoveries_are_safe(self):
+        self.notifier.configure({'include': 'oil', 'exclude': '', 'hidden': []}, 'included')
+        for value in ['bad json', 'true', '-1', '99999', '{}']:
+            (self.notifier.root / 'delivery-cursor.json').write_text(value)
+            restarted = NewsNotifier(self.store, lambda setup, body: self.sent.append(body))
+            restarted.tick()
+        self.assertEqual(self.sent, [])
+        self.notifier.cursor = 0
+        self.add('expired')
+        with self.store.database() as db:
+            db.execute('UPDATE arrivals SET received_at=?', (self.now - 901000,))
+        restarted = NewsNotifier(self.store, lambda setup, body: self.sent.append(body))
+        (restarted.root / 'delivery-cursor.json').write_text('0')
+        restarted.tick()
+        self.assertEqual(self.sent, [], 'Recovery is bounded by discovery freshness, independently of publication age')
+
+    def test_failed_checkpoint_does_not_advance_recovery_cursor(self):
+        self.notifier.configure({'include': 'oil', 'exclude': '', 'hidden': []}, 'included')
+        self.add('checkpoint-retry')
+        baseline = self.notifier.cursor
+        with patch.object(self.notifier, '_checkpoint', side_effect=OSError('disk unavailable')):
+            with self.assertRaises(OSError):
+                self.notifier.tick()
+        self.assertEqual(self.notifier.cursor, baseline)
+        self.notifier.tick()
+        self.assertGreater(self.notifier.cursor, baseline)
+        self.assertEqual(json.loads((self.notifier.root / 'delivery-cursor.json').read_text()), self.notifier.cursor)
+
     def test_scheduler_reserves_capacity_for_other_hosts_and_never_queues_unbounded(self):
         with self.store.database() as db:
             db.execute('DELETE FROM sources')
