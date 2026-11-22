@@ -23,6 +23,7 @@ import { heatmapNewsSelection } from '../news-flow/date-range'
 import { selectNewsDate } from '../news-flow/settings'
 import { VolumeSettingsDialog } from '../market-data/indicators/volume/VolumeSettingsDialog'
 import { AtrSettingsDialog } from '../market-data/indicators/atr/AtrSettingsDialog'
+import { MarketStructureSettingsDialog } from '../market-data/indicators/market-structure/MarketStructureSettingsDialog'
 import { RsiSettingsDialog } from '../market-data/indicators/rsi/RsiSettingsDialog'
 import { MacroSettingsDialog } from '../market-data/indicators/macro/MacroSettingsDialog'
 import { supportsMacro } from '../market-data/indicators/macro/macro-data'
@@ -47,7 +48,8 @@ function TerminalWorkspaceContent() {
   const wildcards = useWildcards()
   const [refocusRequest, setRefocusRequest] = useState(0)
   const [rankingTarget, setRankingTarget] = useState<HTMLDivElement | null>(null)
-    const { atr, changeAtr, toggleAtr, atrSettingsOpen, setAtrSettingsOpen, volume, changeVolume, toggleVolume, volumeSettingsOpen, setVolumeSettingsOpen, rsi, changeRsi, toggleRsi, rsiSettingsOpen, setRsiSettingsOpen,
+  const { marketStructure, changeMarketStructure, toggleMarketStructure, marketStructureSettingsOpen, setMarketStructureSettingsOpen,
+    atr, changeAtr, toggleAtr, atrSettingsOpen, setAtrSettingsOpen, volume, changeVolume, toggleVolume, volumeSettingsOpen, setVolumeSettingsOpen, rsi, changeRsi, toggleRsi, rsiSettingsOpen, setRsiSettingsOpen,
     macro, toggleMacro, macroPreferences, changeMacro, macroSettingsOpen, setMacroSettingsOpen,
     timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
     drawingToolbarVisible, eventIconsVisible, toggleEventIcons, bottomDockWindow, dockSize, settingsOpen, setSettingsOpen, marketWatch, appendActivity,
@@ -86,6 +88,7 @@ function TerminalWorkspaceContent() {
   </>, [renderChartOverlay, bars, timeframe, eventIconsVisible, brokerId, activeSymbol])
   const closeRsiSettings = useCallback(() => setRsiSettingsOpen(false), [setRsiSettingsOpen])
   const closeAtrSettings = useCallback(() => setAtrSettingsOpen(false), [setAtrSettingsOpen])
+  const closeMarketStructureSettings = useCallback(() => setMarketStructureSettingsOpen(false), [setMarketStructureSettingsOpen])
   const closeVolumeSettings = useCallback(() => setVolumeSettingsOpen(false), [setVolumeSettingsOpen])
   const closeMacroSettings = useCallback(() => setMacroSettingsOpen(false), [setMacroSettingsOpen])
   const toggleMacroSeries = useCallback((metric: MacroMetric) => changeMacro(toggleMacroMetric(macroPreferences, metric)), [macroPreferences, changeMacro])
@@ -130,6 +133,9 @@ function TerminalWorkspaceContent() {
             onSelectTimeframe={selectTimeframe}
             onRefocus={() => setRefocusRequest(request => request + 1)}
             refocusDisabled={!bars.length}
+            marketStructureEnabled={marketStructure.enabled}
+            onToggleMarketStructure={toggleMarketStructure}
+            onOpenMarketStructureSettings={() => setMarketStructureSettingsOpen(true)}
             atrEnabled={atr.enabled}
             onToggleAtr={toggleAtr}
             onOpenAtrSettings={() => setAtrSettingsOpen(true)}
@@ -172,6 +178,7 @@ function TerminalWorkspaceContent() {
                   timeDisplay={timeDisplay}
                   timeframe={timeframe}
                   volume={volume}
+                  marketStructure={marketStructure}
                   atr={atr}
                   onChangeVolumeAxis={changeVolumeAxis}
                   onToggleVolumeLayer={toggleVolumeLayer}
@@ -290,6 +297,7 @@ function TerminalWorkspaceContent() {
         />
       )}
       {volumeSettingsOpen && <VolumeSettingsDialog preferences={volume} onSave={changeVolume} onClose={closeVolumeSettings} />}
+      {marketStructureSettingsOpen && <MarketStructureSettingsDialog preferences={marketStructure} onSave={changeMarketStructure} onClose={closeMarketStructureSettings} />}
       {atrSettingsOpen && <AtrSettingsDialog preferences={atr} onSave={changeAtr} onClose={closeAtrSettings} />}
       {macroSettingsOpen && supportsMacro(activeSymbol) && <MacroSettingsDialog preferences={macroPreferences} onSave={changeMacro} onClose={closeMacroSettings} />}
       {rsiSettingsOpen && <RsiSettingsDialog preferences={rsi} onSave={changeRsi} onClose={closeRsiSettings} />}

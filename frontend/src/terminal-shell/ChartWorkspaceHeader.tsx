@@ -19,6 +19,9 @@ type ChartWorkspaceHeaderProps = {
   refocusDisabled?: boolean
   drawingToolbarVisible?: boolean
   onToggleDrawingToolbar?: () => void
+  marketStructureEnabled?: boolean
+  onToggleMarketStructure?: () => void
+  onOpenMarketStructureSettings?: () => void
   atrEnabled?: boolean
   onToggleAtr?: () => void
   onOpenAtrSettings?: () => void
@@ -62,6 +65,15 @@ function PaintbrushIcon() {
   )
 }
 
+function IndicatorSettingsIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m9 3-.5 2.2-2 .9L4.6 5 2 9.5l1.8 1.4v2.2L2 14.5 4.6 19l1.9-1.1 2 .9L9 21h6l.5-2.2 2-.9 1.9 1.1 2.6-4.5-1.8-1.4v-2.2L22 9.5 19.4 5l-1.9 1.1-2-.9L15 3z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  )
+}
+
 export function ChartWorkspaceHeader({
   marketWatch,
   symbol,
@@ -72,6 +84,9 @@ export function ChartWorkspaceHeader({
   refocusDisabled = false,
   drawingToolbarVisible = true,
   onToggleDrawingToolbar,
+  marketStructureEnabled = false,
+  onToggleMarketStructure,
+  onOpenMarketStructureSettings,
   atrEnabled = false,
   onToggleAtr,
   onOpenAtrSettings,
@@ -149,14 +164,19 @@ export function ChartWorkspaceHeader({
           <span aria-hidden="true">⛶</span>
         </button>}
         <div className="chart-header-actions">
+        {onToggleMarketStructure && <div className="rsi-header-controls" role="group" aria-label="Market Structure indicator">
+          <button type="button" aria-pressed={marketStructureEnabled} onClick={onToggleMarketStructure}
+            aria-label={marketStructureEnabled ? 'Hide Market Structure' : 'Show Market Structure'}
+            title={marketStructureEnabled ? 'Hide Market Structure' : 'Show Market Structure'}>MS</button>
+          <button type="button" onClick={onOpenMarketStructureSettings} aria-label="Market Structure settings" title="Market Structure settings" aria-haspopup="dialog">
+            <IndicatorSettingsIcon />
+          </button>
+        </div>}
         {onToggleAtr && <div className="rsi-header-controls" role="group" aria-label="ATR indicator">
           <button type="button" aria-pressed={atrEnabled} onClick={onToggleAtr}
             aria-label={atrEnabled ? 'Hide ATR' : 'Show ATR'} title={atrEnabled ? 'Hide ATR' : 'Show ATR'}>ATR</button>
           <button type="button" onClick={onOpenAtrSettings} aria-label="ATR settings" title="ATR settings" aria-haspopup="dialog">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="m9 3-.5 2.2-2 .9L4.6 5 2 9.5l1.8 1.4v2.2L2 14.5 4.6 19l1.9-1.1 2 .9L9 21h6l.5-2.2 2-.9 1.9 1.1 2.6-4.5-1.8-1.4v-2.2L22 9.5 19.4 5l-1.9 1.1-2-.9L15 3z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
+            <IndicatorSettingsIcon />
           </button>
         </div>}
         {onToggleVolume && <div className="rsi-header-controls" role="group" aria-label="Volume indicator">

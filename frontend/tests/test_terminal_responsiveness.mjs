@@ -382,6 +382,22 @@ try {
   assert.equal(container.querySelector('[aria-label="Volume settings"] svg').outerHTML, container.querySelector('[aria-label="RSI settings"] svg').outerHTML, 'Volume and RSI use the identical gear icon')
   const indicatorControls = container.querySelector('[aria-label="Show RSI"]').parentElement
   assert.equal(container.querySelector('[aria-label="Show Volume"]').parentElement.nextElementSibling, indicatorControls, 'Volume sits beside RSI')
+  const showMarketStructure = container.querySelector('[aria-label="Show Market Structure"]')
+  const marketStructureSettings = container.querySelector('[aria-label="Market Structure settings"]')
+  assert.equal(showMarketStructure.nextElementSibling, marketStructureSettings)
+  assert.equal(showMarketStructure.parentElement.nextElementSibling,
+    container.querySelector('[aria-label="Show ATR"]').parentElement, 'Market Structure and its settings sit immediately left of ATR')
+  await click(marketStructureSettings)
+  const marketStructureDialog = container.querySelector('[role="dialog"]')
+  assert.equal(marketStructureDialog.querySelector('input[type="number"]').value, '8')
+  assert.equal(marketStructureDialog.querySelector('select').value, 'close')
+  await click([...marketStructureDialog.querySelectorAll('button')].find(button => button.textContent === 'Cancel'))
+  const beforeMarketStructure = primitives.size
+  await click(showMarketStructure)
+  assert.equal(primitives.size, beforeMarketStructure + 1, 'Market Structure attaches to the existing price pane')
+  assert.equal(panes.length, 1)
+  await click(container.querySelector('[aria-label="Hide Market Structure"]'))
+  assert.equal(primitives.size, beforeMarketStructure)
   assert.equal(container.querySelector('[aria-label="Show ATR"]').parentElement.nextElementSibling,
     container.querySelector('[aria-label="Show Volume"]').parentElement, 'ATR sits immediately left of Volume')
   await click(container.querySelector('[aria-label="ATR settings"]')); await flush()

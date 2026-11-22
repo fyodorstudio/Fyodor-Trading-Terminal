@@ -25,6 +25,7 @@ import { alertDateForRelease, type AlertFocus } from '../../alert/model/alert-fo
 import { useVolumePreferences } from '../../market-data/indicators/volume/useVolumePreferences'
 import { useRsiPreferences } from '../../market-data/indicators/rsi/useRsiPreferences'
 import { useAtrPreferences } from '../../market-data/indicators/atr/useAtrPreferences'
+import { useMarketStructurePreferences } from '../../market-data/indicators/market-structure/useMarketStructurePreferences'
 import { useMacroIndicator } from '../../market-data/indicators/macro/useMacroIndicator'
 import type { DetailReading } from '../../currency-details/detail-model'
 import type { MacroReading } from '../../market-data/indicators/macro/macro-data'
@@ -32,6 +33,7 @@ import type { MacroReading } from '../../market-data/indicators/macro/macro-data
 const emptyTradePlan: PlannedTradeState = { direction: 'waiting', entryPrice: null, tpPrice: null, slPrice: null, showOnChart: false }
 
 export function useTerminalWorkspace() {
+  const marketStructureState = useMarketStructurePreferences()
   const atrState = useAtrPreferences()
   const rsiState = useRsiPreferences()
   const volumeState = useVolumePreferences()
@@ -301,7 +303,7 @@ export function useTerminalWorkspace() {
       : bridge.processRunning
         ? 'MT5 disconnected'
         : 'Waiting for MT5'
-  return { ...atrState, ...volumeState, ...rsiState, ...macroState, timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
+  return { ...marketStructureState, ...atrState, ...volumeState, ...rsiState, ...macroState, timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
     drawingToolbarVisible, eventIconsVisible, toggleEventIcons, bottomDockWindow, dockSize, settingsOpen, setSettingsOpen, marketWatch, appendActivity,
     bridge, marketData, activeSymbol, bars, brokerId, inspector, quote, drawings, pairDrawingCount, updateDrawingPoint,
     updateDrawingPoints, updateDrawingText, updatePositionWidth, handleDeleteDrawing, selectSymbol, selectTimeframe,

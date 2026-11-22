@@ -28,6 +28,8 @@ import type { VolumeLayer, VolumePreferences } from '../indicators/volume/volume
 import { createRsiPane } from '../indicators/rsi/rsi-pane'
 import { createAtrPane } from '../indicators/atr/atr-pane'
 import type { AtrPreferences } from '../indicators/atr/atr-preferences'
+import { createMarketStructureOverlay } from '../indicators/market-structure/market-structure-overlay'
+import type { MarketStructurePreferences } from '../indicators/market-structure/market-structure-preferences'
 import type { RsiPreferences } from '../indicators/rsi/rsi-preferences'
 import { createMacroPane } from '../indicators/macro/macro-pane'
 import { supportsMacro, type MacroIndicator, type MacroReading } from '../indicators/macro/macro-data'
@@ -50,6 +52,7 @@ type MarketCandlestickChartProps = {
   onChangeVolumeAxis?: (target: VolumePreferences['axisTarget']) => void
   onToggleVolumeLayer?: (layer: VolumeLayer) => void
   rsi?: RsiPreferences
+  marketStructure?: MarketStructurePreferences
   atr?: AtrPreferences
   macro?: MacroIndicator
   onToggleMacroMetric?: (metric: MacroMetric) => void
@@ -95,6 +98,7 @@ function MarketCandlestickChartComponent({
   onChangeVolumeAxis,
   onToggleVolumeLayer,
   rsi,
+  marketStructure,
   atr,
   macro,
   onToggleMacroMetric,
@@ -134,6 +138,7 @@ function MarketCandlestickChartComponent({
   const volumePaneRef = useRef<ReturnType<typeof createVolumePane> | null>(null)
   const rsiPaneRef = useRef<ReturnType<typeof createRsiPane> | null>(null)
   const atrPaneRef = useRef<ReturnType<typeof createAtrPane> | null>(null)
+  const marketStructureRef = useRef<ReturnType<typeof createMarketStructureOverlay> | null>(null)
   const macroPaneRef = useRef<ReturnType<typeof createMacroPane> | null>(null)
   const paneResizeRef = useRef<ReturnType<typeof createChartPaneResize> | null>(null)
   const futureTimelineRef = useRef<ReturnType<typeof createFutureTimeline> | null>(null)
@@ -260,6 +265,8 @@ function MarketCandlestickChartComponent({
       rsiPaneRef.current = null
       atrPaneRef.current?.destroy()
       atrPaneRef.current = null
+      marketStructureRef.current?.destroy()
+      marketStructureRef.current = null
       priceSpaceRef.current?.destroy()
       priceSpaceRef.current = null
       chart.timeScale().unsubscribeVisibleLogicalRangeChange(handleLogicalRangeChange)
@@ -419,6 +426,19 @@ function MarketCandlestickChartComponent({
       }
     } finally { applyingDataRef.current = false }
   }, [bars, fitContentKey, symbol, onDataApplied, precision, timeframe, clock.brokerId, readLogicalRange, setLogicalRange])
+
+  useLayoutEffect(() => {
+    const chart = chartRef.current
+    const series = seriesRef.current
+    if (!chart || !series) return
+    if (!marketStructure?.enabled) {
+      marketStructureRef.current?.destroy()
+      marketStructureRef.current = null
+      return
+    }
+    marketStructureRef.current ??= createMarketStructureOverlay(chart, series)
+    marketStructureRef.current.sync(bars, marketStructure)
+  }, [bars, marketStructure])
 
   // Apply indicator data after price data/viewport restoration. Scope changes
   // clear the old indicator above before replacing candles to avoid mixing two
