@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import {
-  confirmationCloseOptions, defaultMarketStructurePreferences, lineWidths, maxAtrBufferPercent, swingStrengthLimits,
+  confirmationCloseOptions, defaultMarketStructurePreferences, failureWindowOptions, lineWidths, maxAtrBufferPercent, swingStrengthLimits,
   type MarketStructurePreferences,
 } from './market-structure-preferences'
 import '../rsi/rsi.css'
@@ -12,13 +12,12 @@ export function MarketStructureSettingsDialog({ preferences, onSave, onClose }: 
   onClose: () => void
 }) {
   const [draft, setDraft] = useState(preferences)
-  const [advancedOpen, setAdvancedOpen] = useState(false)
   const dialog = useRef<HTMLFormElement>(null)
   const titleId = useId()
   const swingHelpId = useId()
   const bufferHelpId = useId()
   const confirmationHelpId = useId()
-  const advancedId = useId()
+  const failureHelpId = useId()
 
   useEffect(() => {
     const previousFocus = document.activeElement as HTMLElement | null
@@ -72,6 +71,37 @@ export function MarketStructureSettingsDialog({ preferences, onSave, onClose }: 
         </header>
         <div className="rsi-settings-body market-structure-settings">
           <fieldset>
+            <legend>Detection</legend>
+            <label>Swing strength
+              <input type="number" min={swingStrengthLimits.min} max={swingStrengthLimits.max} step={1} required
+                aria-describedby={swingHelpId} value={draft.swingStrength || ''}
+                onChange={event => setDraft({ ...draft, swingStrength: Number(event.target.value) })} />
+            </label>
+            <p id={swingHelpId}>Closed candles required on each side of a swing.</p>
+            <label>ATR buffer (%)
+              <input type="number" aria-describedby={bufferHelpId} min={0} max={maxAtrBufferPercent} step={1} required
+                value={Number.isNaN(draft.atrBufferPercent) ? '' : draft.atrBufferPercent}
+                onChange={event => setDraft({ ...draft, atrBufferPercent: event.target.valueAsNumber })} />
+            </label>
+            <p id={bufferHelpId}>How far the first close must clear the level, as a percentage of the previous candle’s 14-period ATR.</p>
+            <label>Closes beyond the level
+              <select aria-describedby={confirmationHelpId} value={draft.confirmationCloses}
+                onChange={event => setDraft({ ...draft, confirmationCloses: Number(event.target.value) })}>
+                {confirmationCloseOptions.map(count => <option key={count} value={count}>{count} in a row</option>)}
+              </select>
+            </label>
+            <p id={confirmationHelpId}>Consecutive closes needed to confirm a breakout.</p>
+            <label>Failure window
+              <select aria-describedby={failureHelpId} value={draft.failureWindow}
+                onChange={event => setDraft({ ...draft, failureWindow: Number(event.target.value) })}>
+                {failureWindowOptions.map(count => <option key={count} value={count}>
+                  {count === 0 ? 'Off' : `${count} ${count === 1 ? 'candle' : 'candles'}`}
+                </option>)}
+              </select>
+            </label>
+            <p id={failureHelpId}>A close back through the level within this many candles after confirmation marks the breakout as failed.</p>
+          </fieldset>
+          <fieldset>
             <legend>Visibility</legend>
             <label>Show signal labels
               <input type="checkbox" checked={draft.showLabels}
@@ -96,32 +126,6 @@ export function MarketStructureSettingsDialog({ preferences, onSave, onClose }: 
               </select>
             </label>
           </fieldset>
-          <button type="button" aria-expanded={advancedOpen} aria-controls={advancedId}
-            onClick={() => setAdvancedOpen(open => !open)}>Advanced</button>
-          <div id={advancedId} hidden={!advancedOpen}>
-            {advancedOpen && <fieldset>
-              <legend>Detection</legend>
-              <label>Swing strength
-                <input type="number" min={swingStrengthLimits.min} max={swingStrengthLimits.max} step={1} required
-                  aria-describedby={swingHelpId} value={draft.swingStrength || ''}
-                  onChange={event => setDraft({ ...draft, swingStrength: Number(event.target.value) })} />
-              </label>
-              <p id={swingHelpId}>Closed candles required on each side of a swing.</p>
-              <label>Closes beyond the level
-                <select aria-describedby={confirmationHelpId} value={draft.confirmationCloses}
-                  onChange={event => setDraft({ ...draft, confirmationCloses: Number(event.target.value) })}>
-                  {confirmationCloseOptions.map(count => <option key={count} value={count}>{count} in a row</option>)}
-                </select>
-              </label>
-              <p id={confirmationHelpId}>Consecutive closes needed to confirm a breakout.</p>
-              <label>ATR buffer (%)
-                <input type="number" aria-describedby={bufferHelpId} min={0} max={maxAtrBufferPercent} step={1} required
-                  value={Number.isNaN(draft.atrBufferPercent) ? '' : draft.atrBufferPercent}
-                  onChange={event => setDraft({ ...draft, atrBufferPercent: event.target.valueAsNumber })} />
-              </label>
-              <p id={bufferHelpId}>How far the first close must clear the level, as a percentage of the previous candle’s 14-period ATR. Set to 0 to disable the buffer.</p>
-            </fieldset>}
-          </div>
         </div>
         <footer>
           <button type="button" onClick={() => setDraft({ ...defaultMarketStructurePreferences, enabled: preferences.enabled })}>Reset defaults</button>

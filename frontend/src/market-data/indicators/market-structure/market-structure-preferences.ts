@@ -2,6 +2,7 @@ export type MarketStructurePreferences = {
   enabled: boolean
   swingStrength: number
   confirmationCloses: number
+  failureWindow: number
   atrBufferPercent: number
   highColor: string
   lowColor: string
@@ -13,12 +14,14 @@ export type MarketStructurePreferences = {
 export const swingStrengthLimits = { min: 1, max: 50 }
 export const maxAtrBufferPercent = 100
 export const confirmationCloseOptions = [2, 3, 4, 5]
+export const failureWindowOptions = [0, 1, 2, 3, 4, 5]
 export const lineWidths = [1, 2, 3, 4]
 
 export const defaultMarketStructurePreferences: MarketStructurePreferences = {
   enabled: false,
   swingStrength: 8,
   confirmationCloses: 2,
+  failureWindow: 3,
   atrBufferPercent: 10,
   highColor: '#e6bd45',
   lowColor: '#e24848',
@@ -43,6 +46,7 @@ export function readMarketStructurePreferences(): MarketStructurePreferences {
         stored.swingStrength >= swingStrengthLimits.min && stored.swingStrength <= swingStrengthLimits.max
         ? stored.swingStrength : defaults.swingStrength,
       confirmationCloses: confirmationCloseOptions.includes(stored.confirmationCloses) ? stored.confirmationCloses : defaults.confirmationCloses,
+      failureWindow: failureWindowOptions.includes(stored.failureWindow) ? stored.failureWindow : defaults.failureWindow,
       atrBufferPercent: Number.isInteger(stored.atrBufferPercent) && stored.atrBufferPercent >= 0 && stored.atrBufferPercent <= maxAtrBufferPercent
         ? stored.atrBufferPercent : defaults.atrBufferPercent,
       highColor: isColor(stored.highColor) ? stored.highColor : defaults.highColor,

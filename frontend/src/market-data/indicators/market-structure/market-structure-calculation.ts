@@ -4,7 +4,7 @@ import type { MarketStructurePreferences } from './market-structure-preferences'
 
 type Swing = { side: 'high' | 'low'; start: OhlcBar['time']; price: number }
 type StructureSegment = Swing & { end?: OhlcBar['time'] }
-type SignalKind = 'sweep' | 'pending' | 'confirmed' | 'failed' | 'reclaim'
+type SignalKind = 'sweep' | 'pending' | 'confirmed' | 'failed' | 'invalidated' | 'reclaim'
 type Signal = Swing & { time: OhlcBar['time']; kind: SignalKind }
 type SwingSlot = { level?: Swing; queued?: Swing; closes: number; marginal: boolean }
 
@@ -48,10 +48,11 @@ function classifyCrossing(slot: SwingSlot, level: Swing, closeDistance: number, 
 
 export function calculateMarketStructure(
   bars: OhlcBar[],
-  { swingStrength: strength, confirmationCloses, atrBufferPercent }: MarketStructurePreferences,
+  { swingStrength: strength, confirmationCloses, atrBufferPercent, failureWindow }: MarketStructurePreferences,
 ) {
   const broken: StructureSegment[] = []
   const signals: Signal[] = []
+  const recentBreakouts: { level: Swing; expires: number }[] = []
   const high: SwingSlot = { closes: 0, marginal: false }
   const low: SwingSlot = { closes: 0, marginal: false }
   const sides = [high, low]
@@ -62,6 +63,12 @@ export function calculateMarketStructure(
   // The feed can revise the last candle until its successor arrives.
   for (let i = strength * 2; i < bars.length - 1; i++) {
     const bar = bars[i]
+    for (let j = recentBreakouts.length - 1; j >= 0; j--) {
+      const { level, expires } = recentBreakouts[j]
+      const backThrough = level.side === 'high' ? bar.close < level.price : bar.close > level.price
+      if (backThrough) signals.push({ ...level, time: bar.time, kind: 'invalidated' })
+      if (backThrough || i === expires) recentBreakouts.splice(j, 1)
+    }
     const previousAtr = atr?.[i - 1]
     let buffer: number | undefined = 0
     if (atr) buffer = previousAtr && 'value' in previousAtr ? previousAtr.value * atrBufferPercent / 100 : undefined
@@ -73,7 +80,10 @@ export function calculateMarketStructure(
       const wickDistance = isHigh ? bar.high - level.price : level.price - bar.low
       const kind = classifyCrossing(slot, level, closeDistance, wickDistance, buffer, confirmationCloses)
       if (kind) signals.push({ ...level, time: bar.time, kind })
-      if (kind === 'confirmed') broken.push({ ...level, end: bar.time })
+      if (kind === 'confirmed') {
+        broken.push({ ...level, end: bar.time })
+        if (failureWindow > 0) recentBreakouts.push({ level, expires: i + failureWindow })
+      }
     }
 
     const pivot = bars[i - strength]

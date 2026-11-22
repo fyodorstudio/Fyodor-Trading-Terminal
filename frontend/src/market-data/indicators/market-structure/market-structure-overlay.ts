@@ -10,6 +10,7 @@ const signalLabels = {
   pending: 'Pending',
   confirmed: 'Breakout confirmed',
   failed: 'Failed breakout',
+  invalidated: 'Failed breakout',
   reclaim: 'Reclaim',
 }
 
@@ -36,7 +37,7 @@ function buildMarkers(signals: Signal[]) {
   const sweeps: Marker[] = []
   for (const { events, firstSweep, count } of levels.values()) {
     const latest = events[events.length - 1]
-    if (latest.kind === 'pending' || latest.kind === 'confirmed') {
+    if (latest.kind === 'pending' || latest.kind === 'confirmed' || latest.kind === 'invalidated') {
       outcomes.push({ signal: latest, events, label: signalLabels[latest.kind] })
     }
     if (firstSweep) {
@@ -213,7 +214,8 @@ export function createMarketStructureOverlay(chart: IChartApi, series: ISeriesAp
       const unchangedClosedBars = nextBars === bars || (nextBars.length === bars.length &&
         (changedRecentBarStart(nextBars, bars) ?? -1) >= nextBars.length - 1)
       if (!unchangedClosedBars || preferences?.swingStrength !== next.swingStrength ||
-        preferences.confirmationCloses !== next.confirmationCloses || preferences.atrBufferPercent !== next.atrBufferPercent) {
+        preferences.confirmationCloses !== next.confirmationCloses || preferences.atrBufferPercent !== next.atrBufferPercent ||
+        preferences.failureWindow !== next.failureWindow) {
         result = calculateMarketStructure(nextBars, next)
         markers = buildMarkers(result.signals)
       } else if (preferences === next && nextBars === bars) {

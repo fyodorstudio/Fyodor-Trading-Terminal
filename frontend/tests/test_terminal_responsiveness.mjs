@@ -390,14 +390,10 @@ try {
   await click(marketStructureSettings)
   const marketStructureDialog = container.querySelector('[role="dialog"]')
   assert.deepEqual([...marketStructureDialog.querySelectorAll('legend')].map(legend => legend.textContent),
-    ['Visibility', 'Appearance'])
-  assert.equal(marketStructureDialog.querySelector('input[type="number"]'), null)
-  const marketStructureAdvanced = marketStructureDialog.querySelector('[aria-expanded="false"]')
-  assert.equal(marketStructureAdvanced.textContent, 'Advanced')
-  await click(marketStructureAdvanced)
-  assert.equal(marketStructureAdvanced.getAttribute('aria-expanded'), 'true')
+    ['Detection', 'Visibility', 'Appearance'])
+  assert.equal(marketStructureDialog.querySelector('[aria-expanded]'), null)
   assert.equal(marketStructureDialog.querySelector('input[type="number"]').value, '8')
-  assert.deepEqual([...marketStructureDialog.querySelectorAll('select')].map(select => select.value), ['2', '2'])
+  assert.deepEqual([...marketStructureDialog.querySelectorAll('select')].map(select => select.value), ['2', '3', '2'])
   assert.equal(marketStructureDialog.querySelector('input[aria-describedby][max="100"]').value, '10')
   await click([...marketStructureDialog.querySelectorAll('button')].find(button => button.textContent === 'Cancel'))
   const beforeMarketStructure = primitives.size
