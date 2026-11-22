@@ -1,7 +1,6 @@
 export type MarketStructurePreferences = {
   enabled: boolean
   swingStrength: number
-  breakBy: 'classified' | 'close' | 'wick'
   confirmationCloses: number
   atrBufferPercent: number
   highColor: string
@@ -19,7 +18,6 @@ export const lineWidths = [1, 2, 3, 4]
 export const defaultMarketStructurePreferences: MarketStructurePreferences = {
   enabled: false,
   swingStrength: 8,
-  breakBy: 'classified',
   confirmationCloses: 2,
   atrBufferPercent: 10,
   highColor: '#e6bd45',
@@ -36,8 +34,7 @@ const isColor = (value: unknown): value is string => typeof value === 'string' &
 export function readMarketStructurePreferences(): MarketStructurePreferences {
   const defaults = defaultMarketStructurePreferences
   try {
-    const current = window.localStorage.getItem(storageKey)
-    const stored = JSON.parse(current ?? window.localStorage.getItem(legacyStorageKey) ?? '{}')
+    const stored = JSON.parse(window.localStorage.getItem(storageKey) ?? window.localStorage.getItem(legacyStorageKey) ?? '{}')
     if (!stored || typeof stored !== 'object' || Array.isArray(stored)) return defaults
 
     return {
@@ -45,7 +42,6 @@ export function readMarketStructurePreferences(): MarketStructurePreferences {
       swingStrength: Number.isInteger(stored.swingStrength) &&
         stored.swingStrength >= swingStrengthLimits.min && stored.swingStrength <= swingStrengthLimits.max
         ? stored.swingStrength : defaults.swingStrength,
-      breakBy: stored.breakBy === 'wick' || (current !== null && stored.breakBy === 'close') ? stored.breakBy : defaults.breakBy,
       confirmationCloses: confirmationCloseOptions.includes(stored.confirmationCloses) ? stored.confirmationCloses : defaults.confirmationCloses,
       atrBufferPercent: Number.isInteger(stored.atrBufferPercent) && stored.atrBufferPercent >= 0 && stored.atrBufferPercent <= maxAtrBufferPercent
         ? stored.atrBufferPercent : defaults.atrBufferPercent,

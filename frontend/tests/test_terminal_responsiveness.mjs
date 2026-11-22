@@ -389,10 +389,15 @@ try {
     container.querySelector('[aria-label="Show ATR"]').parentElement, 'Market Structure and its settings sit immediately left of ATR')
   await click(marketStructureSettings)
   const marketStructureDialog = container.querySelector('[role="dialog"]')
-  assert.equal(marketStructureDialog.querySelector('input[type="number"]').value, '8')
   assert.deepEqual([...marketStructureDialog.querySelectorAll('legend')].map(legend => legend.textContent),
-    ['Levels', 'Break confirmation', 'Appearance'])
-  assert.deepEqual([...marketStructureDialog.querySelectorAll('select')].map(select => select.value), ['classified', '2', '2'])
+    ['Visibility', 'Appearance'])
+  assert.equal(marketStructureDialog.querySelector('input[type="number"]'), null)
+  const marketStructureAdvanced = marketStructureDialog.querySelector('[aria-expanded="false"]')
+  assert.equal(marketStructureAdvanced.textContent, 'Advanced')
+  await click(marketStructureAdvanced)
+  assert.equal(marketStructureAdvanced.getAttribute('aria-expanded'), 'true')
+  assert.equal(marketStructureDialog.querySelector('input[type="number"]').value, '8')
+  assert.deepEqual([...marketStructureDialog.querySelectorAll('select')].map(select => select.value), ['2', '2'])
   assert.equal(marketStructureDialog.querySelector('input[aria-describedby][max="100"]').value, '10')
   await click([...marketStructureDialog.querySelectorAll('button')].find(button => button.textContent === 'Cancel'))
   const beforeMarketStructure = primitives.size

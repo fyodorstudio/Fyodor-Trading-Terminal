@@ -48,14 +48,14 @@ function classifyCrossing(slot: SwingSlot, level: Swing, closeDistance: number, 
 
 export function calculateMarketStructure(
   bars: OhlcBar[],
-  { swingStrength: strength, breakBy, confirmationCloses, atrBufferPercent }: MarketStructurePreferences,
+  { swingStrength: strength, confirmationCloses, atrBufferPercent }: MarketStructurePreferences,
 ) {
   const broken: StructureSegment[] = []
   const signals: Signal[] = []
   const high: SwingSlot = { closes: 0, marginal: false }
   const low: SwingSlot = { closes: 0, marginal: false }
   const sides = [high, low]
-  const atr = breakBy === 'classified' && atrBufferPercent > 0
+  const atr = atrBufferPercent > 0
     ? createAtrCalculator().sync(bars, 14, 'market-structure').atr
     : undefined
 
@@ -71,14 +71,9 @@ export function calculateMarketStructure(
       const isHigh = level.side === 'high'
       const closeDistance = isHigh ? bar.close - level.price : level.price - bar.close
       const wickDistance = isHigh ? bar.high - level.price : level.price - bar.low
-      if (breakBy === 'classified') {
-        const kind = classifyCrossing(slot, level, closeDistance, wickDistance, buffer, confirmationCloses)
-        if (kind) signals.push({ ...level, time: bar.time, kind })
-        if (kind === 'confirmed') broken.push({ ...level, end: bar.time })
-      } else if ((breakBy === 'wick' ? wickDistance : closeDistance) > 0) {
-        broken.push({ ...level, end: bar.time })
-        setSwing(slot)
-      }
+      const kind = classifyCrossing(slot, level, closeDistance, wickDistance, buffer, confirmationCloses)
+      if (kind) signals.push({ ...level, time: bar.time, kind })
+      if (kind === 'confirmed') broken.push({ ...level, end: bar.time })
     }
 
     const pivot = bars[i - strength]

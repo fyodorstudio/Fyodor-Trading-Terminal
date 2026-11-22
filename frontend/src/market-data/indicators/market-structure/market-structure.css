@@ -24,3 +24,24 @@
 .market-structure-settings p {
   margin-top: 6px;
 }
+
+.market-structure-tooltip {
+  position: absolute;
+  z-index: 8;
+  max-width: calc(100% - 12px);
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface-panel);
+  color: var(--text-strong);
+  box-shadow: 0 5px 16px rgb(0 0 0 / 20%);
+  font-size: 11px;
+  line-height: 1.5;
+  pointer-events: none;
+}
+
+.market-structure-tooltip ul {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
