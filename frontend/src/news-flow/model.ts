@@ -4,7 +4,9 @@ export type NewsSource = { id: string; name: string; url: string; last_success: 
 export type NewsItem = { id: string; source_id: string; source_name: string; publisher: string; title: string; summary: string; url: string; published_at: number | null; first_seen: number; previous_check_at?: number | null; received_at?: number; timeline_at?: number; pinned?: boolean | number; priority_reason?: string;
   sequence?: number; relevance?: { included: boolean; reason: string; keyword: string; tier?: 'priority' | 'included' | 'excluded'; priority_reason?: string }; policy_banks?: { currency: string; bank: string }[]; stance?: string; stance_evidence?: { origin: string; text: string }[] }
 export type NewsPage = { items: NewsItem[]; total: number }
-export type NewsMode = 'all' | 'priority' | 'included' | 'excluded'
+// Index bits: Priority 1 = 1, Priority 2 = 2, Excluded = 4.
+export const newsModes = ['none', 'priority', 'included', 'relevant', 'excluded', 'priority-excluded', 'included-excluded', 'all'] as const
+export type NewsMode = typeof newsModes[number]
 export type NewsSettings = { hiddenSources: string[]; include: string; exclude: string; mode: NewsMode; presetVersion: number; marketRelevance: boolean; automaticFilters: NewsFilterPolicy; includedColor: string; excludedColor: string; date: string; session: { start: number; end: number } | null; order: 'newest' | 'oldest'; sortBy: 'published' | 'collected'; width: number; browserNotifications: boolean; soundEnabled: boolean; soundMode: 'included' | 'all'; sound: 'chime' | 'bell' | 'pulse' }
 
 const key = 'fyodor.news-flow.v1'
@@ -18,7 +20,7 @@ export function readNewsSettings(): NewsSettings {
     const exclude = keywordTags(typeof saved.exclude === 'string' ? saved.exclude : '').join(', ')
     return { hiddenSources: Array.isArray(saved.hiddenSources) ? saved.hiddenSources.filter((id: unknown) => typeof id === 'string') : [],
       include, exclude,
-      mode: ['priority', 'included', 'excluded'].includes(saved.mode) ? saved.mode : saved.mode === 'filtered' ? 'included' : 'all', presetVersion: keywordVersion, marketRelevance: saved.presetVersion < 3 || saved.marketRelevance !== false, automaticFilters: upgradeFilterPolicy(saved.automaticFilters, saved.presetVersion ?? 1),
+      mode: newsModes.includes(saved.mode) ? saved.mode : saved.mode === 'filtered' ? 'included' : 'all', presetVersion: keywordVersion, marketRelevance: saved.presetVersion < 3 || saved.marketRelevance !== false, automaticFilters: upgradeFilterPolicy(saved.automaticFilters, saved.presetVersion ?? 1),
       includedColor: /^#[0-9a-f]{6}$/i.test(saved.includedColor) ? saved.includedColor : defaults.includedColor,
       excludedColor: /^#[0-9a-f]{6}$/i.test(saved.excludedColor) ? saved.excludedColor : defaults.excludedColor,
       date: /^\d{4}-\d{2}-\d{2}$/.test(saved.date) ? saved.date : '',

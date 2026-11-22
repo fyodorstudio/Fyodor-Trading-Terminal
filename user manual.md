@@ -27,7 +27,7 @@ header. The right panel lists collected headlines; click a title to open its
 source. Drag its left edge to resize it. Escape or × closes it.
 Left of the calendar, the provider button opens a checkbox list with All/None.
 The search button to its left searches cached headlines within the selected
-providers, date and classification tab, including results beyond the current
+providers, date and checked classifications, including results beyond the current
 page. Clear the search with ×. Provider visibility shares the Settings preference.
 Each provider's whole row, including its name, toggles its checkbox. Related
 feeds share publisher groups: Reuters, Federal Reserve, Bank of England, Bank of
@@ -86,12 +86,16 @@ Typing narrows the existing tags and flags duplicates. Moving to another setting
 also saves a pending valid keyword. Japan matches Japanese; Democrat matches
 Democrats/Democratic. These variants also apply to Exclude and sound alerts.
 
-**Priority** shows strong attention candidates and your manually starred links.
-**Included** shows other relevant material with unknown importance; **Excluded**
-shows irrelevant material. The three tabs are separate. A central-bank mention or
+**P1** shows strong attention candidates and your manually starred links.
+**P2** shows other relevant material with unknown importance; **Excluded**
+shows irrelevant material. Check any combination to read the tiers together.
+Check all three to see everything, or clear all to show nothing. A central-bank mention or
 ordinary forecast does not automatically become Priority. A short label explains
 why a headline was promoted. Explicit Exclude still wins. Priority is not a
 prediction of volatility, direction or a suitable trade entry.
+
+The compact toolbar includes sorting and the selected date's clear button.
+Hover the information icon at the bottom for provider availability and retry details.
 
 The sort selector offers **Newest collected / Oldest collected / Newest published /
 Oldest published** on desktop and phone. Newest collected is the default so late

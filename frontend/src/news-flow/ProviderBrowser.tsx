@@ -5,7 +5,7 @@ import { Headlines, HistoryStatus } from './Headlines'
 import type { NewsSource, NewsMode } from './model'
 import { useNewsHistory, useNewsPage } from './useNewsFlow'
 import { useNewsSettings } from './settings'
-import { NewsFilterTabs } from './NewsTabs'
+import { NewsFilterChecks } from './NewsTabs'
 import { NewsSort } from './NewsSort'
 import { NewsCopy } from './NewsCopy'
 
@@ -33,11 +33,11 @@ export function ProviderBrowser({ sources, selectedId, date, onDateChange }: { s
       <NewsSort settings={settings} onChange={change} />
       <NewsCopy query={query.toString()} enabled={visible.length > 0} id="news-extended-copy" />
     </div>
-    <NewsFilterTabs value={mode} onChange={setMode} controls="news-provider-items" />
+    <NewsFilterChecks value={mode} onChange={setMode} controls="news-provider-items" />
     <HistoryStatus history={history} />
     {source?.error && <p className="news-message" role="status">{source.name} · {source.retry_at ? `${source.error.includes('429') ? 'Rate-limited' : 'Unavailable'} · next check ${clock.utc(source.retry_at)}` : source.error}</p>}
     {error && <p className="news-message" role="alert">{error}</p>}
-    <div id="news-provider-items" role="tabpanel" aria-labelledby={`news-provider-items-${mode}-tab`} className="news-items">
+    <div id="news-provider-items" role="region" aria-label="Provider headlines" className="news-items">
       {!page && !error && <p className="news-message">Loading headlines…</p>}
       {page && <Headlines items={page.items} dated={!!date} />}
       {page && !page.items.length && <p className="news-message">{history.loading ? 'Searching this date…' : date ? 'No headlines found for this date. Historical coverage may be incomplete.' : 'Waiting for headlines.'}</p>}

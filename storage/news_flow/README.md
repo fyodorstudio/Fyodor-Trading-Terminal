@@ -28,7 +28,8 @@ There is one in-flight request per provider, eight workers and at most two per
 host. Provider visibility and collection can be changed independently.
 
 Reader filters apply before counting, deduplication, pagination and export.
-Tabs are All, Priority 1, Priority 2 and Excluded. The two priority tiers are disjoint.
+P1, P2 and Excluded checkboxes select any combination of the three disjoint tiers.
+Selecting all shows every tier; clearing all shows no headlines.
 The backend supplies classification to desktop, phone, copying and notifications;
 see [filter rules](RELEVANCE.md) and the [source catalogue](SOURCES.md).
 

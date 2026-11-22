@@ -18,7 +18,7 @@ export function NewsGlobalSettings({ settings, onChange }: { settings: NewsSetti
     </fieldset>
   </section><section><fieldset><legend>Keywords · all providers</legend>
     <label className="news-checkbox"><input type="checkbox" aria-label="Trading relevance" checked={settings.marketRelevance} onChange={event => onChange({ ...settings, marketRelevance: event.target.checked })} />Trading relevance: eight currencies, Brent, gold/silver and stock indices</label>
-    <p>Priority 1 includes important catalysts, risk sentiment, capital flows and fundamental repricing, including relevant research and scenarios. Priority 2 contains other relevant context. Excluded contains noise rejected by your filters. The two priority tabs are separate; the alert trigger can select Priority 1 only or both tiers.</p>
+    <p>Priority 1 includes important catalysts, risk sentiment, capital flows and fundamental repricing, including relevant research and scenarios. Priority 2 contains other relevant context. Excluded contains noise rejected by your filters. Use the reading checkboxes to combine tiers; the alert trigger selects Priority 1 only or both tiers.</p>
     <KeywordTags label="Include" value={settings.include} groups={keywordGroups} onChange={include => onChange({ ...settings, include })} />
     <KeywordTags label="Exclude" value={settings.exclude} onChange={exclude => onChange({ ...settings, exclude })} />
     <p>Broad tags need market context. Verified official policy and economic releases remain eligible without keywords. Routine personnel, promotions, crypto-only stories and local retail quotes are filtered with cross-market exceptions.</p>

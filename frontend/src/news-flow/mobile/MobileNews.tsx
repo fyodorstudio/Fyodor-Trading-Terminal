@@ -3,7 +3,7 @@ import { newsQuery, newsTimestamp, delayedCollection, headlineClassification, he
 import { useNewsSettings } from '../settings'
 import { useNewsPage, useNewsSources } from '../useNewsFlow'
 import { NewsProviderSelector } from '../NewsProviderSelector'
-import { NewsFilterTabs } from '../NewsTabs'
+import { NewsFilterChecks } from '../NewsTabs'
 import { NewsCopy } from '../NewsCopy'
 import { NewsSort } from '../NewsSort'
 import { readFilterPolicy } from '../filter-policy'
@@ -47,7 +47,7 @@ export function MobileNews() {
   return <main className="news-mobile">
     <header><h1>News Flow</h1><span>PC feed · read only</span></header>
     <section className="news-mobile-controls" aria-label="News filters">
-      <NewsFilterTabs value={settings.mode} onChange={mode => change({ ...settings, mode })} controls="phone-news-items" />
+      <NewsFilterChecks value={settings.mode} onChange={mode => change({ ...settings, mode })} controls="phone-news-items" />
       <div><NewsProviderSelector sources={sources} hidden={settings.hiddenSources} onChange={hiddenSources => change({ ...settings, hiddenSources })} />
         <label>Date<input aria-label="Phone news date" type="date" value={date} onChange={event => setDate(event.target.value)} /></label>
         {date && <button type="button" onClick={() => setDate('')}>Clear date</button>}
@@ -58,7 +58,7 @@ export function MobileNews() {
     </section>
     {(error || sourceError) && <p role="alert">{error || sourceError}</p>}
     {pending && <button className="news-new-items" type="button" onClick={() => { paused.current = false; if (scroll.current) scroll.current.scrollTop = 0; reveal() }}>Updated headlines · show latest</button>}
-    <div id="phone-news-items" role="tabpanel" aria-labelledby={`phone-news-items-${settings.mode}-tab`} className="news-items" ref={scroll} onScroll={event => { paused.current = event.currentTarget.scrollTop > 60 }}>
+    <div id="phone-news-items" role="region" aria-label="News headlines" className="news-items" ref={scroll} onScroll={event => { paused.current = event.currentTarget.scrollTop > 60 }}>
       {!page && !error && <p>Connecting to your PC…</p>}
       {page?.items.map(item => {
         const relevance = headlineClassification(item, settings)

@@ -68,8 +68,7 @@ export function HistoryStatus({ history }: { history: ReturnType<typeof useNewsH
   return <>
     {history.loading && <p className="news-message" role="status">Searching historical headlines…</p>}
     {history.error && <p className="news-message" role="alert">Historical search: {history.error}. Cached headlines remain available.</p>}
-    {history.result && <div className="news-history-status" role="status">
-      {(history.result.searched > 0 || history.result.cached > 0) && <p>Historical results may be incomplete.</p>}
+    {history.result && (history.result.unsupported.length > 0 || history.result.errors.length > 0) && <div className="news-history-status" role="status">
       {!!history.result.unsupported.length && <p>Historical lookup unavailable; cached headlines only: {history.result.unsupported.join(', ')}.</p>}
       {history.result.errors.map(message => <p key={message}>Historical search: {message}</p>)}
     </div>}

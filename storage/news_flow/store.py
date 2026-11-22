@@ -192,11 +192,16 @@ class NewsStore:
         if sources:
             clauses.append('i.source_id IN (' + ','.join('?' for _ in sources) + ')')
             args.extend(sources)
-        if mode in ('included', 'excluded', 'priority'):
-            # Reader tiers are disjoint: Priority 1, Priority 2 and Excluded.
-            clauses.append('news_level(i.title,i.source_id,i.url,s.url,?,?,?,p.url IS NOT NULL,?,i.summary)' +
-                           {'excluded': '=0', 'included': '=1', 'priority': '=2'}[mode])
+        levels = {'excluded': (0,), 'included': (1,), 'priority': (2,), 'relevant': (1, 2),
+                  'priority-excluded': (0, 2), 'included-excluded': (0, 1), 'none': ()}.get(mode)
+        if levels:
+            # Checkbox combinations are filtered before counts, pagination and
+            # exports. Alert delivery keeps its separate shared trigger.
+            clauses.append('news_level(i.title,i.source_id,i.url,s.url,?,?,?,p.url IS NOT NULL,?,i.summary) IN (' + ','.join('?' for _ in levels) + ')')
             args.extend((include, exclude, market_relevance, filter_policy))
+            args.extend(levels)
+        elif levels is not None:
+            clauses.append('0')
         bank_expression = 'news_banks(i.title,i.summary,i.source_id,i.url,s.url)'
         # Compatibility for old research links. Current reading tabs use
         # mode=priority and news_level above, never these broad organizer scopes.

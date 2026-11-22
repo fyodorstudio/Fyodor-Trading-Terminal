@@ -15,7 +15,8 @@ defaults and displays the backend result rather than running a second classifier
 
 Classification runs before counting, pagination, copying and alert selection.
 Desktop and phone use the same rules. Priority 1 and Priority 2 are separate
-reader/export tiers; Excluded contains the rest. All remains available for browsing.
+reader/export tiers; Excluded contains the rest. Reading checkboxes combine tiers
+before counts, pagination and copying; they do not change the alert trigger.
 
 ## Decision order
 

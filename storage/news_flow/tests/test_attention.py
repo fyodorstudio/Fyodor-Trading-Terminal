@@ -102,6 +102,41 @@ class NewsAttentionTests(unittest.TestCase):
             self.assertEqual(store.query(mode='included', include=INCLUDE, market_relevance=True)['total'], 1)
             self.assertEqual(store.query(mode='included', include=INCLUDE, exclude='ECB', market_relevance=True)['total'], 1)
 
+    def test_checkbox_combinations_share_counts_pagination_and_exports(self):
+        from storage.app import create_app
+        from storage.news_flow.tests.test_notifications import request
+        with TemporaryDirectory() as root:
+            store = NewsStore(root); source = store.sources()[0]; now = int(time.time()*1000)
+            entries = [dict(identity=str(i), title=title, url=f'https://example.com/{i}', publisher='Reuters', summary='', published_at=now-1000)
+                       for i, title in enumerate(['ECB cuts rates', 'Gold steadies', 'Football final'])]
+            store.success(source, entries, '', '', now)
+            second = store.save_source('Overlap', 'https://other.example/rss')
+            store.success(next(s for s in store.sources() if s['id'] == second), entries, '', '', now+1)
+            expected = {'none': set(), 'priority': {0}, 'included': {1}, 'relevant': {0, 1}, 'excluded': {2},
+                        'priority-excluded': {0, 2}, 'included-excluded': {1, 2}, 'all': {0, 1, 2}}
+            app = create_app(Path(root), run_collector=False)
+            async def run():
+                for mode, ids in expected.items():
+                    with self.subTest(mode=mode):
+                        urls = {f'https://example.com/{i}' for i in ids}
+                        scope = f'mode={mode}&include=ECB,Gold&market_relevance=true'
+                        found = []
+                        for offset in range(len(ids) + 1):
+                            status, body = await request(app, 'GET', f'/api/v1/news-flow/items?{scope}&limit=1&offset={offset}')
+                            self.assertEqual(status, 200)
+                            page = json.loads(body)
+                            self.assertEqual(page['total'], len(ids))
+                            found.extend(item['url'] for item in page['items'])
+                        self.assertEqual(set(found), urls)
+                        self.assertEqual(len(found), len(urls), 'Overlapping feeds must not duplicate combined results')
+                        status, body = await request(app, 'GET', f'/api/v1/news-flow/export?{scope}')
+                        self.assertEqual(status, 200)
+                        copied = json.loads(body)
+                        self.assertEqual(copied['count'], len(ids))
+                        self.assertEqual({line for line in copied['text'].splitlines() if line.startswith('https://')}, urls)
+                self.assertEqual((await request(app, 'GET', '/api/v1/news-flow/items?mode=invalid'))[0], 422)
+            asyncio.run(run())
+
     def test_collection_sort_is_stable_and_does_not_change_publication_date_scope(self):
         with TemporaryDirectory() as root:
             store = NewsStore(root); source = store.sources()[0]; at = int(time.time()*1000)

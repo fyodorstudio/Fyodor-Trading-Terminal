@@ -11,8 +11,8 @@ body { margin:0; background:var(--surface-panel); color:var(--text); }
 .news-mobile-controls > div { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
 .news-mobile-controls > input { display:block; width:100%; margin:10px 0; }
 .news-mobile-controls label { display:flex; align-items:center; gap:6px; font-size:12px; }
-.news-mobile .news-tabs { border:0; padding:0 0 10px; }
-.news-mobile .news-tabs button { flex:1; }
+.news-mobile .news-tier-filters { padding-bottom:8px; }
+.news-mobile .news-tier-option { min-height:32px; }
 .news-mobile .news-items { padding:0 12px; }
 .news-mobile article { border-left-width:4px; line-height:1.55; }
 .news-mobile article > a { color:var(--text-strong); font-weight:600; text-decoration:none; }

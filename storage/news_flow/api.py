@@ -122,7 +122,7 @@ def news_router(store, collector, notifier=None):
         return save(body, identity)
 
     def item_scope(source: list[str] = Query(default=[]), include: str = Query(default='', max_length=MAX_RULE_CHARS),
-              exclude: str = Query(default='', max_length=MAX_RULE_CHARS), mode: Literal['all', 'priority', 'included', 'excluded'] = 'all', priority: bool = False,
+              exclude: str = Query(default='', max_length=MAX_RULE_CHARS), mode: Literal['all', 'priority', 'included', 'excluded', 'relevant', 'priority-excluded', 'included-excluded', 'none'] = 'all', priority: bool = False,
               search: str = Query(default='', max_length=500),
               organizer: Literal['all', 'central-banks', 'expectations', 'starred'] = 'all',
               market_relevance: bool = False,

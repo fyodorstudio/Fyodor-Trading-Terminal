@@ -125,7 +125,10 @@ try {
   query=new URL(pending('/items').url,'http://localhost').searchParams
   assert.equal(query.get('sort_by'),'published'); assert.equal(query.get('order'),'oldest')
   assert.equal(query.get('start'),originalStart); assert.equal(query.get('end'),originalEnd)
-  await click('Priority 1')
+  await click('Show Excluded headlines')
+  query=new URL(pending('/items').url,'http://localhost').searchParams
+  assert.equal(query.get('mode'),'relevant', 'Phone can read Priority 1 and 2 together')
+  await click('Show Priority 2 headlines')
   query=new URL(pending('/items').url,'http://localhost').searchParams
   assert.equal(query.get('mode'),'priority')
   const priority={...headline,relevance:{included:true,tier:'priority',reason:'Included · Japan',keyword:'Japan',priority_reason:'Reported currency intervention'}}
