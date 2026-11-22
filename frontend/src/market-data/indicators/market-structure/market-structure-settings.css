@@ -1,0 +1,26 @@
+.market-structure-settings fieldset {
+  border-top: 1px solid var(--border);
+  margin: 10px 0 16px;
+}
+
+.market-structure-settings legend {
+  color: var(--text-strong);
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 2px;
+  padding: 0 8px 0 0;
+}
+
+.market-structure-settings select {
+  width: 156px;
+  max-width: 55%;
+}
+
+.market-structure-settings input[type="number"],
+.market-structure-settings input[type="color"] {
+  width: 72px;
+}
+
+.market-structure-settings p {
+  margin-top: 6px;
+}

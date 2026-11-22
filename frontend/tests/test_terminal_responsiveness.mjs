@@ -390,7 +390,10 @@ try {
   await click(marketStructureSettings)
   const marketStructureDialog = container.querySelector('[role="dialog"]')
   assert.equal(marketStructureDialog.querySelector('input[type="number"]').value, '8')
-  assert.equal(marketStructureDialog.querySelector('select').value, 'close')
+  assert.deepEqual([...marketStructureDialog.querySelectorAll('legend')].map(legend => legend.textContent),
+    ['Levels', 'Break confirmation', 'Appearance'])
+  assert.deepEqual([...marketStructureDialog.querySelectorAll('select')].map(select => select.value), ['classified', '2', '2'])
+  assert.equal(marketStructureDialog.querySelector('input[aria-describedby][max="100"]').value, '10')
   await click([...marketStructureDialog.querySelectorAll('button')].find(button => button.textContent === 'Cancel'))
   const beforeMarketStructure = primitives.size
   await click(showMarketStructure)

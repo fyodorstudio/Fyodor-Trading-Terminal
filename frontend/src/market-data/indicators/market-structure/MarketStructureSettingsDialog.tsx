@@ -1,8 +1,10 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import {
-  defaultMarketStructurePreferences, lineWidths, swingStrengthLimits, type MarketStructurePreferences,
+  confirmationCloseOptions, defaultMarketStructurePreferences, lineWidths, maxAtrBufferPercent, swingStrengthLimits,
+  type MarketStructurePreferences,
 } from './market-structure-preferences'
 import '../rsi/rsi.css'
+import './market-structure-settings.css'
 
 export function MarketStructureSettingsDialog({ preferences, onSave, onClose }: {
   preferences: MarketStructurePreferences
@@ -12,7 +14,10 @@ export function MarketStructureSettingsDialog({ preferences, onSave, onClose }: 
   const [draft, setDraft] = useState(preferences)
   const dialog = useRef<HTMLFormElement>(null)
   const titleId = useId()
-  const descriptionId = useId()
+  const swingHelpId = useId()
+  const bufferHelpId = useId()
+  const confirmationHelpId = useId()
+  const classified = draft.breakBy === 'classified'
 
   useEffect(() => {
     const previousFocus = document.activeElement as HTMLElement | null
@@ -24,7 +29,7 @@ export function MarketStructureSettingsDialog({ preferences, onSave, onClose }: 
         onClose()
       }
       if (event.key !== 'Tab') return
-      const controls = dialog.current?.querySelectorAll<HTMLElement>('button, input, select')
+      const controls = dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled)')
       if (!controls?.length) return
       const first = controls[0]
       const last = controls[controls.length - 1]
@@ -48,35 +53,64 @@ export function MarketStructureSettingsDialog({ preferences, onSave, onClose }: 
       <form ref={dialog} className="rsi-settings-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId}
         onSubmit={event => {
           event.preventDefault()
-          onSave({ ...draft, enabled: preferences.enabled })
+          const buffer = draft.atrBufferPercent
+          onSave({
+            ...draft,
+            atrBufferPercent: Number.isInteger(buffer) && buffer >= 0 && buffer <= maxAtrBufferPercent
+              ? buffer : preferences.atrBufferPercent,
+            enabled: preferences.enabled,
+          })
           onClose()
         }}>
         <header>
           <strong id={titleId}>Market Structure</strong>
           <button type="button" onClick={onClose} aria-label="Close Market Structure settings">×</button>
         </header>
-        <div className="rsi-settings-body">
+        <div className="rsi-settings-body market-structure-settings">
           <fieldset>
-            <legend>Swing detection</legend>
+            <legend>Levels</legend>
             <label>Swing strength
               <input type="number" min={swingStrengthLimits.min} max={swingStrengthLimits.max} step={1} required
-                aria-describedby={descriptionId} value={draft.swingStrength || ''}
+                aria-describedby={swingHelpId} value={draft.swingStrength || ''}
                 onChange={event => setDraft({ ...draft, swingStrength: Number(event.target.value) })} />
             </label>
-            <label>Confirm break by
-              <select value={draft.breakBy} onChange={event => setDraft({ ...draft, breakBy: event.target.value === 'wick' ? 'wick' : 'close' })}>
-                <option value="close">Candle close</option>
-                <option value="wick">Candle wick</option>
-              </select>
-            </label>
+            <p id={swingHelpId}>Number of closed candles required on each side of a swing.</p>
             <label>Show unbroken levels
               <input type="checkbox" checked={draft.showUnbroken}
                 onChange={event => setDraft({ ...draft, showUnbroken: event.target.checked })} />
             </label>
-            <p id={descriptionId}>Swing strength is the number of candles required on each side of a swing. Breaks are checked against the latest confirmed swing high and low after each candle closes.</p>
+          </fieldset>
+          <fieldset>
+            <legend>Break confirmation</legend>
+            <label>Detection mode
+              <select value={draft.breakBy} onChange={event => setDraft({ ...draft, breakBy: event.target.value as MarketStructurePreferences['breakBy'] })}>
+                <option value="classified">Sweeps and breakouts</option>
+                <option value="close">Close breaks only</option>
+                <option value="wick">Wick breaks only</option>
+              </select>
+            </label>
+            {classified && <>
+              <label>Closes beyond the level
+                <select aria-describedby={confirmationHelpId} value={draft.confirmationCloses}
+                  onChange={event => setDraft({ ...draft, confirmationCloses: Number(event.target.value) })}>
+                  {confirmationCloseOptions.map(count => <option key={count} value={count}>{count} in a row</option>)}
+                </select>
+              </label>
+              <label>ATR buffer (%)
+                <input type="number" aria-describedby={bufferHelpId} min={0} max={maxAtrBufferPercent} step={1} required
+                  value={Number.isNaN(draft.atrBufferPercent) ? '' : draft.atrBufferPercent}
+                  onChange={event => setDraft({ ...draft, atrBufferPercent: event.target.valueAsNumber })} />
+              </label>
+              <p id={confirmationHelpId}>A wick through the level that closes back inside is a sweep. A close beyond the buffer starts a breakout attempt. The remaining closes must hold past the original level.</p>
+              <p id={bufferHelpId}>Uses 14-period ATR from the prior candle. Set to 0 to switch off the buffer.</p>
+            </>}
           </fieldset>
           <fieldset>
             <legend>Appearance</legend>
+            {classified && <label>Show signal labels
+              <input type="checkbox" checked={draft.showLabels}
+                onChange={event => setDraft({ ...draft, showLabels: event.target.checked })} />
+            </label>}
             <label>Swing high color
               <input type="color" value={draft.highColor} onChange={event => setDraft({ ...draft, highColor: event.target.value })} />
             </label>
