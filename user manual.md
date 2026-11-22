@@ -15,7 +15,10 @@ Display timezone and theme are available in Settings.
 
 MFDI's currency tabs, Fit, lock and lane controls share one toolbar row.
 Choose **A-P Delta** beside Series to color actual releases by Actual minus
-reported Previous: higher green, lower red, unchanged gray. Each box's color
+reported Previous. Higher is green, lower is red, and unchanged is gray.
+**Invert unemployment and jobless claims in A-P Delta** in MFDI settings
+makes lower values green for those series across all currencies. The release
+tooltip shows the signed delta. Each box's color
 continues along the following line until the next actual release. The lane after
 the next forecast box is gray. Missing Previous values and forecast
 markers keep their custom colors. **Custom Color** restores your saved styling.

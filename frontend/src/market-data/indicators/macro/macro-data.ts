@@ -8,7 +8,7 @@ import type { FedForecasts } from './fed-forecast'
 import { isPublishedTentative } from '../../../inspector/releases/group-releases'
 
 export type MacroReading = { time: number; releasedAt: number; value: number; id: string; currency?: string; brokerValue?: number; unit?: number; multiplier?: number; digits?: number;
-  forecast?: number | null; previous?: number | null; impact?: string }
+  revision?: number; forecast?: number | null; previous?: number | null; impact?: string }
 export type MacroHistory = Record<MacroMetric, MacroReading[]>
 export type MacroScheduled = { time: number; releasedAt: number; metrics: MacroMetric[]; forecasts?: Partial<Record<MacroMetric, number>>;
   formats?: Partial<Record<MacroMetric, Pick<MacroReading, 'unit' | 'multiplier' | 'digits'>>> }
@@ -30,9 +30,15 @@ export function macroNumberLabels(metric: MacroMetric, history: MacroReading[], 
     return [reading.time, `${arrow}${macroValue(metric, reading.value, reading)}`]
   }))
 }
-export function macroDeltaColor(reading: MacroReading | undefined, fallback: string) {
-  if (!reading || reading.previous == null || !Number.isFinite(reading.previous) || !Number.isFinite(reading.value)) return fallback
-  return reading.value > reading.previous ? '#16a34a' : reading.value < reading.previous ? '#dc2626' : '#6b7280'
+export function macroActualDelta(reading?: MacroReading) {
+  if (!reading || reading.previous == null || !Number.isFinite(reading.previous) || !Number.isFinite(reading.value)) return null
+  return reading.value - reading.previous
+}
+export function macroDeltaColor(reading: MacroReading | undefined, fallback: string, inverse = false) {
+  const delta = macroActualDelta(reading)
+  if (delta === null) return fallback
+  if (delta === 0) return '#6b7280'
+  return (delta > 0) !== inverse ? '#16a34a' : '#dc2626'
 }
 function groupEvents(events: StoredCalendarEvent[]) {
   const grouped = new Map<string, StoredCalendarEvent[]>()
@@ -68,7 +74,7 @@ export function macroHistory(events: StoredCalendarEvent[], now: number, field: 
     }
     history[key] = [...readings.values()].filter(event => event[field] !== null && Number.isFinite(event[field]))
       .map(event => ({ time: event.chart_time_seconds!, releasedAt: event.release_at!, value: event[field]!, id: event.value_id, currency: event.currency, unit: event.unit, multiplier: event.multiplier, digits: event.digits,
-        forecast: Number.isFinite(event.forecast) ? event.forecast : null, previous: Number.isFinite(event.previous) ? event.previous : null, impact: event.impact }))
+        revision: event.revision, forecast: Number.isFinite(event.forecast) ? event.forecast : null, previous: Number.isFinite(event.previous) ? event.previous : null, impact: event.impact }))
       .sort((a, b) => a.time - b.time)
   }
   return history

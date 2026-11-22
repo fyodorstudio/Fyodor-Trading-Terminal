@@ -818,7 +818,7 @@ try {
   await React.act(async () => host.querySelector('[data-macro-color-mode="ap-delta"]').click())
   await render({ macro })
   assert.deepEqual(coreLine.data().map(point => point.color), ['#16a34a', '#dc2626'], 'Native line segments use each actual minus reported Previous')
-  assert.deepEqual(unemploymentLine.data().map(point => point.color), ['#16a34a', '#dc2626'], 'Lower unemployment stays red')
+  assert.deepEqual(unemploymentLine.data().map(point => point.color), ['#dc2626', '#16a34a'], 'Lower unemployment paints green')
   assert.ok(rateLine.data().every(point => point.color === '#6b7280'))
   assert.equal(rateDots.data()[0].color, '#6b7280', 'Native rate dots and line share the unchanged result')
   assert.deepEqual(macro.preferences.series, beforeDeltaStyles, 'The mode does not overwrite custom styles')

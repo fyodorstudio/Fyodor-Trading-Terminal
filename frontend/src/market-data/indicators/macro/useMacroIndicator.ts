@@ -14,7 +14,7 @@ export function useMacroIndicator(symbol: string, brokerId: string | null) {
   const [macroPreferences, setPreferences] = useState<MacroPreferences>(() => {
     const saved = readMacroPreferences(symbol)
     const current = { ...saved, activeCurrency: saved.activeCurrency ?? saved.currencies?.[0] ?? 'USD' }
-    return initializeMacroWorkspace(saved.essentialsVersion === 1 ? current : applyMacroEssentials(current))
+    return initializeMacroWorkspace(applyMacroEssentials(current))
   })
   const [preferencesSaved, setPreferencesSaved] = useState(true)
   useEffect(() => { saveMacroPreferences(macroPreferences) }, [macroPreferences])

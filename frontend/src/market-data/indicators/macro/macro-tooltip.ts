@@ -1,5 +1,15 @@
 import { macroCatalog } from './macro-catalog'
-import { macroValue, type MacroReading } from './macro-data'
+import { macroActualDelta, macroValue, type MacroReading } from './macro-data'
+
+function formatDelta(key: string, reading: MacroReading) {
+  const delta = macroActualDelta(reading)
+  if (delta === null) return '—'
+  const absolute = macroValue(key, Math.abs(delta), reading)
+  const value = absolute.endsWith('%') ? absolute.replace(/%$/, ' pp') : absolute
+  return `${delta < 0 ? '−' : delta > 0 ? '+' : ''}${value}`
+}
+
+const euroInflation = new Set(['999030011', '999030012', '999030013'])
 
 export function createMacroTooltip(container: HTMLElement) {
   const element = document.createElement('div'); element.className = 'macro-release-tooltip'; element.hidden = true
@@ -10,16 +20,26 @@ export function createMacroTooltip(container: HTMLElement) {
   return {
     element,
     hide() { element.hidden = true; connector.style.display = 'none' },
-    show(key: string, reading: MacroReading, forecast: number | null | undefined, format: (time: number) => string) {
+    show(key: string, reading: MacroReading, forecast: number | null | undefined, format: (time: number) => string, showDelta = false) {
       element.replaceChildren()
-      const title = document.createElement('strong'); title.textContent = macroCatalog[key].controlLabel
+      const definition = macroCatalog[key], title = document.createElement('strong')
+      const stage = euroInflation.has(definition.eventId)
+        ? ({ 1: 'Flash', 3: 'Final' } as Record<number, string>)[reading.revision ?? 0]
+        : undefined
+      title.textContent = stage ? `${definition.controlLabel} · ${stage}` : definition.controlLabel
       const table = document.createElement('table'), head = document.createElement('tr'), values = document.createElement('tr')
       for (const [field, value] of [['Actual', reading.value], ['Forecast', forecast], ['Previous', reading.previous]] as const) {
         const th = document.createElement('th'); th.scope = 'col'; th.textContent = field
         const td = document.createElement('td'); td.dataset.macroTooltipField = field.toLowerCase()
         td.textContent = typeof value === 'number' && Number.isFinite(value) ? macroValue(key, value, reading) : '—'
-        if (field === 'Actual' && (reading.impact === 'positive' || reading.impact === 'negative')) td.style.color = `var(--${reading.impact})`
+        if (!showDelta && field === 'Actual' && (reading.impact === 'positive' || reading.impact === 'negative')) td.style.color = `var(--${reading.impact})`
         head.append(th); values.append(td)
+      }
+      if (showDelta) {
+        const deltaHeader = document.createElement('th'), deltaValue = document.createElement('td')
+        deltaHeader.scope = 'col'; deltaHeader.textContent = 'A-P Delta'
+        deltaValue.dataset.macroTooltipField = 'delta'; deltaValue.textContent = formatDelta(key, reading)
+        head.append(deltaHeader); values.append(deltaValue)
       }
       const thead = document.createElement('thead'), tbody = document.createElement('tbody'); thead.append(head); tbody.append(values); table.append(thead, tbody)
       const time = document.createElement('time'); time.dateTime = new Date(reading.releasedAt).toISOString(); time.textContent = format(reading.releasedAt)

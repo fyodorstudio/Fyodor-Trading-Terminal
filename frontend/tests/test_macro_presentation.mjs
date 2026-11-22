@@ -41,6 +41,17 @@ try {
     }
     assert.equal(layout.macroCategory(active, macroEventRowKey), 'uncategorized')
   }
+  for (const id of ['840030015', '999030020', '826010003', '392030007', '756040003', '124010014', '36010006', '554010014']) {
+    assert.equal(Object.values(macroCatalog).find(definition => definition.eventId === id).lowerIsStronger, true)
+  }
+  const alreadySelected = 'NZD:NZ:554040002'
+  const upgradeBase = p.setMacroEvents({ ...expanded, essentialsVersion: 1 }, 'NZD', [alreadySelected])
+  upgradeBase.series[alreadySelected] = { ...upgradeBase.series[alreadySelected], visible: false, color: '#123456', numbersVisible: false }
+  const upgraded = applyMacroEssentials(upgradeBase)
+  assert.deepEqual(upgraded.eventsByCurrency.NZD, [alreadySelected, 'NZD:NZ:554010001'], 'Add default releases without restoring deleted original rows')
+  assert.deepEqual(upgraded.series[alreadySelected], upgradeBase.series[alreadySelected])
+  assert.deepEqual(upgraded.currencyViews, upgradeBase.currencyViews)
+  assert.equal(applyMacroEssentials(upgraded), upgraded, 'The migration is one-time')
   assert.equal(expanded.layout.laneSpacing, 35)
   const oldRate = layout.macroLanes(original).groups.flatMap(group => group.rows).find(row => row.key === 'rate')
   const newRate = layout.macroLanes(expanded).groups.flatMap(group => group.rows).find(row => row.key === 'rate')
@@ -62,7 +73,7 @@ try {
   let view
   function Harness() { const next = useMacroIndicator('EURUSD', null); React.useLayoutEffect(() => { view = next }, [next]); return null }
   await React.act(async () => root.render(React.createElement(Harness)))
-  assert.equal(view.macroPreferences.essentialsVersion, 1)
+  assert.equal(view.macroPreferences.essentialsVersion, 2)
   await React.act(async () => view.changeMacro(p.setMacroEvents(view.macroPreferences, 'USD', ['rate'])))
   await React.act(async () => root.render(null))
   await React.act(async () => root.render(React.createElement(Harness)))
@@ -155,6 +166,30 @@ try {
   customButton.click(); sync(); draw()
   assert.equal(customButton.getAttribute('aria-pressed'), 'true')
   assert.ok(!operations.some(op => op[0] === 'stroke' && ['#16a34a', '#dc2626', '#6b7280'].includes(op[1])))
+  const uk = 'GBP:GB:826010003'
+  preferences = { ...p.switchMacroCurrency(expanded, 'GBP'), colorMode: 'ap-delta',
+    eventsByCurrency: { GBP: [uk] } }
+  indicator = { ...indicator, preferences, upcoming: [], history: { [uk]: [
+    { id: 'uk-up', time: bars[0].time, releasedAt: bars[0].time * 1000, value: 5, previous: 4, unit: 1 },
+  ] } }
+  sync(); draw()
+  assert.ok(operations.some(op => op[0] === 'fill' && op[1] === '#dc2626'), 'Higher unemployment paints red')
+  assert.ok(operations.some(op => op[0] === 'text' && op[1] === '↑5.00%'), 'The arrow still shows the actual increase')
+  preferences = { ...preferences, invertUnemployment: false }
+  indicator = { ...indicator, preferences }
+  sync(); draw()
+  assert.ok(operations.some(op => op[0] === 'fill' && op[1] === '#16a34a'), 'Toggling the setting repaints the same release green')
+
+  const { createMacroTooltip } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-tooltip.ts')
+  const tooltip = createMacroTooltip(shell)
+  tooltip.show(uk, indicator.history[uk][0], undefined, String, true)
+  assert.equal(tooltip.element.querySelector('[data-macro-tooltip-field="delta"]').textContent, '+1.00 pp')
+  const euReading = { ...indicator.history[uk][0], revision: 1 }
+  tooltip.show('EUR:EU:999030013', euReading, undefined, String)
+  assert.match(tooltip.element.querySelector('strong').textContent, /Flash$/)
+  tooltip.show('EUR:EU:999030013', { ...euReading, revision: 3 }, undefined, String)
+  assert.match(tooltip.element.querySelector('strong').textContent, /Final$/)
+  tooltip.destroy()
   viewPane.destroy()
   assert.equal(primitives.size, 0); assert.equal(lines.size, 0); assert.equal(hover.size, 0); assert.equal(clicks.size, 0); assert.equal(listeners.size, 0); assert.equal(frames.size, 0)
   console.log('✓ MFDI essentials: eight exact currency setups, one-time population, shared palette/inheritance, movable Events lane, rectangular centered values and bounded collision handling')

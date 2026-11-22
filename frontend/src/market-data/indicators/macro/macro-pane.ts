@@ -41,8 +41,12 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
   const colourDrafts = new Map<string, string>(), colourPreviews = new Map<string, string>()
   let colourTimer: number | null = null
   const colourFor = (key: string) => colourPreviews.get(key) ?? indicator!.preferences.series[key].color
-  const readingColour = (key: string, reading?: MacroReading) => indicator?.preferences.colorMode === 'ap-delta'
-    ? macroDeltaColor(reading, colourFor(key)) : colourFor(key)
+  const readingColour = (key: string, reading?: MacroReading) => {
+    const color = colourFor(key)
+    if (indicator?.preferences.colorMode !== 'ap-delta') return color
+    const inverse = indicator.preferences.invertUnemployment !== false && macroCatalog[key].lowerIsStronger === true
+    return macroDeltaColor(reading, color, inverse)
+  }
   const stopColourTimer = () => { if (colourTimer !== null) window.clearTimeout(colourTimer); colourTimer = null }
   const clearColourPreviews = () => { stopColourTimer(); colourDrafts.clear(); colourPreviews.clear() }
   const paintColour = (key: string, color: string) => {
@@ -189,7 +193,7 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
   const colorButtons = (['custom', 'ap-delta'] as const).map(mode => {
     const button = document.createElement('button'); button.type = 'button'; button.dataset.macroColorMode = mode
     button.textContent = mode === 'ap-delta' ? 'A-P Delta' : 'Custom Color'
-    button.title = mode === 'ap-delta' ? 'Actual minus reported Previous: higher green, lower red, unchanged gray' : 'Use saved series and category colors'
+    button.title = mode === 'ap-delta' ? 'Color releases by Actual minus reported Previous. Unchanged releases are gray.' : 'Use saved series and category colors'
     button.onclick = () => { if (indicator && (indicator.preferences.colorMode ?? 'custom') !== mode) commitPreferences({ ...indicator.preferences, colorMode: mode }) }
     return button
   })
@@ -265,7 +269,7 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
     const { key, reading } = releaseHover
     const meeting = key === 'rate' ? indicator.forecasts?.meetings.get(reading.releasedAt) : undefined
     const forecast = meeting ? meeting.consensus.find(row => row.provider === 'investing')?.value : reading.forecast
-    releaseTooltip.show(key, reading, forecast, formatRelease)
+    releaseTooltip.show(key, reading, forecast, formatRelease, indicator.preferences.colorMode === 'ap-delta')
   }
   type Bounds = { from: number; to: number }
   const bounds = new Map<MacroAxis, Bounds>()
@@ -787,7 +791,7 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
       const keys = selectedMacroMetrics(next.preferences)
       // Navigation and saved placement changes do not replace chart data or restore
       // the shared time window. Only numerical inputs and styles need that work.
-      const presentation = JSON.stringify([selectedAxisFor(next.preferences), next.preferences.colorMode, keys.map(key => [key, macroMetricVisible(next.preferences, key), next.preferences.series[key]])])
+      const presentation = JSON.stringify([selectedAxisFor(next.preferences), next.preferences.colorMode, next.preferences.invertUnemployment, keys.map(key => [key, macroMetricVisible(next.preferences, key), next.preferences.series[key]])])
       const input = [bars, next.history, next.forecastHistory, next.upcoming, presentation, next.preferences.layout?.axisRestoreId, next.sourceId, next.status, next.forecasts, seconds, format]
       if (numericalInput?.every((value, index) => value === input[index])) {
         const changedMode = laneMode !== macroLayout(next.preferences).laneMode

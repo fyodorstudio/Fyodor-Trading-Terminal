@@ -3,7 +3,7 @@ import { defaultMacroCategories, macroCategories, macroCategory, macroLayout, no
 import { macroDefaultStyle, type MacroPreferences } from './macro-preferences'
 
 // Exact MT5 series already present in the terminal's calendar catalog.
-export const macroEssentials: Record<string, Record<string, string[]>> = {
+const originalEssentials: Record<string, Record<string, string[]>> = {
   USD: {
     policy: ['840050014'], inflation: ['840030005', '840030007', '840030006', '840030008', '840010001', '840010002', '840010004'],
     labor: ['840030016', '840030015', '840030018', '840140001', '840140002', '840030021', '840030025'],
@@ -38,10 +38,25 @@ export const macroEssentials: Record<string, Record<string, string[]>> = {
     labor: ['554010016', '554010014', '554010018'], growth: ['554010024', '554010019', '554060001', '554060002'],
   },
 }
+const essentialAdditions: Record<string, Record<string, string[]>> = {
+  USD: { labor: ['840030017'] },
+  JPY: { inflation: ['392030005'] },
+  CAD: { labor: ['124010015'] },
+  AUD: { growth: ['36500002'] },
+  NZD: { growth: ['554040002', '554010001'] },
+}
+export const macroEssentials = Object.fromEntries(Object.entries(originalEssentials).map(([currency, groups]) => [
+  currency, Object.fromEntries(Object.entries(groups).map(([category, ids]) => [
+    category, [...ids, ...(essentialAdditions[currency]?.[category] ?? [])],
+  ])),
+]))
+
 export const macroEssentialGaps: Record<string, string> = {
-  AUD: 'Monthly headline CPI, monthly trimmed-mean CPI and Household Spending are not in the stored MT5 catalog. This setup uses the available quarterly inflation history; discontinued Retail Sales is excluded.',
-  CAD: 'Wage growth is not in the stored MT5 catalog.',
-  GBP: 'A dedicated services CPI series is not in the stored MT5 catalog.',
+  AUD: 'Monthly headline CPI, monthly trimmed-mean CPI and Household Spending are unavailable in the stored MT5 catalog. Quarterly CPI and Services PMI are available.',
+  CAD: 'Average hourly wage growth is unavailable in the stored MT5 catalog.',
+  CHF: 'The SNB conditional inflation forecast is unavailable in the stored MT5 catalog.',
+  EUR: 'Euro-area services HICP is unavailable in the stored MT5 catalog.',
+  GBP: 'Services CPI is unavailable in the stored MT5 catalog.',
 }
 export const defaultMacroCategoryColors: Record<string, string> = {
   policy: '#3b82f6', inflation: '#dc2626', labor: '#16a34a', growth: '#ca8a04', uncategorized: '#64748b',
@@ -54,23 +69,45 @@ export function setMacroCategoryColor(preferences: MacroPreferences, category: s
   for (const key of Object.keys(series)) if (macroCategory(preferences, key) === category) series[key] = { ...series[key], color }
   return { ...preferences, categoryColors: { ...preferences.categoryColors, [category]: color }, series }
 }
-export function applyMacroEssentials(preferences: MacroPreferences): MacroPreferences {
-  preferences = normalizeMacroCategories(preferences)
-  const layout = preferences.layout ?? { ...macroLayout(preferences), laneMode: true }
+const essentialsVersion = 2
+
+function addEssentialSeries(preferences: MacroPreferences, groupsByCurrency: typeof macroEssentials): MacroPreferences {
   const eventsByCurrency = { ...preferences.eventsByCurrency }, series = { ...preferences.series }, categoryByEvent = { ...preferences.categoryByEvent }
-  const categoryColors = { ...defaultMacroCategoryColors, ...preferences.categoryColors }
-  for (const [currency, groups] of Object.entries(macroEssentials)) {
-    const added: string[] = []
+  for (const [currency, groups] of Object.entries(groupsByCurrency)) {
+    const selected = new Set(eventsByCurrency[currency])
     for (const [category, ids] of Object.entries(groups)) for (const id of ids) {
       const key = Object.keys(macroCatalog).find(key => macroCatalog[key].currency === currency && macroCatalog[key].eventId === id)
       if (!key) throw new Error(`MFDI essential series missing: ${currency} ${id}`)
-      added.push(key)
+      if (preferences.essentialsVersion === 1 && selected.has(key) && series[key]) continue
+      selected.add(key)
       categoryByEvent[key] ??= category
-      series[key] = { ...(series[key] ?? macroDefaultStyle(key)), numbersVisible: true }
+      const existing = series[key]
+      series[key] = existing
+        ? { ...existing, numbersVisible: true }
+        : { ...macroDefaultStyle(key), numbersVisible: true, color: macroCategoryColor(preferences, categoryByEvent[key]) }
     }
-    eventsByCurrency[currency] = [...new Set([...(eventsByCurrency[currency] ?? []), ...added])]
+    eventsByCurrency[currency] = [...selected]
   }
-  let next: MacroPreferences = { ...preferences, essentialsVersion: 1, eventsByCurrency, series, categoryByEvent, categoryColors,
+  return { ...preferences, essentialsVersion, eventsByCurrency, series, categoryByEvent }
+}
+
+export function applyMacroEssentials(preferences: MacroPreferences): MacroPreferences {
+  if ((preferences.essentialsVersion ?? 0) >= essentialsVersion) return preferences
+  if (preferences.essentialsVersion === 1) {
+    const additions = Object.fromEntries(Object.entries(essentialAdditions).filter(([currency]) => preferences.currencies?.includes(currency)))
+    const categories = macroCategories(preferences)
+    const needed = new Set(Object.values(additions).flatMap(groups => Object.keys(groups)))
+    return addEssentialSeries({ ...preferences, categories: [
+      ...categories, ...defaultMacroCategories.filter(category => needed.has(category.id) && !categories.some(item => item.id === category.id)),
+    ] }, additions)
+  }
+
+  preferences = normalizeMacroCategories(preferences)
+  const layout = preferences.layout ?? { ...macroLayout(preferences), laneMode: true }
+  const categoryColors = { ...defaultMacroCategoryColors, ...preferences.categoryColors }
+  const populated = addEssentialSeries({ ...preferences, categoryColors }, macroEssentials)
+  const eventsByCurrency = populated.eventsByCurrency!
+  let next: MacroPreferences = { ...populated,
     currencies: Object.keys(macroEssentials), activeCurrency: preferences.activeCurrency ?? preferences.currencies?.[0] ?? 'USD',
     numberPlacement: 'inside', categories: preferences.categories ? [...preferences.categories, ...defaultMacroCategories.filter(category => !preferences.categories!.some(item => item.id === category.id))] : [
       { id: 'policy', label: 'Monetary Policy' }, { id: 'inflation', label: 'Inflation' }, { id: 'labor', label: 'Labor' },

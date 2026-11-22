@@ -35,6 +35,8 @@ export function MacroSettingsDialog({ preferences, onSave, onClose }: {
         </select></label>
         <label className="macro-setting-row">Show value readout<input type="checkbox" aria-label="Show MFDI value readout" checked={draft.showReadout ?? false}
           onChange={event => setDraft(current => ({ ...current, showReadout: event.target.checked }))} /></label>
+        <label className="macro-setting-row">Invert unemployment and jobless claims in A-P Delta<input type="checkbox" checked={draft.invertUnemployment !== false}
+          onChange={event => setDraft(current => ({ ...current, invertUnemployment: event.target.checked }))} /></label>
         <label className="macro-setting-row">Line width · all currencies<select aria-label="MFDI line width" value={widths.size === 1 ? [...widths][0] : 'mixed'}
           onChange={event => { const lineWidth = Number(event.target.value) as MacroStyle['lineWidth']; setDraft(current => ({ ...current, series: Object.fromEntries(Object.entries(current.series).map(([key, style]) => [key, { ...style, lineWidth }])) })) }}>
           <option value="mixed" disabled>Mixed</option>{[1, 2, 3, 4].map(width => <option key={width} value={width}>{width}</option>)}

@@ -7,7 +7,7 @@ export type MacroMetric = string
 export type MacroAxis = MacroMetric
 export type MacroStyle = { visible: boolean; color: string; lineWidth: 1 | 2 | 3 | 4; pointsVisible: boolean; forecastVisible: boolean; numbersVisible: boolean }
 export type MacroPreferences = { enabled: boolean; axisTarget: MacroAxis; series: Record<MacroMetric, MacroStyle>; currencies?: string[]; eventsByCurrency?: Record<string, string[]>;
-  colorMode?: 'custom' | 'ap-delta';
+  colorMode?: 'custom' | 'ap-delta'; invertUnemployment?: boolean;
   categories?: MacroCategory[]; categoryByEvent?: Record<string, string>; layout?: MacroLayout;
   categoryColors?: Record<string, string>; numberPlacement?: 'inside' | 'above' | 'dots'; essentialsVersion?: number; workspaceVersion?: number; showReadout?: boolean;
   activeCurrency?: string; currencyViews?: Record<string, { axisTarget: string; layout?: MacroLayout; showEventRow?: boolean }>; showEventRow?: boolean }
@@ -24,7 +24,7 @@ export const macroAxes: { id: MacroAxis; label: string; metrics: MacroMetric[] }
   { id: 'coreCpi', label: 'Core CPI (% MoM)', metrics: ['coreCpi'] },
 ]
 const style = (color: string, forecastVisible = false): MacroStyle => ({ visible: true, color, lineWidth: 2, pointsVisible: true, forecastVisible, numbersVisible: false })
-export const defaultMacroPreferences: MacroPreferences = { enabled: false, axisTarget: 'rate', colorMode: 'custom', series: {
+export const defaultMacroPreferences: MacroPreferences = { enabled: false, axisTarget: 'rate', colorMode: 'custom', invertUnemployment: true, series: {
   rate: style('#3b82f6'), payrolls: style('#0d9488', true), unemployment: style('#d97706'), coreCpi: style('#8b5cf6'), headlineCpi: style('#e05270'),
 } }
 const storageKey = 'fyodor.indicators.macro.v1'
@@ -60,7 +60,7 @@ function readLegacyPreferences(): MacroPreferences {
   } catch { return d }
 }
 const configKey = 'fyodor.indicators.macro.v2'
-type MacroProfile = Pick<MacroPreferences, 'enabled' | 'axisTarget' | 'colorMode' | 'layout' | 'activeCurrency' | 'currencyViews' | 'showEventRow' | 'numberPlacement' | 'essentialsVersion' | 'workspaceVersion' | 'showReadout'> & { currencies: string[] }
+type MacroProfile = Pick<MacroPreferences, 'enabled' | 'axisTarget' | 'colorMode' | 'invertUnemployment' | 'layout' | 'activeCurrency' | 'currencyViews' | 'showEventRow' | 'numberPlacement' | 'essentialsVersion' | 'workspaceVersion' | 'showReadout'> & { currencies: string[] }
 type SavedMacro = { eventsByCurrency: Record<string, string[]>; styles: Record<string, MacroStyle>;
   categories?: MacroCategory[]; categoryByEvent?: Record<string, string>; categoryColors?: Record<string, string>;
   global?: MacroProfile; symbols: Record<string, MacroProfile> }
@@ -99,6 +99,7 @@ export function readMacroPreferences(symbol = 'USDX'): MacroPreferences {
   try { hasLegacy ||= window.localStorage.getItem(storageKey) !== null || window.localStorage.getItem('fyodor.indicators.fed-rate.v1') !== null } catch { /* Storage may be unavailable. */ }
   return { enabled: profile ? profile.enabled === true : legacy.enabled,
     colorMode: profile?.colorMode === 'ap-delta' ? 'ap-delta' : 'custom',
+    invertUnemployment: profile?.invertUnemployment !== false,
     currencies: profile && Array.isArray(profile.currencies) ? [...new Set(profile.currencies.filter(currency => currency in eventsByCurrency))]
       : hasLegacy ? ['USD'] : [],
     axisTarget: profile && macroCatalog[profile.axisTarget] ? profile.axisTarget : legacy.axisTarget,
@@ -135,7 +136,8 @@ export function saveMacroPreferences(value: MacroPreferences, _symbol = 'USDX') 
     if (value.categories) saved.categories = value.categories
     if (value.categoryByEvent) saved.categoryByEvent = value.categoryByEvent
     if (value.categoryColors) saved.categoryColors = value.categoryColors
-    saved.global = { enabled: value.enabled, currencies: value.currencies ?? ['USD'], axisTarget: value.axisTarget, colorMode: value.colorMode ?? 'custom', ...(value.layout ? { layout: value.layout } : {}),
+    saved.global = { enabled: value.enabled, currencies: value.currencies ?? ['USD'], axisTarget: value.axisTarget, colorMode: value.colorMode ?? 'custom',
+      invertUnemployment: value.invertUnemployment !== false, ...(value.layout ? { layout: value.layout } : {}),
       ...(value.activeCurrency ? { activeCurrency: value.activeCurrency } : {}), ...(value.currencyViews ? { currencyViews: value.currencyViews } : {}), ...(value.showEventRow !== undefined ? { showEventRow: value.showEventRow } : {}),
       ...(value.numberPlacement ? { numberPlacement: value.numberPlacement } : {}), ...(value.essentialsVersion ? { essentialsVersion: value.essentialsVersion } : {}),
       ...(value.workspaceVersion ? { workspaceVersion: value.workspaceVersion } : {}), ...(value.showReadout !== undefined ? { showReadout: value.showReadout } : {}) }
