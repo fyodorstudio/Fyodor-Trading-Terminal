@@ -1201,7 +1201,8 @@
     "summary": "Gold Falls, Weighed by Elevated Yields, Strong Dollar WSJ",
     "url": "https://news.google.com/rss/articles/CBMirAFBVV95cUxOcVRIcFBRS1k2cEF4M0NpS3duc2FFOXdhMFh4Q1NLdVY2aEZwTEpleEg1VHotWmtibTBWeFA5Y0lYd2tXaGVKRGl5dnhOS1F6dFVTeUszc0t0MERDMWNtdXJjejV4R0dXczA2SXhDNVk5XzBfbXpsZFZHU1ZOOXUtVXJqalBPOW5mX1hQRHdPZU1IZV9EVTdVdzdTc1dCSWZIcUhIYzM1UmEwOFJH?oc=5",
     "feed_url": "https://news.google.com/rss/search?q=when%3A7d+site%3Awsj.com&ceid=US%3Aen&hl=en-US&gl=US",
-    "minimum_level": 2
+    "minimum_level": 1,
+    "maximum_level": 1
   },
   {
     "title": "Japanese Yen finds support as intervention risks linger near 160.00 - FXStreet",

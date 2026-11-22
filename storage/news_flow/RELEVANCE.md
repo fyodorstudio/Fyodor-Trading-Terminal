@@ -9,7 +9,9 @@ when the headline or source-provided feed summary connects them to those markets
 `relevance.py` classifies supplied feed text; `signals.py` recognizes trading
 mechanisms and `priority.py` selects Priority 1. `importance.py` combines that
 result with manual stars. `relevance.json` owns tag defaults, aliases and context patterns.
-`headline_filters.py` recognizes explicit catalysts and routine headline formats;
+`attention.py` separates clear mechanisms from routine formats; `publication.py`
+checks dated sessions and old monthly release periods. `headline_filters.py`
+recognizes explicit catalysts and routine headline formats;
 `rules.py` handles literal matching and normalization. The frontend imports shared
 defaults and displays the backend result rather than running a second classifier.
 
@@ -42,13 +44,20 @@ before counts, pagination and copying; they do not change the alert trigger.
    topics and unrelated domestic-market stories. Cross-market exceptions keep
    relevant policy, energy, metals, index companies and systemic events included.
 
-Priority 1 favors keeping potentially important information: FX intervention,
+Priority 1 keeps clear currency and cross-asset mechanisms: FX intervention,
 hawkish/dovish policy and rate-path repricing, risk appetite/aversion, haven flows,
 carry unwinds, capital rotation, positioning, credit/liquidity stress, trade/fiscal
 risk and commodity supply/demand. Research and conditional scenarios can qualify;
 the reason label describes their mechanism without claiming a confirmed event.
-Price reactions and recaps qualify when they contain that context. Both risk-on
-and risk-off developments matter, including information that challenges a thesis.
+Both risk-on and risk-off developments matter, including information that challenges
+a thesis. Iran strike restraint, oil risk-premium unwinds, shipping recovery and
+direct currency/haven responses qualify without manual stars. Routine price targets,
+technical recaps, previews and investment opinions stay in Priority 2 unless their
+supplied context establishes a clear FX/risk, credit or fresh policy mechanism.
+Retail investing advice and routine fund executive appointments can be Excluded.
+Mentioning a selloff, volatility or an IPO does not by itself establish P1 urgency.
+Monetary easing/tightening needs a rates, inflation or central-bank context;
+corporate fiscal years and sovereign-fund recruitment are not fiscal shocks.
 
 FX coverage includes intervention-watch developments, sovereign yield and auction
 stress, central-bank guidance on liquidity/reserve tools, inflation corrections
@@ -63,8 +72,16 @@ Explicit policy/data surprises, energy shocks and exceptional index moves also
 qualify. The fallback index thresholds in `priority.py` (3%, or 20% for VIX) are
 not prerequisites for recognizing risk sentiment or cross-asset transmission.
 Other relevant context remains Priority 2. No price confirmation is required;
-priority predicts neither direction nor information novelty. Source-provided
+priority does not verify direction or information novelty. Source-provided
 summaries use at most 8,000 characters; article bodies are not fetched.
+
+An explicitly dated session conflicting with the feed date, or an unusually old
+monthly inflation/budget period, cannot automatically reach P1. Stated corrections,
+revisions and delayed releases remain eligible, as do manual stars. The date context
+is shared by reader counts, export, configured desktop arrivals, phone and the
+headline checker (optional `published_at`). This does not reconstruct historical
+publisher revisions or repair ambiguous Google dates; historical headlines are not
+a verified point-in-time tape. Existing stored publication dates are not rewritten.
 
 Publisher suffixes and reporting attributions are removed for contextual matching. Currency pairs, Unicode
 punctuation and common stock/bond/yield forms normalize consistently. Literal mode
@@ -91,6 +108,10 @@ means both priorities, while the `included` reader/export mode means Priority 2 
 Priority 1-only delivery suppresses identical publisher-normalized titles for two
 hours across polling batches and URLs. Changed numbers/periods remain eligible;
 different wording about the same event can still produce another alert.
+The P1-only reader and its copy/export also collapse identical publisher-normalized
+headlines within each UTC publication day. Changed figures/directions, manual
+research stars and summary-only mechanisms stay independent. Combined reading,
+P2 and All preserve the wider research view.
 Changing rules keeps the arrival cursor; it does not replay historical alerts.
 Desktop sound and popup permissions remain local to the browser.
 

@@ -17,9 +17,138 @@ from storage.news_flow.tests.test_notifications import request
 
 INCLUDE = ', '.join(PRESET)
 CASES = json.loads(Path(__file__).with_name('trading_relevance_cases.json').read_text(encoding='utf-8'))
+CLEAR_CASES = json.loads(Path(__file__).with_name('clear_priority_cases.json').read_text(encoding='utf-8'))
 
 
 class TradingSignalTests(unittest.TestCase):
+    def test_clear_priority_review_and_previously_missed_fx_drivers(self):
+        for case in CLEAR_CASES:
+            with self.subTest(title=case['title']):
+                expected = case['expected_tier']
+                context = {key: value for key, value in case.items() if key != 'expected_tier'}
+                self.assertEqual(decision(**context, include=INCLUDE, enabled=True)['tier'], expected)
+                self.assertEqual(decision(**context, include=INCLUDE, enabled=True, exclude=case['title'], pinned=True)['tier'], 'excluded')
+
+    def test_clear_priority_keeps_material_scenarios_without_keyword_false_alarms(self):
+        quiet = [
+            'Xi tightens his grip on China as innovation slows',
+            'Swiss voters debate easing arms exports',
+            'LiveOne sees H1 fiscal 2027 revenue of $37.3M (LVO:NASDAQ)',
+            'US Treasury bond auction preview ahead of CPI',
+            'US Dollar: A guide to safe-haven investing for beginners',
+            'Nvidia Fuels Half Israel’s Growth as Economy Beats Forecasts',
+            'Rand Weakens Further as South African Inflation Heats Up',
+        ]
+        for title in quiet:
+            self.assertNotEqual(decision(title, include=INCLUDE, enabled=True)['tier'], 'priority', title)
+        for title in [
+            'Japanese Yen: AI risk-off could favour Yen against US Dollar – MUFG',
+            'US Dollar: Hawkish Fed risks and safe-haven demand support USD – OCBC',
+            'Japanese Yen outperforms as global stock sell-off lifts safe-haven demand - FXStreet',
+            'Trump says he will hold off on fresh Iran strikes for now',
+            'Trump rules out renewed Iran strikes but says blockade remains',
+            'Iran says peace talks have collapsed as Hormuz tanker attacks resume',
+            'Banks, investors grow wary of AI debt, spooked by market selloff',
+            'RBNZ independence threatened as government seeks to change mandate',
+            'Fed signals more hikes as inflation accelerates',
+            'S&P 500 falls 4% as volatility spikes',
+            'Global stocks rise as AI risk aversion fades',
+            'UK Payrolls Fell Unexpectedly Ahead of Healey’s Budget',
+            'ECB Warns Hedge Funds Boost Volatility Risks for Sovereign Bonds',
+            'Chip stocks see $2.3 trillion weekly wipeout as panic grips the AI trade',
+            'Asian markets plunge as broad equity selloff follows tech turmoil',
+            'European Stocks Join Global Selloff',
+            'SoftBank Leads Asia Bond Losses as AI Rout Spreads to Credit',
+            'Sterling dips as stock rout boosts dollar, outweighs rate rise boost',
+            'Swiss Franc pares losses as the AI sell-off dents US Dollar’s strength',
+            'US approved nearly 900,000 Nvidia and AMD AI chips for China',
+            'China prepares to restart US private equity investments after pullback',
+        ]:
+            self.assertEqual(decision(title, include=INCLUDE, enabled=True)['tier'], 'priority', title)
+        for title in ['Could Iran agree a ceasefire?', 'Trump hopes for Ukraine peace deal next year',
+                      'Gold rebounds but Fed rate hike bets remain a headwind',
+                      'Can Everyday Investors Beat the Pros in an AI Selloff?']:
+            self.assertNotEqual(decision(title, include=INCLUDE, enabled=True)['tier'], 'priority', title)
+        self.assertEqual(decision('Gold Price Forecast: Key support at $4,300', include=INCLUDE, enabled=True,
+                                  summary='US Dollar safe-haven demand unwinds as Iran de-escalation lifts risk appetite.')['tier'], 'priority')
+        for title, summary in [
+            ('Nvidia Fuels Half Israel’s Growth as Economy Beats Forecasts',
+             'The US chip giant helped Israel grow following the April ceasefire in the war with Iran.'),
+            ('Rand Weakens Further as South African Inflation Heats Up',
+             'South Africa’s rand weakened past 17 per dollar as annual inflation accelerated.'),
+            ('Anthropic Lives Up to Wall Street Hype, but AI Doubts Linger',
+             'Plus, Kushner floats a Ukraine peace deal that would upend U.S. policy.'),
+        ]:
+            self.assertNotEqual(decision(title, include=INCLUDE, enabled=True, summary=summary)['tier'], 'priority')
+
+    def test_publication_checks_share_reader_export_desktop_phone_and_api(self):
+        from datetime import datetime, timezone
+        from unittest.mock import patch
+        at = int(datetime(2026, 11, 9, 16, tzinfo=timezone.utc).timestamp()*1000)
+        old = 'investingLive Americas FX news wrap 11 Sept: US CPI raises odds for Fed rate hike'
+        current = 'Trump says he will hold off on fresh Iran strikes for now'
+        with TemporaryDirectory() as root:
+            store = NewsStore(root); source = store.sources()[0]
+            store.success(source, [], '', '', at-1)
+            baseline = store.arrivals()['cursor']
+            for i, title in enumerate([old, current]):
+                store.success(source, [dict(identity=str(i), title=title, summary=title, publisher='Reuters',
+                              url=f'https://example.com/{i}', published_at=at)], '', '', at)
+            scope = dict(include=INCLUDE, market_relevance=True)
+            self.assertEqual(store.query(mode='priority', **scope)['total'], 1)
+            self.assertEqual(store.query(mode='included', **scope)['total'], 1)
+            self.assertEqual(store.export_headlines(mode='priority', **scope)['count'], 1)
+            self.assertEqual(len(store.arrivals(baseline, now=at, mode='priority', **scope)['items']), 1)
+            sent = []; notifier = NewsNotifier(store, lambda setup, body: sent.append(body))
+            notifier.configure({**scope, 'exclude': '', 'hidden': [], 'max_age_seconds': None}, 'priority')
+            notifier.root.joinpath('setup.json').write_text(json.dumps({'topic': 'test'}))
+            notifier.cursor = baseline
+            with patch('storage.news_flow.store.time.time', return_value=at/1000):
+                notifier.tick()
+            self.assertEqual(len(sent), 1)
+            self.assertEqual(notifier.last_sent['title'], current)
+            app = FastAPI(); app.include_router(news_router(store, NewsCollector(store), notifier))
+            async def run():
+                body = dict(title=old, include=INCLUDE, market_relevance=True, published_at=at)
+                status, data = await request(app, 'POST', '/api/v1/news-flow/classify', body)
+                self.assertEqual(status, 200)
+                result = json.loads(data)['relevance']
+                self.assertEqual(result['tier'], 'included')
+                self.assertIn('date', result['reason'])
+                self.assertEqual(decision(old, include=INCLUDE, enabled=True, published_at=at, pinned=True)['tier'], 'priority')
+            asyncio.run(run())
+        from storage.news_flow.publication import publication_conflict
+        self.assertFalse(publication_conflict('Germany corrects July CPI after delayed release', at))
+        self.assertFalse(publication_conflict('US August Federal budget deficit surprises', at, 'Delayed release finally published after a shutdown.'))
+        self.assertFalse(publication_conflict('US October CPI hotter than expected', at))
+        self.assertFalse(publication_conflict('news wrap 9 Nov: Fed raises rates', at))
+        self.assertTrue(publication_conflict(old, at))
+        self.assertTrue(publication_conflict(old, at, 'Stock market correction continues as CPI expectations are revised.'))
+
+    def test_priority_reader_collapses_reprints_but_keeps_new_figures_and_research(self):
+        with TemporaryDirectory() as root:
+            store = NewsStore(root); source = store.sources()[0]; at = int(time.time()*1000)
+            titles = [
+                'Japan warns of FX intervention near 160 - Reuters',
+                'Japan warns of FX intervention near 160 - Kitco',
+                'Japan warns of FX intervention near 162 - Reuters',
+                'Japan confirms currency intervention to support yen',
+                'Research note', 'Research note',
+                'Gold steadies', 'Gold steadies',
+            ]
+            entries = [dict(identity=str(i), title=title, summary='', publisher='Reuters',
+                            url=f'https://example.com/{i}', published_at=at) for i, title in enumerate(titles)]
+            store.success(source, entries, '', '', at)
+            for i in [4, 5]: store.pin(entries[i]['url'], True)
+            scope = dict(include=INCLUDE, market_relevance=True)
+            self.assertEqual(store.query(mode='priority', **scope)['total'], 5)
+            self.assertEqual(store.export_headlines(mode='priority', **scope)['count'], 5)
+            self.assertEqual(store.query(mode='included', **scope)['total'], 2)
+            self.assertEqual(store.query(mode='all', **scope)['total'], 8)
+            pages = [store.query(mode='priority', offset=i, limit=1, **scope)['items'][0]['url'] for i in range(5)]
+            self.assertEqual(len(set(pages)), 5)
+            self.assertEqual(store.query(mode='priority', offset=5, **scope)['items'], [])
+
     def test_reviewed_fundamentals_survive_and_important_mechanisms_reach_priority_one(self):
         for case in CASES:
             with self.subTest(title=case['title']):
@@ -30,6 +159,8 @@ class TradingSignalTests(unittest.TestCase):
                     self.assertEqual(value, 0, result)
                 else:
                     self.assertGreaterEqual(value, case['minimum_level'], result)
+                if 'maximum_level' in case:
+                    self.assertLessEqual(value, case['maximum_level'], result)
                 blocked = decision(case['title'], include=INCLUDE, enabled=True,
                                    summary=case['summary'], exclude=case['title'], pinned=True)
                 self.assertEqual(blocked['tier'], 'excluded', blocked)

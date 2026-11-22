@@ -7,6 +7,7 @@ import re
 
 from .rules import normalized
 from .signals import market_signal
+from .attention import extra_context, irrelevant_format
 
 _bank = re.compile(r'\b(?:fed|fomc|ecb|boe|boj|boc|rba|rbnz|snb|central bank|federal reserve|bank of (?:japan|england|canada)|reserve bank of (?:australia|new zealand)|swiss national bank)\b')
 _fx = re.compile(r'\b(?:yen|jpy|franc|currency|currencies|fx|forex|foreign exchange|exchange rate)\b')
@@ -70,6 +71,9 @@ def catalyst_reason(title):
 def routine_reason(title, company=False, summary=''):
     """Return a reason only for identified noise, keeping ambiguous news eligible."""
     text = normalized(title)
+    irrelevant = irrelevant_format(title)
+    if irrelevant and not market_signal('', extra_context(title, summary))[1]:
+        return irrelevant
     if market_signal(title, summary)[0]:
         return ''
     if re.search(r'\bfed\b.{0,45}\b(?:staff|regional-bank staff)\b.{0,45}\bpay (?:increases|raises)|\bfed cuts pay raises\b', text):

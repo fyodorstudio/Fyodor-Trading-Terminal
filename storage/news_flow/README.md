@@ -13,6 +13,7 @@ of MT5 and whether the news panel is open.
 | `store.py` | Cache, reader queries, exports and arrival cursors |
 | `relevance.py`, `relevance.json` | Trading relevance and editable defaults |
 | `signals.py`, `importance.py`, `priority.py` | Fundamental mechanisms, Priority 1 classification and manual stars |
+| `attention.py`, `publication.py` | Clear-signal selection, routine formats and dated-session checks |
 | `rules.py`, `filter_policy.py`, `policy.py` | Matching, user overrides and delivery selection |
 | `history.py` | Historical lookup for supported sources |
 | `diagnostics.py` | Provider check summaries and collector status |

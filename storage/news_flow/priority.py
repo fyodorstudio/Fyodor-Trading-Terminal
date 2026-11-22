@@ -5,6 +5,7 @@ import re
 from .headline_filters import catalyst_reason
 from .rules import normalized
 from .signals import market_signal
+from .attention import clear_attention
 
 INDEX_SHOCK_PERCENT = 3
 VIX_SHOCK_PERCENT = 20
@@ -42,20 +43,21 @@ _shock = re.compile(r'^\s*(?:(?:100|250|500)\s+)?(?:index\s+)?(?:plung\w*|crash\
 @lru_cache(maxsize=8192)
 def attention_reason(title, summary='', semantic=True):
     signal, important = market_signal(title, summary)
-    if semantic and important:
-        return signal
     text = normalized(title)
     # Exchange listings are metadata, not evidence that the index itself moved.
     text = re.sub(r'\s*\([^)]*:[^)]*\)\s*$', '', text)
+    if '?' not in text and not _research.search(title) and not _format.search(text):
+        for index in _index.finditer(text):
+            shock = _shock.search(text[index.end():])
+            if shock and float(shock[1]) >= (VIX_SHOCK_PERCENT if index[0] == 'vix' else INDEX_SHOCK_PERCENT):
+                return 'Reported exceptional broad-market move'
+    if semantic and important:
+        return signal if clear_attention(title, summary, signal) else ''
     future_statement = re.search(r'\b(?:could|may|might|expected to|set to) (?:warn|signal|announce|say|urge|call)\b', text)
     if '?' in text or _research.search(title) or _analyst_policy.search(text) or _format.search(text) or future_statement:
         return ''
-    for index in _index.finditer(text):
-        shock = _shock.search(text[index.end():])
-        if shock and float(shock[1]) >= (VIX_SHOCK_PERCENT if index[0] == 'vix' else INDEX_SHOCK_PERCENT):
-            return 'Reported exceptional broad-market move'
-        if re.search(r'\b(?:circuit breaker|market-wide trading halt)\b', text):
-            return 'Reported market-wide trading interruption'
+    if _index.search(text) and re.search(r'\b(?:circuit breaker|market-wide trading halt)\b', text):
+        return 'Reported market-wide trading interruption'
     # Price reactions can remain useful Priority 2 context without repeating the
     # initial policy/data alert every time another market responds.
     if _reaction.search(text):
