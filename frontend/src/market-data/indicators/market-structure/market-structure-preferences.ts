@@ -1,3 +1,14 @@
+export const marketStructureMarkerLabels = {
+  sweep: 'Sweep',
+  confirmed: 'Breakout confirmed',
+  pending: 'Pending',
+  failed: 'Failed breakout',
+  reclaim: 'Reclaim',
+} as const
+
+type MarkerKind = keyof typeof marketStructureMarkerLabels
+export const marketStructureMarkerKinds = Object.keys(marketStructureMarkerLabels) as MarkerKind[]
+
 export type MarketStructurePreferences = {
   enabled: boolean
   swingStrength: number
@@ -7,8 +18,12 @@ export type MarketStructurePreferences = {
   highColor: string
   lowColor: string
   lineWidth: number
+  showDashedLines: boolean
+  showSolidLines: boolean
   showUnbroken: boolean
-  showLabels: boolean
+  extendLines: boolean
+  showMarkers: boolean
+  markerColors: Record<MarkerKind, string>
 }
 
 export const swingStrengthLimits = { min: 1, max: 50 }
@@ -26,8 +41,18 @@ export const defaultMarketStructurePreferences: MarketStructurePreferences = {
   highColor: '#e6bd45',
   lowColor: '#e24848',
   lineWidth: 2,
-  showUnbroken: false,
-  showLabels: true,
+  showDashedLines: true,
+  showSolidLines: true,
+  showUnbroken: true,
+  extendLines: false,
+  showMarkers: true,
+  markerColors: {
+    sweep: '#8b5cf6',
+    confirmed: '#059669',
+    pending: '#3b82f6',
+    failed: '#dc2626',
+    reclaim: '#c27803',
+  },
 }
 
 const storageKey = 'fyodor.indicators.market-structure.v2'
@@ -39,6 +64,11 @@ export function readMarketStructurePreferences(): MarketStructurePreferences {
   try {
     const stored = JSON.parse(window.localStorage.getItem(storageKey) ?? window.localStorage.getItem(legacyStorageKey) ?? '{}')
     if (!stored || typeof stored !== 'object' || Array.isArray(stored)) return defaults
+    const markerColors = { ...defaults.markerColors }
+    for (const kind of marketStructureMarkerKinds) {
+      const color = stored.markerColors?.[kind]
+      if (isColor(color)) markerColors[kind] = color
+    }
 
     return {
       enabled: stored.enabled === true,
@@ -52,8 +82,12 @@ export function readMarketStructurePreferences(): MarketStructurePreferences {
       highColor: isColor(stored.highColor) ? stored.highColor : defaults.highColor,
       lowColor: isColor(stored.lowColor) ? stored.lowColor : defaults.lowColor,
       lineWidth: lineWidths.includes(stored.lineWidth) ? stored.lineWidth : defaults.lineWidth,
-      showUnbroken: stored.showUnbroken === true,
-      showLabels: stored.showLabels !== false,
+      showDashedLines: stored.showDashedLines !== false,
+      showSolidLines: stored.showSolidLines !== false,
+      showUnbroken: stored.showUnbroken !== false,
+      extendLines: stored.extendLines === true,
+      showMarkers: typeof stored.showMarkers === 'boolean' ? stored.showMarkers : stored.showLabels !== false,
+      markerColors,
     }
   } catch {
     return defaults

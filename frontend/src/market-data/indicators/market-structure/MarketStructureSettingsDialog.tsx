@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import {
   confirmationCloseOptions, defaultMarketStructurePreferences, failureWindowOptions, lineWidths, maxAtrBufferPercent, swingStrengthLimits,
+  marketStructureMarkerKinds, marketStructureMarkerLabels,
   type MarketStructurePreferences,
 } from './market-structure-preferences'
 import '../rsi/rsi.css'
@@ -12,6 +13,8 @@ export function MarketStructureSettingsDialog({ preferences, onSave, onClose }: 
   onClose: () => void
 }) {
   const [draft, setDraft] = useState(preferences)
+  const [tab, setTab] = useState<'inputs' | 'style'>('inputs')
+  const [inputError, setInputError] = useState('')
   const dialog = useRef<HTMLFormElement>(null)
   const titleId = useId()
   const swingHelpId = useId()
@@ -29,8 +32,9 @@ export function MarketStructureSettingsDialog({ preferences, onSave, onClose }: 
         onClose()
       }
       if (event.key !== 'Tab') return
-      const controls = dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled)')
-      if (!controls?.length) return
+      const controls = [...(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled)') ?? [])]
+        .filter(control => control.tabIndex >= 0)
+      if (!controls.length) return
       const first = controls[0]
       const last = controls[controls.length - 1]
       if (event.shiftKey && document.activeElement === first) {
@@ -55,33 +59,47 @@ export function MarketStructureSettingsDialog({ preferences, onSave, onClose }: 
           event.preventDefault()
           const buffer = draft.atrBufferPercent
           const strength = draft.swingStrength
-          onSave({
-            ...draft,
-            swingStrength: Number.isInteger(strength) && strength >= swingStrengthLimits.min && strength <= swingStrengthLimits.max
-              ? strength : preferences.swingStrength,
-            atrBufferPercent: Number.isInteger(buffer) && buffer >= 0 && buffer <= maxAtrBufferPercent
-              ? buffer : preferences.atrBufferPercent,
-            enabled: preferences.enabled,
-          })
+          if (!Number.isInteger(strength) || strength < swingStrengthLimits.min || strength > swingStrengthLimits.max ||
+            !Number.isInteger(buffer) || buffer < 0 || buffer > maxAtrBufferPercent) {
+            setInputError(`Enter a whole-number swing strength from ${swingStrengthLimits.min} to ${swingStrengthLimits.max} and an ATR buffer from 0 to ${maxAtrBufferPercent}%.`)
+            setTab('inputs')
+            return
+          }
+          onSave({ ...draft, enabled: preferences.enabled })
           onClose()
         }}>
         <header>
           <strong id={titleId}>Market Structure</strong>
           <button type="button" onClick={onClose} aria-label="Close Market Structure settings">×</button>
         </header>
-        <div className="rsi-settings-body market-structure-settings">
+        <div className="rsi-settings-tabs" role="tablist" aria-label="Market Structure settings">
+          {(['inputs', 'style'] as const).map(item => (
+            <button key={item} type="button" role="tab" id={`${titleId}-${item}`} aria-selected={tab === item}
+              aria-controls={`${titleId}-panel`} tabIndex={tab === item ? 0 : -1}
+              onClick={() => setTab(item)}
+              onKeyDown={event => {
+                if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+                event.preventDefault()
+                const next = event.key === 'Home' ? 'inputs' : event.key === 'End' ? 'style' : item === 'inputs' ? 'style' : 'inputs'
+                setTab(next)
+                document.getElementById(`${titleId}-${next}`)?.focus()
+              }}>{item === 'inputs' ? 'Inputs' : 'Style'}</button>
+          ))}
+        </div>
+        <div className="rsi-settings-body market-structure-settings" role="tabpanel" id={`${titleId}-panel`} aria-labelledby={`${titleId}-${tab}`}>
+          {tab === 'inputs' ? <>
           <fieldset>
             <legend>Detection</legend>
             <label>Swing strength
               <input type="number" min={swingStrengthLimits.min} max={swingStrengthLimits.max} step={1} required
                 aria-describedby={swingHelpId} value={draft.swingStrength || ''}
-                onChange={event => setDraft({ ...draft, swingStrength: Number(event.target.value) })} />
+                onChange={event => { setDraft({ ...draft, swingStrength: Number(event.target.value) }); setInputError('') }} />
             </label>
             <p id={swingHelpId}>Closed candles required on each side of a swing.</p>
             <label>ATR buffer (%)
               <input type="number" aria-describedby={bufferHelpId} min={0} max={maxAtrBufferPercent} step={1} required
                 value={Number.isNaN(draft.atrBufferPercent) ? '' : draft.atrBufferPercent}
-                onChange={event => setDraft({ ...draft, atrBufferPercent: event.target.valueAsNumber })} />
+                onChange={event => { setDraft({ ...draft, atrBufferPercent: event.target.valueAsNumber }); setInputError('') }} />
             </label>
             <p id={bufferHelpId}>How far the first close must clear the level, as a percentage of the previous candle’s 14-period ATR.</p>
             <label>Closes beyond the level
@@ -101,15 +119,29 @@ export function MarketStructureSettingsDialog({ preferences, onSave, onClose }: 
             </label>
             <p id={failureHelpId}>A close back through the level within this many candles after confirmation marks the breakout as failed.</p>
           </fieldset>
+          {inputError && <p role="alert">{inputError}</p>}
+          </> : <>
           <fieldset>
             <legend>Visibility</legend>
-            <label>Show signal labels
-              <input type="checkbox" checked={draft.showLabels}
-                onChange={event => setDraft({ ...draft, showLabels: event.target.checked })} />
+            <label>
+              <span className="market-structure-line-setting"><span className="market-structure-line-sample dashed" aria-hidden="true" />Dashed lines</span>
+              <input type="checkbox" aria-describedby={`${titleId}-dashed`} checked={draft.showDashedLines}
+                onChange={event => setDraft({ ...draft, showDashedLines: event.target.checked })} />
             </label>
-            <label>Show unbroken levels
-              <input type="checkbox" checked={draft.showUnbroken}
+            <p id={`${titleId}-dashed`}>Levels without a confirmed breakout, including active swings, sweeps, and early failures.</p>
+            <label>Show untouched levels
+              <input type="checkbox" checked={draft.showUnbroken} disabled={!draft.showDashedLines}
                 onChange={event => setDraft({ ...draft, showUnbroken: event.target.checked })} />
+            </label>
+            <label>
+              <span className="market-structure-line-setting"><span className="market-structure-line-sample" aria-hidden="true" />Solid lines</span>
+              <input type="checkbox" aria-describedby={`${titleId}-solid`} checked={draft.showSolidLines}
+                onChange={event => setDraft({ ...draft, showSolidLines: event.target.checked })} />
+            </label>
+            <p id={`${titleId}-solid`}>Levels where a breakout reached confirmation, including breakouts that later failed.</p>
+            <label>Show signal markers
+              <input type="checkbox" checked={draft.showMarkers}
+                onChange={event => setDraft({ ...draft, showMarkers: event.target.checked })} />
             </label>
           </fieldset>
           <fieldset>
@@ -126,9 +158,19 @@ export function MarketStructureSettingsDialog({ preferences, onSave, onClose }: 
               </select>
             </label>
           </fieldset>
+          <fieldset>
+            <legend>Marker colors</legend>
+            {marketStructureMarkerKinds.map(kind => (
+              <label key={kind}>{marketStructureMarkerLabels[kind]}
+                <input type="color" value={draft.markerColors[kind]}
+                  onChange={event => setDraft({ ...draft, markerColors: { ...draft.markerColors, [kind]: event.target.value } })} />
+              </label>
+            ))}
+          </fieldset>
+          </>}
         </div>
         <footer>
-          <button type="button" onClick={() => setDraft({ ...defaultMarketStructurePreferences, enabled: preferences.enabled })}>Reset defaults</button>
+          <button type="button" onClick={() => { setDraft({ ...defaultMarketStructurePreferences, enabled: preferences.enabled }); setInputError('') }}>Reset defaults</button>
           <button type="button" onClick={onClose}>Cancel</button>
           <button type="submit">OK</button>
         </footer>

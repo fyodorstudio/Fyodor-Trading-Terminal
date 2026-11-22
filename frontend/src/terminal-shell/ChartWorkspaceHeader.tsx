@@ -28,6 +28,8 @@ type ChartWorkspaceHeaderProps = {
   marketStructureEnabled?: boolean
   marketStructureSwingStrength?: number
   onChangeMarketStructureSwingStrength?: (strength: number) => void
+  marketStructureExtendLines?: boolean
+  onChangeMarketStructureExtendLines?: (extend: boolean) => void
   onToggleMarketStructure?: () => void
   onOpenMarketStructureSettings?: () => void
   atrEnabled?: boolean
@@ -95,6 +97,8 @@ export function ChartWorkspaceHeader({
   marketStructureEnabled = false,
   marketStructureSwingStrength,
   onChangeMarketStructureSwingStrength,
+  marketStructureExtendLines = false,
+  onChangeMarketStructureExtendLines,
   onToggleMarketStructure,
   onOpenMarketStructureSettings,
   atrEnabled = false,
@@ -182,6 +186,13 @@ export function ChartWorkspaceHeader({
                 value={marketStructureSwingStrength}
                 onChange={event => onChangeMarketStructureSwingStrength(event.currentTarget.valueAsNumber)} />
               <span aria-hidden="true">{marketStructureSwingStrength}</span>
+            </label>
+          )}
+          {marketStructureEnabled && onChangeMarketStructureExtendLines && (
+            <label className="market-structure-toolbar-extend" title="Extend lines to the latest candle">
+              <input type="checkbox" checked={marketStructureExtendLines} aria-label="Extend Market Structure lines"
+                onChange={event => onChangeMarketStructureExtendLines(event.currentTarget.checked)} />
+              <span>Extend</span>
             </label>
           )}
           <button type="button" aria-pressed={marketStructureEnabled} onClick={onToggleMarketStructure}

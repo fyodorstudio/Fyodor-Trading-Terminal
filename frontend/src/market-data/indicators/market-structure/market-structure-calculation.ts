@@ -6,26 +6,21 @@ type Swing = { side: 'high' | 'low'; start: OhlcBar['time']; price: number }
 type StructureSegment = Swing & { end?: OhlcBar['time'] }
 type SignalKind = 'sweep' | 'pending' | 'confirmed' | 'failed' | 'invalidated' | 'reclaim'
 type Signal = Swing & { time: OhlcBar['time']; kind: SignalKind }
-type SwingSlot = { level?: Swing; queued?: Swing; closes: number; marginal: boolean }
+type SwingSlot = { level?: Swing; queued?: Swing; closes: number; marginal: boolean; tested: boolean }
 
 function setSwing(slot: SwingSlot, level?: Swing) {
   slot.level = level
   slot.queued = undefined
   slot.closes = 0
   slot.marginal = false
+  slot.tested = false
 }
 
 function classifyCrossing(slot: SwingSlot, level: Swing, closeDistance: number, wickDistance: number,
   buffer: number | undefined, confirmationCloses: number): SignalKind | undefined {
   if (slot.closes) {
-    if (closeDistance <= 0) {
-      setSwing(slot, slot.queued ?? level)
-      return 'failed'
-    }
-    if (++slot.closes >= confirmationCloses) {
-      setSwing(slot, slot.queued)
-      return 'confirmed'
-    }
+    if (closeDistance <= 0) return 'failed'
+    if (++slot.closes >= confirmationCloses) return 'confirmed'
     return
   }
 
@@ -51,14 +46,20 @@ export function calculateMarketStructure(
   { swingStrength: strength, confirmationCloses, atrBufferPercent, failureWindow }: MarketStructurePreferences,
 ) {
   const broken: StructureSegment[] = []
+  const replacedTestedLevels: StructureSegment[] = []
   const signals: Signal[] = []
   const recentBreakouts: { level: Swing; expires: number }[] = []
-  const high: SwingSlot = { closes: 0, marginal: false }
-  const low: SwingSlot = { closes: 0, marginal: false }
+  const high: SwingSlot = { closes: 0, marginal: false, tested: false }
+  const low: SwingSlot = { closes: 0, marginal: false, tested: false }
   const sides = [high, low]
   const atr = atrBufferPercent > 0
     ? createAtrCalculator().sync(bars, 14, 'market-structure').atr
     : undefined
+
+  const replaceSwing = (slot: SwingSlot, swing: Swing, time: OhlcBar['time']) => {
+    if (slot.tested && slot.level) replacedTestedLevels.push({ ...slot.level, end: time })
+    setSwing(slot, swing)
+  }
 
   // The feed can revise the last candle until its successor arrives.
   for (let i = strength * 2; i < bars.length - 1; i++) {
@@ -80,9 +81,14 @@ export function calculateMarketStructure(
       const wickDistance = isHigh ? bar.high - level.price : level.price - bar.low
       const kind = classifyCrossing(slot, level, closeDistance, wickDistance, buffer, confirmationCloses)
       if (kind) signals.push({ ...level, time: bar.time, kind })
-      if (kind === 'confirmed') {
+      if (kind === 'sweep' || kind === 'failed' || kind === 'reclaim') slot.tested = true
+      if (kind === 'failed') {
+        if (slot.queued) replaceSwing(slot, slot.queued, bar.time)
+        else slot.closes = 0
+      } else if (kind === 'confirmed') {
         broken.push({ ...level, end: bar.time })
         if (failureWindow > 0) recentBreakouts.push({ level, expires: i + failureWindow })
+        setSwing(slot, slot.queued)
       }
     }
 
@@ -99,18 +105,19 @@ export function calculateMarketStructure(
     if (isHigh) {
       const swing = { side: 'high', start: pivot.time, price: pivot.high } as const
       if (high.closes) high.queued = swing
-      else setSwing(high, swing)
+      else replaceSwing(high, swing, bar.time)
     }
     if (isLow) {
       const swing = { side: 'low', start: pivot.time, price: pivot.low } as const
       if (low.closes) low.queued = swing
-      else setSwing(low, swing)
+      else replaceSwing(low, swing, bar.time)
     }
   }
 
   return {
-    broken, signals,
+    broken, replacedTestedLevels, signals,
     high: high.level, low: low.level,
     pending: sides.flatMap(slot => slot.closes > 0 && slot.level ? [slot.level] : []),
+    activeTestedLevels: sides.flatMap(slot => slot.tested && slot.level ? [slot.level] : []),
   }
 }

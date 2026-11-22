@@ -2,57 +2,43 @@ import type { IChartApi, ISeriesApi, ISeriesPrimitive, IPrimitivePaneRenderer, M
 import type { OhlcBar } from '../../contracts/OhlcBar'
 import { changedRecentBarStart } from '../../mt5-feed/market-snapshots'
 import { calculateMarketStructure } from './market-structure-calculation'
-import { defaultMarketStructurePreferences, type MarketStructurePreferences } from './market-structure-preferences'
+import {
+  defaultMarketStructurePreferences, marketStructureMarkerLabels, type MarketStructurePreferences,
+} from './market-structure-preferences'
 import './market-structure.css'
 
-const signalLabels = {
-  sweep: 'Sweep',
-  pending: 'Pending',
-  confirmed: 'Breakout confirmed',
-  failed: 'Failed breakout',
-  invalidated: 'Failed breakout',
-  reclaim: 'Reclaim',
-}
-
 type Signal = ReturnType<typeof calculateMarketStructure>['signals'][number]
-type Marker = { signal: Signal; events: Signal[]; label?: string }
+type Marker = { signal: Signal; events: Signal[] }
 type Point = { x: number; y: number }
-type Bounds = Point & { width: number; height: number }
-type Hit = Bounds & { marker: Marker }
+type Hit = Point & { marker: Marker }
+
+const markerKind = (signal: Signal) => signal.kind === 'invalidated' ? 'failed' : signal.kind
 
 function buildMarkers(signals: Signal[]) {
-  const levels = new Map<string, { events: Signal[]; firstSweep?: Signal; count: number }>()
+  const levels = new Map<string, { events: Signal[]; firstSweep?: Signal }>()
   for (const signal of signals) {
     const key = `${signal.side}:${signal.start}`
-    const level = levels.get(key) ?? { events: [], count: 0 }
+    const level = levels.get(key) ?? { events: [] }
     level.events.push(signal)
-    if (signal.kind === 'sweep') {
-      level.firstSweep ??= signal
-      level.count++
-    }
+    if (signal.kind === 'sweep') level.firstSweep ??= signal
     levels.set(key, level)
   }
 
   const outcomes: Marker[] = []
   const sweeps: Marker[] = []
-  for (const { events, firstSweep, count } of levels.values()) {
+  for (const { events, firstSweep } of levels.values()) {
     const latest = events[events.length - 1]
     if (latest.kind === 'pending' || latest.kind === 'confirmed' || latest.kind === 'invalidated') {
-      outcomes.push({ signal: latest, events, label: signalLabels[latest.kind] })
+      outcomes.push({ signal: latest, events })
     }
     if (firstSweep) {
-      sweeps.push({ signal: firstSweep, events, label: count > 1 ? `Sweep ×${count}` : 'Sweep' })
+      sweeps.push({ signal: firstSweep, events })
     } else if (latest.kind === 'failed' || latest.kind === 'reclaim') {
       sweeps.push({ signal: latest, events })
     }
   }
   const newestFirst = (a: Marker, b: Marker) => b.signal.time - a.signal.time
   return [...outcomes.sort(newestFirst), ...sweeps.sort(newestFirst)]
-}
-
-function overlaps(a: Bounds, b: Bounds) {
-  return a.x < b.x + b.width + 3 && a.x + a.width + 3 > b.x &&
-    a.y < b.y + b.height + 2 && a.y + a.height + 2 > b.y
 }
 
 export function createMarketStructureOverlay(chart: IChartApi, series: ISeriesApi<'Candlestick', Time>) {
@@ -75,8 +61,17 @@ export function createMarketStructureOverlay(chart: IChartApi, series: ISeriesAp
 
   function refreshTooltip() {
     const point = pointer
-    const hit = point && hits.find(({ x, y, width, height }) =>
-      point.x >= x && point.x <= x + width && point.y >= y && point.y <= y + height)
+    let hit: Hit | undefined
+    if (point) {
+      let closest = 7
+      for (const candidate of hits) {
+        const distance = Math.hypot(point.x - candidate.x, point.y - candidate.y)
+        if (distance <= closest) {
+          hit = candidate
+          closest = distance
+        }
+      }
+    }
     if (!hit) {
       tooltip.hidden = true
       return
@@ -87,12 +82,14 @@ export function createMarketStructureOverlay(chart: IChartApi, series: ISeriesAp
       hovered = events
       formatTime = formatter
       const title = tooltip.ownerDocument.createElement('strong')
-      title.textContent = `Swing ${signal.side} · ${series.priceFormatter().format(signal.price)}`
+      const sweeps = events.filter(event => event.kind === 'sweep').length
+      const sweepCount = sweeps > 1 ? ` · ${sweeps} sweeps` : ''
+      title.textContent = `Swing ${signal.side} · ${series.priceFormatter().format(signal.price)}${sweepCount}`
       const list = tooltip.ownerDocument.createElement('ul')
       const visibleEvents = events.slice(-10)
       for (const event of visibleEvents) {
         const row = tooltip.ownerDocument.createElement('li')
-        row.textContent = `${formatter?.(event.time) ?? String(event.time)} · ${signalLabels[event.kind]}`
+        row.textContent = `${formatter?.(event.time) ?? String(event.time)} · ${marketStructureMarkerLabels[markerKind(event)]}`
         list.append(row)
       }
       if (events.length > visibleEvents.length) {
@@ -105,7 +102,7 @@ export function createMarketStructureOverlay(chart: IChartApi, series: ISeriesAp
     tooltip.hidden = false
     const anchorX = hit.x + chart.priceScale('left').width()
     const maxLeft = container.clientWidth - tooltip.offsetWidth - 6
-    const top = hit.y + hit.height + 8
+    const top = hit.y + 13
     tooltip.style.left = `${Math.max(6, Math.min(anchorX, maxLeft))}px`
     tooltip.style.top = `${Math.max(6, top + tooltip.offsetHeight <= chart.paneSize(0).height
       ? top : hit.y - tooltip.offsetHeight - 8)}px`
@@ -126,18 +123,19 @@ export function createMarketStructureOverlay(chart: IChartApi, series: ISeriesAp
         refreshTooltip()
         return
       }
-      const { highColor, lowColor, lineWidth, showUnbroken, showLabels } = preferences
+      const { highColor, lowColor, lineWidth, showDashedLines, showSolidLines, showUnbroken, showMarkers, markerColors, extendLines } = preferences
       const from = Number(range.from)
       const to = Number(range.to)
 
       target.useMediaCoordinateSpace(({ context, mediaSize }) => {
         const drawSegment = (segment: (typeof result.broken)[number]) => {
-          const end = segment.end ?? lastTime
+          const end = extendLines ? lastTime : segment.end ?? lastTime
           if (end < from || segment.start > to) return
+          const y = series.priceToCoordinate(segment.price)
+          if (y === null || y < 0 || y > mediaSize.height) return
           const x1 = scale.timeToCoordinate(segment.start)
           const x2 = scale.timeToCoordinate(end)
-          const y = series.priceToCoordinate(segment.price)
-          if (x1 === null || x2 === null || y === null) return
+          if (x1 === null || x2 === null) return
 
           context.strokeStyle = segment.side === 'high' ? highColor : lowColor
           context.beginPath()
@@ -147,54 +145,34 @@ export function createMarketStructureOverlay(chart: IChartApi, series: ISeriesAp
         }
         context.save()
         context.lineWidth = lineWidth
-        context.setLineDash([])
-        result.broken.forEach(drawSegment)
-        context.setLineDash([4, 3])
-        if (showUnbroken) {
-          if (result.high) drawSegment(result.high)
-          if (result.low) drawSegment(result.low)
-        } else {
-          result.pending.forEach(drawSegment)
+        if (showDashedLines) {
+          context.setLineDash([4, 3])
+          result.replacedTestedLevels.forEach(drawSegment)
+          for (const level of [result.high, result.low]) {
+            if (level && (showUnbroken || result.pending.includes(level) || result.activeTestedLevels.includes(level))) {
+              drawSegment(level)
+            }
+          }
         }
-        if (showLabels) {
-          const labels: Bounds[] = []
-          context.font = '600 11px sans-serif'
-          context.textBaseline = 'middle'
-          context.textAlign = 'left'
-          for (const marker of markers) {
-            const { signal, label } = marker
+        if (showSolidLines) {
+          context.setLineDash([])
+          result.broken.forEach(drawSegment)
+        }
+        if (showMarkers) {
+          // Paint newer outcomes above older sweep markers when they overlap.
+          for (let i = markers.length - 1; i >= 0; i--) {
+            const marker = markers[i]
+            const { signal } = marker
             if (signal.time < from || signal.time > to) continue
             const x = scale.timeToCoordinate(signal.time)
             const y = series.priceToCoordinate(signal.price)
             if (x === null || y === null || x < 0 || x > mediaSize.width || y < 0 || y > mediaSize.height) continue
 
-            const color = signal.side === 'high' ? highColor : lowColor
-            context.fillStyle = color
+            context.fillStyle = markerColors[markerKind(signal)]
             context.beginPath()
-            context.arc(x, y, label ? 3 : 2, 0, Math.PI * 2)
+            context.arc(x, y, 3.5, 0, Math.PI * 2)
             context.fill()
-            hits.push({ x: x - 5, y: y - 5, width: 10, height: 10, marker })
-
-            if (!label) continue
-            const width = Math.ceil(context.measureText(label).width) + 12
-            const left = Math.max(0, Math.min(x - width / 2, mediaSize.width - width))
-            const direction = signal.side === 'high' ? -1 : 1
-            for (let row = 0; row < 3; row++) {
-              const top = y + direction * (6 + row * 20) - (direction < 0 ? 17 : 0)
-              if (top < 0 || top + 17 > mediaSize.height || width > mediaSize.width) continue
-              const bounds = { x: left, y: top, width, height: 17 }
-              if (labels.some(other => overlaps(bounds, other))) continue
-
-              labels.push(bounds)
-              hits.push({ ...bounds, marker })
-              context.fillStyle = '#172033'
-              context.fillRect(left, top, width, 17)
-              context.fillStyle = color
-              context.fillRect(left, top, 2, 17)
-              context.fillStyle = '#f8fafc'
-              context.fillText(label, left + 6, top + 8.5)
-              break
-            }
+            hits.push({ x, y, marker })
           }
         }
         context.restore()

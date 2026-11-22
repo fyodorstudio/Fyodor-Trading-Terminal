@@ -25,6 +25,21 @@
   margin-top: 6px;
 }
 
+.market-structure-line-setting {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.market-structure-line-sample {
+  width: 25px;
+  border-top: 2px solid currentColor;
+}
+
+.market-structure-line-sample.dashed {
+  border-top-style: dashed;
+}
+
 .market-structure-tooltip {
   position: absolute;
   z-index: 8;

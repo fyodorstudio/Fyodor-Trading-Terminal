@@ -139,6 +139,8 @@ function TerminalWorkspaceContent() {
             marketStructureEnabled={marketStructure.enabled}
             marketStructureSwingStrength={marketStructure.swingStrength}
             onChangeMarketStructureSwingStrength={swingStrength => changeMarketStructure({ ...marketStructure, swingStrength })}
+            marketStructureExtendLines={marketStructure.extendLines}
+            onChangeMarketStructureExtendLines={extendLines => changeMarketStructure({ ...marketStructure, extendLines })}
             onToggleMarketStructure={toggleMarketStructure}
             onOpenMarketStructureSettings={() => setMarketStructureSettingsOpen(true)}
             atrEnabled={atr.enabled}

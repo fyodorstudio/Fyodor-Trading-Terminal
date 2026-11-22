@@ -24,7 +24,7 @@ try {
   const highBreak = { side: 'high', price: 15, start: 2, end: 5 }
   const settings = { ...defaults, enabled: true, swingStrength: 1, showUnbroken: true }
   assert.deepEqual(calculateMarketStructure(bars.slice(0, 3), settings), {
-    broken: [], signals: [], pending: [], high: undefined, low: undefined,
+    broken: [], replacedTestedLevels: [], signals: [], pending: [], activeTestedLevels: [], high: undefined, low: undefined,
   }, 'Forming candles cannot confirm a swing')
   const plateau = bars.slice(0, 5).map((bar, index) => ({ ...bar, high: [10, 15, 15, 12, 11][index] }))
   assert.deepEqual(calculateMarketStructure(plateau, settings).high, { side: 'high', price: 15, start: 3 })
@@ -38,6 +38,7 @@ try {
   const confirmed = calculateMarketStructure(sequence, withoutBuffer)
   assert.deepEqual(events(confirmed), expected)
   assert.deepEqual(confirmed.broken, [{ ...highBreak, end: 6 }], 'A solid segment ends at the confirming candle')
+  assert.deepEqual(confirmed.replacedTestedLevels, [], 'A confirmed breakout has only its solid line')
   const pending = calculateMarketStructure(sequence.slice(0, -1), withoutBuffer)
   assert.deepEqual(events(pending), expected.slice(0, -1), 'The forming candle cannot confirm the candidate')
   assert.equal(pending.pending[0].price, 15)
@@ -46,12 +47,23 @@ try {
   assert.deepEqual(events(calculateMarketStructure(mirror(sequence), withoutBuffer), 'low'), expected, 'Low-side breaks mirror high-side breaks')
   const failed = sequence.map(bar => bar.time === 6 ? { ...bar, close: 14 } : bar)
   assert.deepEqual(events(calculateMarketStructure(failed, withoutBuffer)), [...expected.slice(0, 2), ['failed', 6, 2]])
+  const sweptAndReplaced = failed.map(bar => bar.time === 5 ? { ...bar, close: 14.5 } : bar)
+  const archivedHigh = { ...highBreak, end: 6 }
+  assert.deepEqual(calculateMarketStructure(sweptAndReplaced, withoutBuffer).replacedTestedLevels, [archivedHigh])
+  assert.deepEqual(calculateMarketStructure(mirror(sweptAndReplaced), withoutBuffer).replacedTestedLevels, [
+    { ...archivedHigh, side: 'low' },
+  ], 'Swept lows are retained when replaced too')
+  const untouched = fixture([[10, 5, 7], [15, 6, 10], [12, 7, 10], [14, 8, 13], [14.8, 9, 14], [14.7, 10, 14], [14, 11, 13]])
+  assert.deepEqual(calculateMarketStructure(untouched, withoutBuffer).replacedTestedLevels, [], 'Untouched replaced levels drop off')
   const multiClose = calculateMarketStructure(sequence, { ...withoutBuffer, confirmationCloses: 3 })
   assert.deepEqual(events(multiClose), expected.slice(0, 2))
   assert.equal(multiClose.pending[0].start, 2, 'A newer swing cannot replace a pending breakout')
 
   const next = (time, close) => ({ time, open: close, high: Math.max(close, 16), low: Math.min(13, close), close })
   const rapidFailure = [...sequence, next(8, 13)]
+  assert.deepEqual(calculateMarketStructure(rapidFailure, { ...withoutBuffer, confirmationCloses: 3 }).replacedTestedLevels, [
+    { ...highBreak, end: 7 },
+  ], 'A queued swing replaces a swept level only when the pending attempt resolves')
   const invalidated = [...expected, ['invalidated', 7, 2]]
   assert.deepEqual(events(calculateMarketStructure(rapidFailure, withoutBuffer)), invalidated,
     'A closed candle back through the old level invalidates a confirmed breakout')
@@ -79,8 +91,14 @@ try {
   assert.deepEqual(readMarketStructurePreferences(), { ...defaults, enabled: true, swingStrength: 12 })
   dom.localStorage.setItem(currentKey, '{"breakBy":"wick","enabled":true,"confirmationCloses":3}')
   assert.deepEqual(readMarketStructurePreferences(), { ...defaults, enabled: true, confirmationCloses: 3 })
-  saveMarketStructurePreferences({ ...settings, failureWindow: 0 })
-  assert.deepEqual(readMarketStructurePreferences(), { ...settings, failureWindow: 0 })
+  dom.localStorage.setItem(currentKey, '{"showLabels":false,"markerColors":{"sweep":"#123456","confirmed":"bad"}}')
+  assert.deepEqual(readMarketStructurePreferences(), {
+    ...defaults, showMarkers: false, markerColors: { ...defaults.markerColors, sweep: '#123456' },
+  })
+  assert.equal(defaults.showUnbroken, true)
+  const savedSettings = { ...settings, failureWindow: 0, showUnbroken: false, extendLines: true, showDashedLines: false, showSolidLines: false }
+  saveMarketStructurePreferences(savedSettings)
+  assert.deepEqual(readMarketStructurePreferences(), savedSettings)
   dom.localStorage.setItem(currentKey, '{"swingStrength":51,"highColor":"red","lineWidth":0,"atrBufferPercent":101,"confirmationCloses":1,"failureWindow":6}')
   assert.deepEqual(readMarketStructurePreferences(), defaults)
 
@@ -115,72 +133,111 @@ try {
   assert.equal(updates, 1)
   let dash = []
   const strokes = []
-  const textLabels = []
+  const dots = []
+  const colors = defaults.markerColors
   const context = {
     save() {}, restore() {}, beginPath() {},
     moveTo(x, y) { this.start = [x, y] },
     lineTo(x, y) { this.end = [x, y] },
     setLineDash(next) { dash = next },
     stroke() { strokes.push([this.start, this.end, this.strokeStyle, dash]) },
-    arc() {}, fill() {}, fillRect() {},
-    measureText(text) { return { width: text.length * 5 } },
-    fillText(text) { textLabels.push(text) },
+    arc(x, y) { this.center = [x, y] },
+    fill() { dots.push([...this.center, this.fillStyle]) },
   }
-  const drawOverlay = () => attached.paneViews()[0].renderer().draw({
-    useMediaCoordinateSpace: draw => draw({ context, mediaSize: { width: 200, height: 200 } }),
-  })
+  const drawOverlay = () => {
+    dots.length = 0
+    attached.paneViews()[0].renderer().draw({
+      useMediaCoordinateSpace: draw => draw({ context, mediaSize: { width: 200, height: 200 } }),
+    })
+  }
   drawOverlay()
   assert.deepEqual(strokes, [
-    [[20, 85], [60, 85], settings.highColor, []],
     [[50, 83], [70, 83], settings.highColor, [4, 3]],
+    [[20, 85], [60, 85], settings.highColor, []],
   ])
-  assert.deepEqual(textLabels, ['Breakout confirmed', 'Sweep'], 'Resolved attempts leave no Pending badge')
-  textLabels.length = 0
+  assert.deepEqual(dots, [[40, 85, colors.sweep], [60, 85, colors.confirmed]], 'Events use their own colors, away from the line palette')
+  strokes.length = 0
+  overlay.sync(sequence, { ...withoutBuffer, showDashedLines: false })
+  drawOverlay()
+  assert.deepEqual(strokes, [[[20, 85], [60, 85], settings.highColor, []]], 'Hiding dashed lines keeps confirmed lines')
+  assert.deepEqual(dots, [[40, 85, colors.sweep], [60, 85, colors.confirmed]], 'Line visibility is independent of markers')
+  strokes.length = 0
+  overlay.sync(sequence, { ...withoutBuffer, showSolidLines: false })
+  drawOverlay()
+  assert.deepEqual(strokes, [[[50, 83], [70, 83], settings.highColor, [4, 3]]], 'Hiding solid lines keeps dashed levels')
+  strokes.length = 0
+  overlay.sync(sequence, { ...withoutBuffer, extendLines: true, markerColors: { ...colors, sweep: '#123456' } })
+  drawOverlay()
+  assert.deepEqual(strokes.at(-1), [[20, 85], [70, 85], settings.highColor, []], 'Extend keeps the breakout line solid through the latest candle')
+  assert.deepEqual(dots, [[40, 85, '#123456'], [60, 85, colors.confirmed]])
   overlay.sync(rapidFailure, withoutBuffer)
   drawOverlay()
-  assert.deepEqual(textLabels, ['Failed breakout', 'Sweep'], 'Quick failure replaces the earlier confirmed badge')
+  assert.deepEqual(dots, [[40, 85, colors.sweep], [70, 85, colors.failed]], 'Quick failure replaces the confirmed marker')
   const tooltip = container.querySelector('[role="tooltip"]')
   hover({ paneIndex: 0, point: { x: 70, y: 85 } })
   assert.deepEqual([...tooltip.querySelectorAll('li')].slice(-2).map(row => row.textContent), [
     'Candle 6 · Breakout confirmed', 'Candle 7 · Failed breakout',
   ])
   strokes.length = 0
-  textLabels.length = 0
+  overlay.sync(sequence.slice(0, 4), withoutBuffer)
+  drawOverlay()
+  assert.deepEqual(strokes, [[[20, 85], [40, 85], settings.highColor, [4, 3]]], 'An active level is dashed before its first test')
+  const hideUntouched = { ...withoutBuffer, showUnbroken: false }
+  strokes.length = 0
+  overlay.sync(sequence.slice(0, 4), hideUntouched)
+  drawOverlay()
+  assert.deepEqual(strokes, [], 'Untouched levels can be hidden')
+  overlay.sync(sequence.slice(0, 5), hideUntouched)
+  drawOverlay()
+  assert.deepEqual(strokes, [[[20, 85], [50, 85], settings.highColor, [4, 3]]], 'A sweep leaves the active dashed line in place')
+  strokes.length = 0
+  overlay.sync(sweptAndReplaced, hideUntouched)
+  drawOverlay()
+  assert.deepEqual(strokes, [[[20, 85], [60, 85], settings.highColor, [4, 3]]], 'A retired swept line ends at replacement')
+  assert.deepEqual(dots, [[40, 85, colors.sweep]], 'Repeated sweeps share one marker')
+  strokes.length = 0
+  overlay.sync(sweptAndReplaced, { ...hideUntouched, extendLines: true })
+  drawOverlay()
+  assert.deepEqual(strokes, [[[20, 85], [70, 85], settings.highColor, [4, 3]]], 'Extend keeps the historical sweep line dashed through the latest candle')
+  strokes.length = 0
   const repeated = fixture([[10, 5, 7], [15, 6, 10], [12, 7, 10], [16, 8, 14], [17, 8.5, 14.5], [18, 9, 16], [17, 10, 15.5], [14, 11, 13]])
-  overlay.sync(repeated.slice(0, -1), { ...withoutBuffer, showUnbroken: false })
+  overlay.sync(repeated.slice(0, -1), hideUntouched)
   drawOverlay()
   assert.deepEqual(strokes, [[[20, 85], [70, 85], settings.highColor, [4, 3]]], 'A pending level is visible even with unbroken levels hidden')
-  assert.deepEqual(textLabels, ['Pending', 'Sweep ×2'])
+  assert.deepEqual(dots, [[40, 85, colors.sweep], [60, 85, colors.pending]])
   hover({ paneIndex: 0, point: { x: 40, y: 85 } })
   assert.equal(tooltip.hidden, false)
+  assert.match(tooltip.textContent, /2 sweeps/)
   assert.deepEqual([...tooltip.querySelectorAll('li')].map(row => row.textContent), [
     'Candle 4 · Sweep', 'Candle 5 · Sweep', 'Candle 6 · Pending',
   ])
   hover({ paneIndex: 1, point: { x: 40, y: 85 } })
   assert.equal(tooltip.hidden, true)
-  textLabels.length = 0
   overlay.sync(failed, withoutBuffer)
   drawOverlay()
-  assert.deepEqual(textLabels, ['Sweep'], 'Failed attempts have no chart badge')
+  assert.deepEqual(dots, [[40, 85, colors.sweep]], 'A sweep marker includes subsequent failed attempts in its history')
   hover({ paneIndex: 0, point: { x: 40, y: 85 } })
   assert.match(tooltip.textContent, /Candle 6 · Failed breakout/)
-  textLabels.length = 0
+  strokes.length = 0
   const failedWithoutSweep = fixture([[10, 5, 7], [15, 6, 10], [12, 7, 10], [16, 8, 15.5], [12, 9, 14], [11, 10, 10]])
-  overlay.sync(failedWithoutSweep, withoutBuffer)
+  overlay.sync(failedWithoutSweep, hideUntouched)
   drawOverlay()
-  assert.deepEqual(textLabels, [], 'A standalone failed attempt leaves only a hover marker')
+  assert.deepEqual(dots, [[50, 85, colors.failed]])
+  assert.deepEqual(strokes, [[[20, 85], [50, 85], settings.highColor, [4, 3]]], 'A failed attempt keeps its level line even without a sweep')
   hover({ paneIndex: 0, point: { x: 50, y: 85 } })
   assert.equal(tooltip.hidden, false)
   assert.match(tooltip.textContent, /Candle 5 · Failed breakout/)
-  overlay.sync(sequence, { ...withoutBuffer, showLabels: false })
+  strokes.length = 0
+  overlay.sync(sequence, { ...withoutBuffer, showMarkers: false })
   drawOverlay()
-  assert.deepEqual(textLabels, [], 'The label toggle preserves level lines')
+  assert.deepEqual(dots, [])
+  assert.equal(strokes.length, 2, 'The marker toggle preserves level lines')
   assert.equal(tooltip.hidden, true)
   overlay.destroy()
   assert.equal(attached, undefined)
   assert.equal(hover, undefined)
   assert.equal(container.childElementCount, 0)
-  console.log('✓ Market Structure: grouped sweeps, live Pending, outcome history on hover, prior ATR, migrated settings and cleanup')
+  console.log('✓ Market Structure: level lines, configurable color markers, hover history and settings migration')
 } finally {
   await server.close()
   await dom.happyDOM.close()
