@@ -3,6 +3,7 @@ import type { ChartDrawingRecord } from './chart-drawing-record'
 import type { ChartDrawingScreenPoint } from './chart-drawing-screen-point'
 import { parallelChannelCorners } from './parallel-channel-geometry'
 import { rectangleCorners } from './rectangle-drawing-geometry'
+import { isHorizontalDrawingTool } from './drawing-tool'
 
 export type DrawingHandleKind = 'point' | 'channel-corner' | 'rectangle-corner' | 'position-price' | 'position-entry-price' | 'position-width' | 'position-move-all' | 'move-all'
 
@@ -35,7 +36,7 @@ function handlePoint(
   _screenPoints: ChartDrawingScreenPoint[],
   viewport: { width: number; height: number },
 ) {
-  if (drawing.tool === 'horizontal-line' || drawing.tool === 'price-alert') return { ...point, x: viewport.width / 2 }
+  if (isHorizontalDrawingTool(drawing.tool)) return { ...point, x: viewport.width / 2 }
   if (drawing.tool === 'vertical-line') return { ...point, y: viewport.height / 2 }
   return point
 }

@@ -18,6 +18,13 @@ type FloatingDrawingToolbarProps = {
   wildcardDisabled?: boolean
   onAddWildcard?: () => void
   priceAlertDisabled?: boolean
+  onAlertAtLevel?: () => void
+}
+
+function PriceAlertIcon() {
+  return <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6">
+    <circle cx="10" cy="11" r="6" /><path d="M10 7v4l3 2M3 5l3-3M14 2l3 3M5 16l-1 2M15 16l1 2" />
+  </svg>
 }
 
 export function FloatingDrawingToolbar({
@@ -28,6 +35,7 @@ export function FloatingDrawingToolbar({
   onToolChange,
   onClearPair,
   priceAlertDisabled = false,
+  onAlertAtLevel,
   wildcardActive = false,
   wildcardDisabled = false,
   onAddWildcard,
@@ -57,6 +65,7 @@ export function FloatingDrawingToolbar({
 
     const resizeObserver = new ResizeObserver(keepToolbarVisible)
     resizeObserver.observe(container)
+    resizeObserver.observe(toolbar)
     return () => resizeObserver.disconnect()
   }, [])
 
@@ -156,14 +165,19 @@ export function FloatingDrawingToolbar({
           title={`${tool.label}${activeTool === tool.id ? ' · click again to return to chart navigation' : ''}`}
         >
           {tool.id === 'price-alert'
-            ? <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="10" cy="11" r="6" /><path d="M10 7v4l3 2M3 5l3-3M14 2l3 3M5 16l-1 2M15 16l1 2" /></svg>
+            ? <PriceAlertIcon />
             : tool.id === 'rectangle'
             ? <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20"><rect x="2" y="4" width="16" height="12" rx="1" fill="none" stroke="currentColor" strokeWidth="1.8" /></svg>
             : <span aria-hidden="true">{tool.icon}</span>}
         </button>
       ))}
 
-
+      {onAlertAtLevel && (
+        <button type="button" className="drawing-toolbar-level-alert" onClick={onAlertAtLevel} disabled={priceAlertDisabled}
+          aria-label="Add price alert at selected level" title="Create a price alert at the selected line’s current price">
+          <PriceAlertIcon />
+        </button>
+      )}
 
       <span className="drawing-toolbar-separator" aria-hidden="true" />
       <button

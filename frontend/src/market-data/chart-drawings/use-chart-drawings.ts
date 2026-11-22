@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import type { ChartTimeframe } from '../contracts/ChartTimeframe'
 import type { ChartDrawingPoint, ChartDrawingRecord } from './chart-drawing-record'
 import { readChartDrawings, saveChartDrawings } from './chart-drawing-storage'
-import type { DrawingToolId } from './drawing-tool'
+import { isSupplyDemandTool, type DrawingToolId } from './drawing-tool'
 
 export function useChartDrawings(symbol: string, timeframe: ChartTimeframe) {
   const [allDrawings, setAllDrawings] = useState<ChartDrawingRecord[]>(readChartDrawings)
@@ -22,7 +22,10 @@ export function useChartDrawings(symbol: string, timeframe: ChartTimeframe) {
         createdAt: Date.now(),
       }
       setAllDrawings((current) => {
-        const next = [...current, nextDrawing]
+        const retained = isSupplyDemandTool(tool)
+          ? current.filter(drawing => drawing.symbol !== symbol || drawing.tool !== tool)
+          : current
+        const next = [...retained, nextDrawing]
         saveChartDrawings(next)
         return next
       })

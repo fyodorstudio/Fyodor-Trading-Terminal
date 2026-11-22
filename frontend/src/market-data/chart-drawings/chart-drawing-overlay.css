@@ -20,6 +20,10 @@
 .drawing-fill { fill: color-mix(in srgb, var(--accent) 9%, transparent); }
 .drawing-arrow-head { fill: var(--accent); }
 .drawing-text { fill: var(--text-strong); font-size: 12px; font-weight: 650; paint-order: stroke; stroke: var(--chart-background); stroke-width: 3px; cursor: pointer; user-select: none; }
+.drawing-supply { color: var(--negative); }
+.drawing-demand { color: var(--positive); }
+.drawing-level-stroke { stroke: currentColor; }
+.drawing-level-label { fill: currentColor; }
 .drawing-text-foreign-object { overflow: visible; pointer-events: auto; }
 .drawing-text-input {
   background: var(--surface-panel);

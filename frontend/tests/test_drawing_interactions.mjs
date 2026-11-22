@@ -51,7 +51,7 @@ try {
   const { DisplayClockProvider } = await server.ssrLoadModule('./src/appearance/time-display/DisplayClock.tsx')
   const { useChartDrawings } = await server.ssrLoadModule('./src/market-data/chart-drawings/use-chart-drawings.ts')
   const { readChartDrawings } = await server.ssrLoadModule('./src/market-data/chart-drawings/chart-drawing-storage.ts')
-  const { drawingTools: allTools } = await server.ssrLoadModule('./src/market-data/chart-drawings/drawing-tool.ts')
+  const { drawingTools: allTools, isHorizontalDrawingTool } = await server.ssrLoadModule('./src/market-data/chart-drawings/drawing-tool.ts')
   // Price alerts have their own broker-scoped store and lifecycle tests.
   const drawingTools = allTools.filter(tool => tool.id !== 'price-alert')
   const { drawingTimeToLogical, drawingLogicalToTime } = await server.ssrLoadModule('./src/market-data/chart-drawings/drawing-coordinates.ts')
@@ -93,7 +93,7 @@ try {
   }
   const pointsFor = tool => {
     const points = [{ time: 1000, price: 10 }, { time: 1120, price: 12 }]
-    if (['horizontal-line', 'vertical-line', 'text'].includes(tool)) return points.slice(0, 1)
+    if (isHorizontalDrawingTool(tool) || tool === 'vertical-line' || tool === 'text') return points.slice(0, 1)
     if (tool === 'parallel-channel') return [...points, { time: 1000, price: 8 }]
     if (tool === 'short-position') return [points[0], { time: 1120, price: 8 }, { time: 1120, price: 12 }]
     if (tool === 'long-position') return [...points, { time: 1120, price: 8 }]
@@ -210,10 +210,10 @@ try {
     // A quarter-bar move must remain fractional, and the grab can be far from an anchor.
     await drag(body(), 140, 100, 150, 105)
     const moved = api.drawings[0].points
-    close(Number(handles()[0].getAttribute('cx')), tool === 'horizontal-line' ? width / 2 : 110,
+    close(Number(handles()[0].getAttribute('cx')), isHorizontalDrawingTool(tool) ? width / 2 : 110,
       `${tool}: fractional movement renders at the translated x coordinate, rather than the left edge`)
     original.points.forEach((point, index) => {
-      close(moved[index].time, point.time + (tool === 'horizontal-line' ? 0 : 15), `${tool}: translates every time anchor equally`)
+      close(moved[index].time, point.time + (isHorizontalDrawingTool(tool) ? 0 : 15), `${tool}: translates every time anchor equally`)
       close(moved[index].price, point.price + (tool === 'vertical-line' ? 0 : -.5), `${tool}: translates every price anchor equally`)
     })
     assert.deepEqual(readChartDrawings()[0].points, moved, `${tool}: body movement survives storage`)
@@ -432,13 +432,13 @@ try {
     assert.equal(api.drawings.length, 1, `${tool}: creation works without a candle under any vertex`)
     assert.ok(api.drawings[0].points.every(point => point.time > timeline.at(-1).time), `${tool}: future timestamps are saved`)
     assert.ok(handles().length > 0, `${tool}: future shapes remain visible and editable`)
-    close(Number(handles()[0].getAttribute('cx')), tool === 'horizontal-line' ? width / 2 : 360,
+    close(Number(handles()[0].getAttribute('cx')), isHorizontalDrawingTool(tool) ? width / 2 : 360,
       `${tool}: a fractional future anchor stays at the creation cursor`)
     // Resize a real endpoint in empty past space. Axis lines lock their irrelevant dimension.
     const handle = handles()[tool.includes('position') ? 3 : 0]
     const x = Number(handle.getAttribute('cx')), y = Number(handle.getAttribute('cy'))
     await drag(handle, x, y, 50, y - 15)
-    if (tool !== 'horizontal-line' && tool !== 'parallel-channel') assert.ok(api.drawings[0].points[tool.includes('position') ? 1 : 0].time < timeline[0].time, `${tool}: endpoint can move before loaded history`)
+    if (!isHorizontalDrawingTool(tool) && tool !== 'parallel-channel') assert.ok(api.drawings[0].points[tool.includes('position') ? 1 : 0].time < timeline[0].time, `${tool}: endpoint can move before loaded history`)
     if (tool === 'parallel-channel') assert.equal(api.drawings[0].points[0].time, 1390, 'Channel corners only resize vertically, even in empty space')
   }
 
@@ -496,7 +496,23 @@ try {
   seed({ ...outside, tool: 'horizontal-line', points: outside.points.slice(0, 1) }); await render({ initiallySelected: 'drawing' }, 'outside-horizontal')
   assert.equal(handles().length, 1, 'A horizontal line remains visible regardless of its original candle time')
 
+  seed({ ...recordFor('supply-line'), symbol: 'OTHER' })
+  await render({ timeframe: 'H4' }, 'fixed-levels')
+  await React.act(async () => {
+    api.addDrawing('supply-line', [{ time: 1, price: 13 }])
+    api.addDrawing('demand-line', [{ time: 1, price: 9 }])
+    api.addDrawing('supply-line', [{ time: 1, price: 14 }])
+  })
+  await render({ timeframe: 'M30' }, 'fixed-levels')
+  assert.deepEqual(api.drawings.map(drawing => [drawing.tool, drawing.timeframe, drawing.points[0].price]), [
+    ['demand-line', 'H4', 9], ['supply-line', 'H4', 14],
+  ])
+  assert.deepEqual([...host.querySelectorAll('.drawing-level-label')].map(node => node.textContent), ['Demand 9.00000', 'Supply 14.00000'])
+  assert.equal(readChartDrawings().filter(drawing => drawing.symbol === 'OTHER').length, 1, 'Replacing a level leaves other symbols intact')
+
   // Unmount during capture and reject stale library draw callbacks.
+  seed({ ...outside, tool: 'horizontal-line', points: outside.points.slice(0, 1) })
+  await render({ initiallySelected: 'drawing' }, 'unmount-horizontal')
   const stale = [...primitives][0]
   await pointer(body(), 'pointerdown', 100, 100)
   assert.equal(captures.size, 1)
@@ -505,7 +521,7 @@ try {
   projectionReads = 0; stale.paneViews()[0].renderer().draw()
   assert.equal(projectionReads, 0, 'A detached primitive ignores stale draws')
   assert.equal(seriesWrites, 0, 'No fake candle data is added to support drawing coordinates')
-  console.log('✓ All 14 drawing tools: drag/edit/storage, hover-only measured position labels, offscreen culling, same-frame pan/zoom, history and bounded projection work')
+  console.log('✓ Drawing tools: drag/edit/storage, fixed supply and demand levels, viewport projection and bounded history work')
 } finally {
   await React.act(async () => root.unmount())
   assert.equal(frames.size, 0)

@@ -38,6 +38,7 @@ import { WildcardsProvider } from '../wildcards/WildcardsProvider'
 import { useWildcards } from '../wildcards/useWildcards'
 import { WildcardChartLayer } from '../wildcards/WildcardChartLayer'
 import { timeframeToSeconds } from '../market-data/chart-drawings/position-drawing-geometry'
+import { isSupplyDemandTool } from '../market-data/chart-drawings/drawing-tool'
 import type { IChartApi, ISeriesApi, Time } from 'lightweight-charts'
 
 export function TerminalWorkspace() {
@@ -52,7 +53,7 @@ function TerminalWorkspaceContent() {
     atr, changeAtr, toggleAtr, atrSettingsOpen, setAtrSettingsOpen, volume, changeVolume, toggleVolume, volumeSettingsOpen, setVolumeSettingsOpen, rsi, changeRsi, toggleRsi, rsiSettingsOpen, setRsiSettingsOpen,
     macro, toggleMacro, macroPreferences, changeMacro, macroSettingsOpen, setMacroSettingsOpen,
     timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
-    drawingToolbarVisible, eventIconsVisible, toggleEventIcons, bottomDockWindow, dockSize, settingsOpen, setSettingsOpen, marketWatch, appendActivity,
+    drawingToolbarVisible, eventIconMode, cycleEventIcons, bottomDockWindow, dockSize, settingsOpen, setSettingsOpen, marketWatch, appendActivity,
     bridge, marketData, activeSymbol, bars, brokerId, inspector, quote, drawings, pairDrawingCount,
     updateDrawingPoint, updateDrawingPoints, updateDrawingText, updatePositionWidth, handleDeleteDrawing,
     selectSymbol, selectTimeframe, recordChartData, changeTheme, changeChartAppearance, changeTimeDisplay,
@@ -61,6 +62,7 @@ function TerminalWorkspaceContent() {
     recentEventsOpen, toggleRecentEvents, closeRecentEvents, alertFocus, viewReleaseInAlert,
     rankingOpen, toggleRanking, closeRanking, newsOpen, toggleNews, closeNews, openNews, detailOpen, toggleDetail, closeDetail, openDetail, viewLedgerEvent, viewMacroRelease, returnToLedger,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab } = useTerminalWorkspace()
+  const selectedLevel = selectedDrawingId && drawings.find(drawing => drawing.id === selectedDrawingId && isSupplyDemandTool(drawing.tool))
   const [heatmapStarted, setHeatmapStarted] = useState(false)
   if ((bottomDockWindow === 'heatmap' || rankingOpen) && !heatmapStarted) setHeatmapStarted(true)
   const brokerOffsetSeconds = bridge.brokerOffsetSeconds
@@ -81,11 +83,12 @@ function TerminalWorkspaceContent() {
   const openLedgerDetail = useCallback(() => { openDetail() }, [openDetail])
   const pickerScope = (ledgerSupported || detailOpen) && (bottomDockWindow === 'ledger' || detailOpen) && bars.length && brokerClockProfile(brokerId) && !activeDrawingTool && !wildcards.placing && !wildcards.editor
     ? `${brokerId}:${activeSymbol}:${timeframe}` : null
+  const wildcardIconsVisible = eventIconMode === 'wildcards' || eventIconMode === 'all'
   const renderChartWithLedger = useCallback((chartApi: IChartApi, seriesApi: ISeriesApi<'Candlestick', Time>) => <>
     {renderChartOverlay?.(chartApi, seriesApi)}
     <LedgerCandlePicker chartApi={chartApi} bars={bars} />
-    <WildcardChartLayer chartApi={chartApi} seriesApi={seriesApi} bars={bars} step={timeframeToSeconds(timeframe)} visible={eventIconsVisible} context={`${brokerId}:${activeSymbol}:${timeframe}`} />
-  </>, [renderChartOverlay, bars, timeframe, eventIconsVisible, brokerId, activeSymbol])
+    <WildcardChartLayer chartApi={chartApi} seriesApi={seriesApi} bars={bars} step={timeframeToSeconds(timeframe)} visible={wildcardIconsVisible} context={`${brokerId}:${activeSymbol}:${timeframe}`} />
+  </>, [renderChartOverlay, bars, timeframe, wildcardIconsVisible, brokerId, activeSymbol])
   const closeRsiSettings = useCallback(() => setRsiSettingsOpen(false), [setRsiSettingsOpen])
   const closeAtrSettings = useCallback(() => setAtrSettingsOpen(false), [setAtrSettingsOpen])
   const closeMarketStructureSettings = useCallback(() => setMarketStructureSettingsOpen(false), [setMarketStructureSettingsOpen])
@@ -134,6 +137,8 @@ function TerminalWorkspaceContent() {
             onRefocus={() => setRefocusRequest(request => request + 1)}
             refocusDisabled={!bars.length}
             marketStructureEnabled={marketStructure.enabled}
+            marketStructureSwingStrength={marketStructure.swingStrength}
+            onChangeMarketStructureSwingStrength={swingStrength => changeMarketStructure({ ...marketStructure, swingStrength })}
             onToggleMarketStructure={toggleMarketStructure}
             onOpenMarketStructureSettings={() => setMarketStructureSettingsOpen(true)}
             atrEnabled={atr.enabled}
@@ -148,8 +153,8 @@ function TerminalWorkspaceContent() {
             macroEnabled={macro.enabled}
             onToggleMacro={toggleMacro}
             onOpenMacroSettings={() => setMacroSettingsOpen(true)}
-            eventIconsVisible={eventIconsVisible}
-            onToggleEventIcons={toggleEventIcons}
+            eventIconMode={eventIconMode}
+            onCycleEventIcons={cycleEventIcons}
             drawingToolbarVisible={drawingToolbarVisible}
             onToggleDrawingToolbar={toggleDrawingToolbar}
             recentEventsOpen={recentEventsOpen}
@@ -226,7 +231,10 @@ function TerminalWorkspaceContent() {
                 wildcardDisabled={!wildcards.snapshot || !bars.length || !brokerClockProfile(brokerId)}
                 onAddWildcard={() => { selectCrosshair(); wildcards.setPlacing(value => !value) }}
                 onClearPair={deletePairDrawings}
-
+                onAlertAtLevel={selectedLevel && selectedLevel.points[0] ? () => {
+                  if (priceAlerts.playSound) void priceAlerts.enableSound()
+                  createDrawing('price-alert', selectedLevel.points)
+                } : undefined}
                 priceAlertDisabled={!brokerId || !quote || !priceAlerts.live}
               />
               )}

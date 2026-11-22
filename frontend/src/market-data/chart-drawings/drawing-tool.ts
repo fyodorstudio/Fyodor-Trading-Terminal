@@ -2,6 +2,8 @@ export type DrawingToolId =
   | 'trend-line'
   | 'rectangle'
   | 'horizontal-line'
+  | 'supply-line'
+  | 'demand-line'
   | 'price-alert'
   | 'parallel-channel'
   | 'path'
@@ -26,6 +28,8 @@ export const drawingTools: DrawingToolDefinition[] = [
   { id: 'trend-line', label: 'Trend line', icon: '╱', gesture: 'drag' },
   { id: 'rectangle', label: 'Rectangle', icon: '▭', gesture: 'drag' },
   { id: 'horizontal-line', label: 'Horizontal line', icon: '—', gesture: 'point' },
+  { id: 'supply-line', label: 'Supply line', icon: '⇣', gesture: 'point' },
+  { id: 'demand-line', label: 'Demand line', icon: '⇡', gesture: 'point' },
   { id: 'price-alert', label: 'Price alert', icon: '⏰', gesture: 'point' },
   { id: 'parallel-channel', label: 'Parallel channel', icon: '≋', gesture: 'drag' },
   { id: 'path', label: 'Path', icon: '⌁', gesture: 'path' },
@@ -39,3 +43,11 @@ export const drawingTools: DrawingToolDefinition[] = [
   { id: 'fib-retracement', label: 'Fib retracement', icon: 'F', gesture: 'drag' },
   { id: 'date-price-range', label: 'Date and price range', icon: '↔', gesture: 'drag' },
 ]
+
+export function isSupplyDemandTool(tool: DrawingToolId) {
+  return tool === 'supply-line' || tool === 'demand-line'
+}
+
+export function isHorizontalDrawingTool(tool: DrawingToolId) {
+  return tool === 'horizontal-line' || tool === 'price-alert' || isSupplyDemandTool(tool)
+}

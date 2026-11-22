@@ -5,7 +5,13 @@ import { SessionTimeline } from '../market-data/market-watch/SessionTimeline'
 import { dailyRangeLabel } from '../market-data/market-watch/daily-range'
 import { isNdfSymbol } from '../market-data/market-watch/symbol-classification'
 import { supportsMacro } from '../market-data/indicators/macro/macro-data'
+import { swingStrengthLimits } from '../market-data/indicators/market-structure/market-structure-preferences'
+import { nextEventIconMode, type EventIconMode } from '../appearance/event-icons-visibility'
 import '../market-data/indicators/rsi/rsi.css'
+
+const eventIconLabels: Record<EventIconMode, string> = {
+  off: 'Off', wildcards: 'Wildcards only', inspector: 'Inspector only', all: 'All',
+}
 
 const timeframes: ChartTimeframe[] = ['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1']
 
@@ -20,6 +26,8 @@ type ChartWorkspaceHeaderProps = {
   drawingToolbarVisible?: boolean
   onToggleDrawingToolbar?: () => void
   marketStructureEnabled?: boolean
+  marketStructureSwingStrength?: number
+  onChangeMarketStructureSwingStrength?: (strength: number) => void
   onToggleMarketStructure?: () => void
   onOpenMarketStructureSettings?: () => void
   atrEnabled?: boolean
@@ -34,8 +42,8 @@ type ChartWorkspaceHeaderProps = {
   macroEnabled?: boolean
   onToggleMacro?: () => void
   onOpenMacroSettings?: () => void
-  eventIconsVisible?: boolean
-  onToggleEventIcons?: () => void
+  eventIconMode?: EventIconMode
+  onCycleEventIcons?: () => void
   recentEventsOpen?: boolean
   onToggleRecentEvents?: () => void
   rankingOpen?: boolean
@@ -85,6 +93,8 @@ export function ChartWorkspaceHeader({
   drawingToolbarVisible = true,
   onToggleDrawingToolbar,
   marketStructureEnabled = false,
+  marketStructureSwingStrength,
+  onChangeMarketStructureSwingStrength,
   onToggleMarketStructure,
   onOpenMarketStructureSettings,
   atrEnabled = false,
@@ -99,8 +109,8 @@ export function ChartWorkspaceHeader({
   macroEnabled = false,
   onToggleMacro,
   onOpenMacroSettings,
-  eventIconsVisible = true,
-  onToggleEventIcons,
+  eventIconMode = 'wildcards',
+  onCycleEventIcons,
   recentEventsOpen = false,
   onToggleRecentEvents,
   rankingOpen = false,
@@ -165,6 +175,15 @@ export function ChartWorkspaceHeader({
         </button>}
         <div className="chart-header-actions">
         {onToggleMarketStructure && <div className="rsi-header-controls" role="group" aria-label="Market Structure indicator">
+          {marketStructureEnabled && marketStructureSwingStrength !== undefined && onChangeMarketStructureSwingStrength && (
+            <label className="market-structure-toolbar-slider">
+              <span>Swing strength</span>
+              <input type="range" min={swingStrengthLimits.min} max={swingStrengthLimits.max} step={1}
+                value={marketStructureSwingStrength}
+                onChange={event => onChangeMarketStructureSwingStrength(event.currentTarget.valueAsNumber)} />
+              <span aria-hidden="true">{marketStructureSwingStrength}</span>
+            </label>
+          )}
           <button type="button" aria-pressed={marketStructureEnabled} onClick={onToggleMarketStructure}
             aria-label={marketStructureEnabled ? 'Hide Market Structure' : 'Show Market Structure'}
             title={marketStructureEnabled ? 'Hide Market Structure' : 'Show Market Structure'}>MS</button>
@@ -211,16 +230,19 @@ export function ChartWorkspaceHeader({
           </button>
         </div>}
         <span className="chart-toolbar-separator" role="separator" aria-orientation="vertical" />
-        {onToggleEventIcons && (
-          <button type="button" className={`chart-event-toggle${eventIconsVisible ? ' active' : ''}`}
-            aria-pressed={eventIconsVisible}
-            aria-label={eventIconsVisible ? 'Hide event icons' : 'Show event icons'}
-            title={eventIconsVisible ? 'Hide all event icons (Inspector and Wildcards)' : 'Show all event icons (Inspector and Wildcards)'}
-            onClick={onToggleEventIcons}>
+        {onCycleEventIcons && (
+          <button type="button" className={`chart-event-toggle${eventIconMode === 'off' ? '' : ' active'}`}
+            aria-label={`Event icons: ${eventIconLabels[eventIconMode]}`}
+            title={`Event icons: ${eventIconLabels[eventIconMode]} · Next: ${eventIconLabels[nextEventIconMode(eventIconMode)]}`}
+            onClick={onCycleEventIcons}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <rect x="3" y="5" width="18" height="16" rx="2" />
-              <path d="M7 3v4M17 3v4M3 11h18M8 15h2M14 15h2" />
-              {!eventIconsVisible && <path d="m3 3 18 18" />}
+              {eventIconMode === 'wildcards' ? <path d="M12 3c0 5-4 9-9 9 5 0 9 4 9 9 0-5 4-9 9-9-5 0-9-4-9-9Z" /> : <>
+                <rect x="3" y="5" width="18" height="16" rx="2" />
+                <path d="M7 3v4M17 3v4M3 11h18" />
+                {eventIconMode === 'off' && <path d="m3 3 18 18" />}
+                {eventIconMode === 'inspector' && <path d="M8 15h2m4 0h2" />}
+                {eventIconMode === 'all' && <path d="M12 13v6m-3-3h6" />}
+              </>}
             </svg>
           </button>
         )}

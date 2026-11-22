@@ -384,6 +384,8 @@ try {
   assert.equal(container.querySelector('[aria-label="Show Volume"]').parentElement.nextElementSibling, indicatorControls, 'Volume sits beside RSI')
   const showMarketStructure = container.querySelector('[aria-label="Show Market Structure"]')
   const marketStructureSettings = container.querySelector('[aria-label="Market Structure settings"]')
+  const swingSlider = () => container.querySelector('.market-structure-toolbar-slider input')
+  assert.equal(swingSlider(), null)
   assert.equal(showMarketStructure.nextElementSibling, marketStructureSettings)
   assert.equal(showMarketStructure.parentElement.nextElementSibling,
     container.querySelector('[aria-label="Show ATR"]').parentElement, 'Market Structure and its settings sit immediately left of ATR')
@@ -400,8 +402,22 @@ try {
   await click(showMarketStructure)
   assert.equal(primitives.size, beforeMarketStructure + 1, 'Market Structure attaches to the existing price pane')
   assert.equal(panes.length, 1)
+  const hideMarketStructure = container.querySelector('[aria-label="Hide Market Structure"]')
+  assert.equal(swingSlider().parentElement.nextElementSibling, hideMarketStructure, 'The slider sits immediately left of MS')
+  assert.deepEqual([swingSlider().min, swingSlider().max, swingSlider().step, swingSlider().value], ['1', '50', '1', '8'])
+  const slideSwing = valueAsNumber => React.act(async () => props(swingSlider()).onChange({ currentTarget: { valueAsNumber } }))
+  await slideSwing(27)
+  assert.equal(swingSlider().value, '27')
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.indicators.market-structure.v2')).swingStrength, 27)
+  assert.equal(primitives.size, beforeMarketStructure + 1, 'Scrubbing keeps the existing price-pane overlay attached')
+  await click(marketStructureSettings)
+  const syncedSettings = container.querySelector('[role="dialog"]')
+  assert.equal(syncedSettings.querySelector('input[type="number"]').value, '27')
+  await click([...syncedSettings.querySelectorAll('button')].find(button => button.textContent === 'Cancel'))
+  await slideSwing(8)
   await click(container.querySelector('[aria-label="Hide Market Structure"]'))
   assert.equal(primitives.size, beforeMarketStructure)
+  assert.equal(swingSlider(), null)
   assert.equal(container.querySelector('[aria-label="Show ATR"]').parentElement.nextElementSibling,
     container.querySelector('[aria-label="Show Volume"]').parentElement, 'ATR sits immediately left of Volume')
   await click(container.querySelector('[aria-label="ATR settings"]')); await flush()
@@ -581,7 +597,7 @@ try {
   assert.ok(container.querySelector('.alert-event-group'), 'Alert retains the date table')
   assert.ok(container.querySelector('.alert-event-table'))
   await click(button('Alert'))
-  // One header switch hides both calendar layers without editing their choices.
+  // One header button cycles the calendar layers without changing Inspector filters.
   const iconKey = 'fyodor.chart-event-icons-visible.v1'
   const inspectorChoices = localStorage.getItem('fyodor.inspector.shared.v1')
   const refocusButton = container.querySelector('[aria-label="Refocus chart"]')
@@ -589,10 +605,20 @@ try {
   assert.equal(container.querySelector('.timeframe-selector').nextElementSibling, refocusButton)
   assert.equal(refocusButton.nextElementSibling.className, 'chart-header-actions')
   const visibleWindow = { ...logicalRange }, beforeIconToggle = counters.setData ?? 0
-  await click(container.querySelector('[aria-label="Hide event icons"]')); await flush()
-  assert.equal(container.querySelector('[aria-label="Show event icons"]').getAttribute('aria-pressed'), 'false')
-  assert.equal(container.querySelector('.inspector-chart-markers'), null)
-  assert.equal(localStorage.getItem(iconKey), 'false')
+  const assertEventIconMode = (mode, label, wildcards, inspector) => {
+    assert.equal(container.querySelector('.chart-event-toggle').getAttribute('aria-label'), `Event icons: ${label}`)
+    assert.equal(localStorage.getItem(iconKey), mode)
+    assert.equal(Boolean(container.querySelector('.wildcard-chart-layer')), wildcards)
+    assert.equal(Boolean(container.querySelector('.inspector-chart-markers')), inspector)
+  }
+  const cycleEventIcons = async () => { await click(container.querySelector('.chart-event-toggle')); await flush() }
+  assertEventIconMode('wildcards', 'Wildcards only', true, false)
+  await cycleEventIcons()
+  assertEventIconMode('inspector', 'Inspector only', false, true)
+  await cycleEventIcons()
+  assertEventIconMode('all', 'All', true, true)
+  await cycleEventIcons()
+  assertEventIconMode('off', 'Off', false, false)
   assert.deepEqual(logicalRange, visibleWindow)
   assert.equal(counters.setData ?? 0, beforeIconToggle, 'Visibility changes do not rewrite candle data')
   await click([...container.querySelectorAll('[aria-label="Chart timeframe"] button')].find(node => node.textContent === 'M30'))
@@ -600,8 +626,13 @@ try {
   await flush()
   await click([...container.querySelectorAll('[aria-label="Chart timeframe"] button')].find(node => node.textContent === 'H1'))
   while (pending.get('ohlc')?.length) await reply('ohlc')
-  await click(container.querySelector('[aria-label="Show event icons"]')); await flush()
-  assert.ok(container.querySelector('.inspector-chart-markers'))
+  assertEventIconMode('off', 'Off', false, false)
+  await cycleEventIcons()
+  assertEventIconMode('wildcards', 'Wildcards only', true, false)
+  await cycleEventIcons()
+  assertEventIconMode('inspector', 'Inspector only', false, true)
+  await cycleEventIcons()
+  assertEventIconMode('all', 'All', true, true)
   assert.equal(localStorage.getItem('fyodor.inspector.shared.v1'), inspectorChoices)
   // A nearby-release chooser dismisses on blank chart clicks before selecting.
   await click(container.querySelector('[aria-label="2 nearby Inspector releases"]'))
@@ -1123,6 +1154,20 @@ try {
   assert.ok(![...tradeLines].some(line => line.options.title?.includes('Price alert')))
   assert.equal(localStorage.getItem('fyodor.chart-drawings.v1'), ordinaryDrawings, 'Right-clicking alerts preserves ordinary drawings')
   assert.deepEqual(logicalRange, alertWindow, 'Right-click deletion preserves the shared viewport')
+  await click(container.querySelector('[aria-label="Supply line"]'))
+  await pointer(drawingSvg(), 'pointerdown', 320, drawingSvg().getBoundingClientRect().top + 1.55 * 100 + priceShift)
+  await flush()
+  const supply = container.querySelector('.drawing-supply')
+  assert.match(supply.textContent, /Supply 1\.55/)
+  await click(container.querySelector('[aria-label="Add price alert at selected level"]'))
+  const supplyAlert = JSON.parse(localStorage.getItem(priceAlertKey)).alerts[0]
+  assert.equal(supplyAlert.symbol, 'EURUSD')
+  assert.equal(supplyAlert.price, 1.55, 'The optional alert uses the drawn level’s price')
+  await React.act(async () => supply.dispatchEvent(new dom.MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2 })))
+  assert.equal(container.querySelector('.drawing-supply'), null)
+  assert.equal(JSON.parse(localStorage.getItem(priceAlertKey)).alerts[0].price, 1.55, 'The copied alert is managed independently')
+  await click(container.querySelector('.price-alert-row [aria-label^="Delete "]'))
+  assert.equal(localStorage.getItem('fyodor.chart-drawings.v1'), ordinaryDrawings)
   await click(button('Market Watch'))
   quotes[0] = { ...quotes[0], bid: 1.1 }
   await tick('poll', 2500); await reply('watch')
@@ -1143,7 +1188,7 @@ try {
   await marketCategory('all')
   localStorage.removeItem('fyodor.inspector.shared.v1')
   if (!container.querySelector('.inspector-panel')) await click(button('Inspector'))
-  await click(container.querySelector('[aria-label="Hide event icons"]'))
+  await cycleEventIcons()
   for (const [symbol, currency] of Object.entries(instrumentScopes)) {
     const windowBefore = { ...logicalRange }
     await click([...container.querySelectorAll('.market-watch-row')].find(row => row.querySelector('strong').textContent === symbol))
@@ -1153,7 +1198,9 @@ try {
     assert.equal(panes.length, 2, 'Symbol changes reuse the RSI pane')
     if (symbol === 'JPYX') {
       assert.equal(container.querySelector('.inspector-chart-markers'), null, 'Global hide survives switching from a pair to an index')
-      await click(container.querySelector('[aria-label="Show event icons"]')); await flush()
+      await cycleEventIcons()
+      await cycleEventIcons()
+      await cycleEventIcons()
     }
     assert.deepEqual(logicalRange, windowBefore, `${symbol}: the shared date viewport survives symbol changes`)
     assert.equal(container.querySelector('[data-inspector-filter-trigger]').disabled, false)
@@ -1211,7 +1258,7 @@ try {
       await click(button('Inspector')); await flush()
     }
   }
-  await click(container.querySelector('[aria-label="Hide event icons"]'))
+  await cycleEventIcons()
   assert.equal(container.querySelector('[aria-label="Hide left panel"]'), null, 'The left panel has no redundant close button')
   const drawingsBeforeRefocus = localStorage.getItem('fyodor.chart-drawings.v1')
   logicalRange = { from: plotted.length + 100, to: plotted.length + 130 }
@@ -1533,7 +1580,7 @@ try {
   try {
     await React.act(async () => root.render(React.createElement(React.StrictMode, null,
       React.createElement(ActivityLogProvider, null, React.createElement(FyodorTerminalShell)))))
-    assert.equal(container.querySelector('[aria-label="Show event icons"]').getAttribute('aria-pressed'), 'false', 'Universal visibility is restored after remount')
+    assert.equal(container.querySelector('.chart-event-toggle').getAttribute('aria-label'), 'Event icons: Off', 'The saved mode is restored after remount')
     assert.equal(container.querySelector('[aria-label="Hide RSI"]').getAttribute('aria-pressed'), 'true', 'Shared RSI visibility is restored after StrictMode remount')
   } finally { await React.act(async () => root.render(null)) }
   console.log('✓ Assembled Lite: shared RSI controls/pane/persistence and bounded tick work, navigation, filters/raw tables, dates, future axis, drawings, Entry Trade plans/pins/journal, Alert/Activity, viewport/corrections, zero polling/pan work and StrictMode cleanup')

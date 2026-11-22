@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState, type PointerEvent as ReactPointerEv
 import { type DrawingHandleKind } from '../ChartDrawingSelectionHandles'
 import type { ChartDrawingPoint, ChartDrawingRecord } from '../chart-drawing-record'
 import type { ChartDrawingScreenPoint } from '../chart-drawing-screen-point'
-import { drawingTools, type DrawingToolId } from '../drawing-tool'
+import { drawingTools, isHorizontalDrawingTool, type DrawingToolId } from '../drawing-tool'
 import { normalizeDrawingPoints } from '../position-drawing-geometry'
 import { defaultChannelOffset, editParallelChannel } from '../parallel-channel-geometry'
 import { useDrawingViewport } from '../useDrawingViewport'
@@ -88,12 +88,16 @@ export function useDrawingInteraction({
 
   const toScreenPoints = (drawing: ChartDrawingRecord) => {
     const dataPoints = drawing.tool === 'price-note' ? withPriceNoteLine(drawing.points) : drawing.points
+    if (isHorizontalDrawingTool(drawing.tool)) {
+      const point = dataPoints[0]
+      const y = point ? seriesApi.priceToCoordinate(point.price) : null
+      return point && y !== null ? [{ x: viewport.width / 2, y, price: point.price }] : []
+    }
     const xs = dataPoints.map(point => coordinates.timeToX(point.time))
     if (xs.some(x => x === null)) return []
     // Skip price projection for shapes entirely outside the horizontal pane.
-    // Horizontal lines span the pane independently of their saved timestamp.
     const padding = drawing.tool.includes('position') ? 2 : drawing.tool === 'text' ? 220 : drawing.tool === 'price-note' ? 100 : 24
-    if (drawing.tool !== 'horizontal-line' && drawing.tool !== 'price-alert' && viewport.width > 0
+    if (viewport.width > 0
       && (Math.max(...xs as number[]) < -padding || Math.min(...xs as number[]) > viewport.width + padding)) return []
     const points = dataPoints.map((point, index) => {
       const x = xs[index]
@@ -184,7 +188,7 @@ export function useDrawingInteraction({
       onUpdatePositionWidth(editing.drawingId, moved.time, persist)
     } else if (original && moved) {
       const tool = editing.tool
-      const priceOnly = editing.kind === 'position-price' || editing.kind === 'position-entry-price' || tool === 'horizontal-line' || tool === 'price-alert'
+      const priceOnly = editing.kind === 'position-price' || editing.kind === 'position-entry-price' || isHorizontalDrawingTool(tool)
       const edited = {
         time: priceOnly ? original.time : moved.time,
         price: tool === 'vertical-line' ? original.price : moved.price,

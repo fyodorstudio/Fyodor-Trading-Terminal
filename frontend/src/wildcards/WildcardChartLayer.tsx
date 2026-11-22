@@ -62,6 +62,7 @@ export function WildcardChartLayer({ chartApi, seriesApi, bars, step, visible, c
     scale.subscribeVisibleLogicalRangeChange(schedule); scale.subscribeSizeChange(schedule)
     return () => { if (frame !== null) window.cancelAnimationFrame(frame); scale.unsubscribeVisibleLogicalRangeChange(schedule); scale.unsubscribeSizeChange(schedule); seriesApi.detachPrimitive(primitive) }
   }, [visible, chartApi, seriesApi, indexed])
+  if (!visible && !placing) return null
   return <div className="wildcard-chart-layer" aria-label="Wildcard chart icons">
     {placing && <span className="wildcard-chart-hint">Click a candle to add a wildcard · Escape to cancel</span>}
     {visible && positions.map(position => <button type="button" className="wildcard-chart-icon" key={position.items[0].id} style={{ left: position.x, top: Math.max(0, height - 63) }}

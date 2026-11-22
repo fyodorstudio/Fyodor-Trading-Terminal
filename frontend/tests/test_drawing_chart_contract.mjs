@@ -45,7 +45,7 @@ async function paint() {
 try {
   const { drawingCoordinates } = await server.ssrLoadModule('./src/market-data/chart-drawings/drawing-coordinates.ts')
   const { ChartDrawingOverlay } = await server.ssrLoadModule('./src/market-data/chart-drawings/ChartDrawingOverlay.tsx')
-  const { drawingTools: allTools } = await server.ssrLoadModule('./src/market-data/chart-drawings/drawing-tool.ts')
+  const { drawingTools: allTools, isHorizontalDrawingTool } = await server.ssrLoadModule('./src/market-data/chart-drawings/drawing-tool.ts')
   const drawingTools = allTools.filter(tool => tool.id !== 'price-alert')
   chart = createChart(chartHost, { width: 800, height: 400, autoSize: false,
     layout: { colorParsers: [color => {
@@ -90,14 +90,14 @@ try {
   paneCanvas.getBoundingClientRect = () => ({ left: 37, top: 81 })
   for (const { id: tool } of drawingTools) {
     let points = [first, second]
-    if (['horizontal-line', 'vertical-line', 'text'].includes(tool)) points = [first]
+    if (isHorizontalDrawingTool(tool) || tool === 'vertical-line' || tool === 'text') points = [first]
     if (tool === 'parallel-channel') points = [first, second, { ...first, price: 9 }]
     if (tool.includes('position')) points = [first, second, { ...second, price: 9 }]
     const drawing = { id: 'drawing', symbol: 'TEST', timeframe: 'M1', tool, points, createdAt: 1 }
     await React.act(async () => root.render(React.createElement(ChartDrawingOverlay, { ...props, drawings: [drawing] })))
     await paint()
     assert.ok(handles().length, `${tool}: the real chart projects visible editing handles`)
-    close(Number(handles()[0].getAttribute('cx')), tool === 'horizontal-line' ? chart.paneSize().width / 2 : xAt(3.25),
+    close(Number(handles()[0].getAttribute('cx')), isHorizontalDrawingTool(tool) ? chart.paneSize().width / 2 : xAt(3.25),
       `${tool}: fractional anchors render at their actual chart location`)
     // Hover on the SVG never reaches the chart canvas naturally. The bridge
     // must restore the native crosshair, including on blank future time slots.
@@ -160,7 +160,7 @@ try {
     close(Number(handles()[0].getAttribute('cx')), projected.timeToX(sharedDrawing.points[0].time), `${timeframe}: position entry remains anchored`)
     assert.equal(JSON.stringify(sharedDrawing), sharedSnapshot, 'Timeframe projection never rescales saved time or price anchors')
   }
-  console.log('✓ Installed chart API: fractional projection, future/past round-trips, all 14 tools, real primitive price-scale synchronization and live updates')
+  console.log('✓ Installed chart API: fractional projection, future/past round-trips, drawing tools, real primitive price-scale synchronization and live updates')
 } finally {
   await React.act(async () => root.unmount())
   chart?.remove()

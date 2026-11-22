@@ -143,6 +143,19 @@ export function ChartDrawingShape({ drawing, points, width, height, precision = 
           <line className="drawing-stroke" x1={0} y1={first.y} x2={width} y2={first.y} />
         </g>
       )
+    case 'supply-line':
+    case 'demand-line': {
+      const supply = drawing.tool === 'supply-line'
+      const label = `${supply ? 'Supply' : 'Demand'} ${first.price.toFixed(precision)}`
+      return (
+        <g className={supply ? 'drawing-supply' : 'drawing-demand'}>
+          <line className="drawing-hit-area" x1={0} y1={first.y} x2={width} y2={first.y} />
+          <line className="drawing-stroke drawing-level-stroke" x1={0} y1={first.y} x2={width} y2={first.y} />
+          <text className="drawing-text drawing-level-label" x={width - 8} y={first.y < 18 ? first.y + 15 : first.y - 6}
+            textAnchor="end">{label}</text>
+        </g>
+      )
+    }
     case 'vertical-line':
       return (
         <g>

@@ -12,6 +12,8 @@ higher timeframe; returning restores the original dates.
 The drawing toolbar adds and edits chart drawings. **Inspector** opens calendar
 release details; **Show events** opens recent/upcoming releases.
 Display timezone and theme are available in Settings.
+The chart header’s **Event icons** button cycles through Off, Wildcards only,
+Inspector only, and All. It starts on Wildcards only and remembers your choice.
 
 MFDI's currency tabs, Fit, lock and lane controls share one toolbar row.
 Choose **A-P Delta** beside Series to color actual releases by Actual minus

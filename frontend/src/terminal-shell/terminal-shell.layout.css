@@ -92,6 +92,33 @@
 
 .chart-header-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; max-width: 100%; }
 
+.market-structure-toolbar-slider {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  align-self: stretch;
+  padding: 0 8px;
+  border-right: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.market-structure-toolbar-slider input {
+  width: 76px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.market-structure-toolbar-slider span:last-child {
+  min-width: 2ch;
+  color: var(--text-strong);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
 .timeframe-selector button {
   min-width: 34px;
   height: 28px;

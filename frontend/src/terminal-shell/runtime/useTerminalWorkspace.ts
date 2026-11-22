@@ -2,8 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { applyColorTheme, readColorTheme, type ColorTheme } from '../../appearance/color-theme/color-theme-preference'
 import { readTimeDisplayPreference, saveTimeDisplayPreference, timeDisplayLabel, type TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
 import { useInspector } from '../../inspector'
-import { readInspectorPreferences } from '../../inspector/preferences/inspector-preferences'
-import { readEventIconsVisible, saveEventIconsVisible } from '../../appearance/event-icons-visibility'
+import { nextEventIconMode, readEventIconMode, saveEventIconMode } from '../../appearance/event-icons-visibility'
 import { readDrawingToolbarVisible, saveDrawingToolbarVisible } from '../../market-data/chart-drawings/drawing-toolbar-visibility'
 import type { ChartDrawingPoint } from '../../market-data/chart-drawings/chart-drawing-record'
 import type { DrawingToolId } from '../../market-data/chart-drawings/drawing-tool'
@@ -50,9 +49,10 @@ export function useTerminalWorkspace() {
   const [inspectorFromLedger, setInspectorFromLedger] = useState(false)
   const [selectedDrawingId, setSelectedDrawingId] = useState<string | null>(null)
   const [drawingToolbarVisible, setDrawingToolbarVisible] = useState<boolean>(readDrawingToolbarVisible)
-  const [eventIconsVisible, setEventIconsVisible] = useState(() => readEventIconsVisible(readInspectorPreferences(selectedSymbol).showSymbols))
-  useEffect(() => saveEventIconsVisible(eventIconsVisible), [eventIconsVisible])
-  const toggleEventIcons = useCallback(() => setEventIconsVisible(visible => !visible), [])
+  const [eventIconMode, setEventIconMode] = useState(readEventIconMode)
+  useEffect(() => saveEventIconMode(eventIconMode), [eventIconMode])
+  const cycleEventIcons = useCallback(() => setEventIconMode(nextEventIconMode), [])
+  const inspectorIconsVisible = eventIconMode === 'inspector' || eventIconMode === 'all'
   const [bottomDockWindow, setBottomDockWindow] = useState<BottomDockWindow | null>(() => new URLSearchParams(window.location.search).get('events') === 'alarms' ? 'alert' : null)
   const [alertFocus, setAlertFocus] = useState<AlertFocus | null>(null)
   const dockSize = useBottomDockSize(bottomDockWindow)
@@ -82,7 +82,7 @@ export function useTerminalWorkspace() {
   const priceAlertSoundEnabled = priceAlerts.playSound
   const openMarketWatch = marketWatch.open
   const inspector = useInspector({ symbol: activeSymbol, bars, timeframe, timeDisplay,
-    clockOffsetMs: 0, brokerId, eventIconsVisible,
+    clockOffsetMs: 0, brokerId, eventIconsVisible: inspectorIconsVisible,
     brokerOffsetSeconds: bridge.brokerOffsetSeconds, focusActive: bottomDockWindow === 'inspector' })
   const quote = marketData.symbols.find((item) => item.symbol === activeSymbol) ?? null
   const latestBarTime = bars.at(-1)?.time ?? 0
@@ -289,7 +289,7 @@ export function useTerminalWorkspace() {
     currencyColors: inspector.preferences.currencyColors, timeDisplay, onSelectRelease: selectChartRelease,
     onClearInspection: !activeDrawingTool && inspector.selectedRelease ? clearChartInspection : undefined,
     bars, timeframe,
-    symbol: activeSymbol, eventIconsVisible, priceAlerts: priceAlerts.brokerAlerts, selectedAlertId: priceAlerts.selectedAlertId,
+    symbol: activeSymbol, inspectorIconsVisible, priceAlerts: priceAlerts.brokerAlerts, selectedAlertId: priceAlerts.selectedAlertId,
     onAlertPriceChange: priceAlerts.moveAlert, onAlertDragChange: priceAlerts.setDraggingAlertId, onDeleteAlert: priceAlerts.deleteAlert })
   const sourceState: 'error' | 'live' | 'waiting' = !bridge.reachable || marketData.marketWatchStatus === 'unavailable'
     ? 'error'
@@ -304,7 +304,7 @@ export function useTerminalWorkspace() {
         ? 'MT5 disconnected'
         : 'Waiting for MT5'
   return { ...marketStructureState, ...atrState, ...volumeState, ...rsiState, ...macroState, timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
-    drawingToolbarVisible, eventIconsVisible, toggleEventIcons, bottomDockWindow, dockSize, settingsOpen, setSettingsOpen, marketWatch, appendActivity,
+    drawingToolbarVisible, eventIconMode, cycleEventIcons, bottomDockWindow, dockSize, settingsOpen, setSettingsOpen, marketWatch, appendActivity,
     bridge, marketData, activeSymbol, bars, brokerId, inspector, quote, drawings, pairDrawingCount, updateDrawingPoint,
     updateDrawingPoints, updateDrawingText, updatePositionWidth, handleDeleteDrawing, selectSymbol, selectTimeframe,
     recordChartData, changeTheme, changeChartAppearance, changeTimeDisplay, createDrawing, chooseDrawingTool,
