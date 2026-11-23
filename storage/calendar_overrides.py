@@ -39,7 +39,8 @@ class CalendarOverrides:
                     release = round(instant.timestamp() * 1000)
                 self.rows[key] = {**changes, '_release_at': release,
                                   '_currency': document['currency'], '_country': document['country'],
-                                  '_actual_source': document.get('source_url')}
+                                  '_actual_source': row.get('source_url', document.get('source_url')),
+                                  '_forecast_source': row.get('forecast_source', document.get('forecast_source'))}
         self.revision = sha256(json.dumps(sorted(self.rows.items()), sort_keys=True).encode()).hexdigest()[:16]
 
     def actual_ids(self, event_id, currency, country):
@@ -54,6 +55,8 @@ class CalendarOverrides:
         event = dict(event)
         if change.get('actual') is not None and change['_actual_source']:
             event['actual_override_source'] = change['_actual_source']
+        if change.get('forecast') is not None and change['_forecast_source']:
+            event['calendar_sources'] = {'forecast': change['_forecast_source']}
         for field in VALUE_FIELDS:
             if field in change:
                 event[field] = change[field]
@@ -73,7 +76,7 @@ class CalendarOverrides:
         db.executemany('INSERT INTO calendar_overrides VALUES (?,?,?,?,?)',
                        [(event, value, row['_currency'], row['_country'], row['_release_at'])
                         for (event, value), row in self.rows.items()])
-        db.execute('''CREATE TEMP VIEW calendar_readings AS
+        db.execute('''CREATE TEMP VIEW broker_calendar_readings AS
             SELECT e.*,a.job_id absence_job,t.capture_offset_seconds,t.profile,
                 coalesce(o.release_at,t.release_at) release_at,
                 CASE WHEN o.release_at IS NOT NULL THEN calendar_chart_time(e.source_id,o.release_at)

@@ -24,12 +24,12 @@ def day_snapshot(store, source_id, day, after_revision=None):
         coverage = {currency: {'missing': missing_intervals(raw_start, raw_start + 86400, store._covered(source_id, currency, source['server_now']))}
                     for currency in ('USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD')} if source else {}
         digest = hashlib.sha256(json.dumps(coverage, sort_keys=True).encode()).hexdigest()[:16]
-        signature = f"2:{revision}:{store.overrides.revision}:{source['publisher_status'] if source else 'missing'}:{digest}"
+        signature = f"2:{revision}:{store.calendar_revision}:{source['publisher_status'] if source else 'missing'}:{digest}"
         result = {'source_id': source_id, 'date': day, 'revision': signature, 'source': source}
         if after_revision == signature:
             return {**result, 'unchanged': True}
         rows = store.db.execute('''SELECT e.* FROM calendar_readings e
-            WHERE e.source_id=? AND e.server_time>=? AND e.server_time<? AND (
+            WHERE e.source_id=? AND e.server_time>=? AND e.server_time<? AND e.displayed AND (
                 (e.release_at>=? AND e.release_at<?)
                 OR (e.release_at IS NULL
                     AND e.server_time>=? AND e.server_time<?)) ORDER BY e.server_time,e.value_id''',

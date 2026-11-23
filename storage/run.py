@@ -16,6 +16,8 @@ from storage.calendar_store import CalendarStore
 from storage.data_lock import data_lock
 from storage.recovery import backup_directory, restore_directory
 from storage.fed_forecasts import FedRefresh, read_forecasts, save_forecasts
+from storage.calendar_audit import audit, import_evidence, read_selection
+from storage.calendar_evidence import DIRECTORY, as_millis, read_evidence, series_key
 
 
 def main():
@@ -27,6 +29,13 @@ def main():
     importer.add_argument("folder", type=Path)
     importer.add_argument("--dry-run", action="store_true")
     commands.add_parser("status")
+    reconciliation = commands.add_parser('calendar-audit')
+    reconciliation.add_argument('--broker', default='Pepperstone-Demo')
+    reconciliation.add_argument('--from', dest='first', required=True)
+    reconciliation.add_argument('--through', required=True)
+    reconciliation.add_argument('--selection', type=Path)
+    reconciliation.add_argument('--evidence', type=Path, action='append', default=[])
+    reconciliation.add_argument('--apply', action='store_true')
     forecasts = commands.add_parser('fed-forecasts')
     forecasts.add_argument('action', choices=('read', 'save'))
     forecasts.add_argument('--input', type=Path)
@@ -52,6 +61,26 @@ def main():
         return
     if args.command in ("backup", "restore"):
         result = backup_directory(data_directory(), args.destination) if args.command == "backup" else restore_directory(args.folder, args.destination)
+        print(json.dumps(result, indent=2))
+        return
+    if args.command == 'calendar-audit':
+        records = [row for path in args.evidence for row in read_evidence(path)]
+        selected = read_selection(args.selection) if args.selection else {series_key(row['series']) for row in records}
+        if not selected and not records:
+            parser.error('calendar-audit requires --selection or --evidence')
+        store = CalendarStore(data_directory() / 'calendar.sqlite3', readonly=True)
+        try:
+            result = audit(store, args.broker, args.first, args.through, selected, records)
+        finally:
+            store.close()
+        if args.apply:
+            matches = result['comparisons']
+            if not records or len(matches) != len(records) or any(item['status'] == 'verify_time_or_unit' for item in matches):
+                parser.error('Apply requires evidence within the date range and resolved time or unit mismatches')
+            pending = {(*item['series'], item['release_at']) for item in matches if item['status'] != 'matched'}
+            verified_changes = [row for row in records if (*series_key(row['series']), as_millis(row['released_at'])) in pending]
+            with data_lock(DIRECTORY):
+                result['changed'] = bool(verified_changes) and import_evidence(verified_changes)
         print(json.dumps(result, indent=2))
         return
     if args.command == "status":

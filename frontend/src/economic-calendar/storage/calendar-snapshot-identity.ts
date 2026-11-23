@@ -6,7 +6,8 @@ export function sameCalendarRows(a: readonly EconomicCalendarEvent[], b: readonl
   if (a.length !== b.length) return false
   for (let i = 0; i < a.length; i++) {
     const keys = Object.keys(a[i]) as (keyof EconomicCalendarEvent)[]
-    if (keys.length !== Object.keys(b[i]).length || keys.some((key) => !Object.hasOwn(b[i],key) || a[i][key] !== b[i][key])) return false
+    if (keys.length !== Object.keys(b[i]).length || keys.some(key => !Object.hasOwn(b[i], key) ||
+      (key === 'calendar_sources' ? JSON.stringify(a[i][key]) !== JSON.stringify(b[i][key]) : a[i][key] !== b[i][key]))) return false
   }
   return true
 }

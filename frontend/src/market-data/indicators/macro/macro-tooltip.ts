@@ -1,8 +1,7 @@
 import { macroCatalog } from './macro-catalog'
-import { macroActualDelta, macroValue, type MacroMissing, type MacroReading } from './macro-data'
+import { macroActualDelta, macroValue, type MacroPendingDetails, type MacroReading } from './macro-data'
 
-function formatDelta(key: string, reading: MacroReading) {
-  const delta = macroActualDelta(reading)
+function formatDelta(key: string, reading: MacroReading, delta: number | null) {
   if (delta === null) return '—'
   const absolute = macroValue(key, Math.abs(delta), reading)
   const value = absolute.endsWith('%') ? absolute.replace(/%$/, ' pp') : absolute
@@ -23,9 +22,9 @@ export function createMacroTooltip(container: HTMLElement) {
     show(key: string, reading: MacroReading, forecast: number | null | undefined, format: (time: number) => string, showDelta = false) {
       element.replaceChildren()
       const definition = macroCatalog[key], title = document.createElement('strong')
-      const stage = euroInflation.has(definition.eventId)
+      const stage = reading.stage ?? (euroInflation.has(definition.eventId)
         ? ({ 1: 'Flash', 3: 'Final' } as Record<number, string>)[reading.revision ?? 0]
-        : undefined
+        : undefined)
       title.textContent = stage ? `${definition.controlLabel} · ${stage}` : definition.controlLabel
       const table = document.createElement('table'), head = document.createElement('tr'), values = document.createElement('tr')
       for (const [field, value] of [['Actual', reading.value], ['Forecast', forecast], ['Previous', reading.previous]] as const) {
@@ -38,26 +37,32 @@ export function createMacroTooltip(container: HTMLElement) {
       if (showDelta) {
         const deltaHeader = document.createElement('th'), deltaValue = document.createElement('td')
         deltaHeader.scope = 'col'; deltaHeader.textContent = 'A-P Delta'
-        deltaValue.dataset.macroTooltipField = 'delta'; deltaValue.textContent = formatDelta(key, reading)
+        deltaValue.dataset.macroTooltipField = 'delta'; deltaValue.textContent = formatDelta(key, reading, macroActualDelta(reading))
         head.append(deltaHeader); values.append(deltaValue)
       }
       const thead = document.createElement('thead'), tbody = document.createElement('tbody'); thead.append(head); tbody.append(values); table.append(thead, tbody)
       const time = document.createElement('time'); time.dateTime = new Date(reading.releasedAt).toISOString(); time.textContent = format(reading.releasedAt)
       element.append(title, table, time); element.hidden = false
-      if (reading.actualSource) {
+      if (reading.actualSource || reading.actualEvidence) {
         const source = document.createElement('small')
-        source.textContent = 'Actual from official release'
-        source.title = reading.actualSource
+        source.textContent = reading.actualEvidence ? `Actual · ${reading.actualEvidence.name}` : 'Actual from official release'
+        source.title = reading.actualEvidence?.url ?? reading.actualSource ?? ''
         element.append(source)
       }
+      const forecastDetails = document.createElement('small')
+      const surprise = forecast != null && Number.isFinite(forecast) ? reading.value - forecast : null
+      forecastDetails.textContent = `${surprise === null ? '' : `Forecast · ${reading.forecastSource?.name ?? 'MT5'} · `}Surprise · ${formatDelta(key, reading, surprise)}`
+      forecastDetails.title = reading.forecastSource?.url ?? ''
+      element.append(forecastDetails)
     },
-    showScheduled(items: { key: string; forecast?: number; releasedAt: number; missing?: MacroMissing; format?: Pick<MacroReading, 'unit' | 'multiplier' | 'digits'> }[], format: (time: number) => string) {
+    showScheduled(items: MacroPendingDetails[], format: (time: number) => string) {
       element.replaceChildren()
       for (const item of items) {
         const title = document.createElement('strong'), forecast = document.createElement('p'), time = document.createElement('time')
         title.textContent = macroCatalog[item.key].controlLabel
-        forecast.textContent = item.missing ? 'Actual unavailable'
-          : `Forecast: ${item.forecast === undefined ? '—' : macroValue(item.key, item.forecast, item.format)}`
+        forecast.textContent = `${item.missing ? 'Actual unavailable · ' : ''}Forecast: ${item.forecast === undefined ? '—' : macroValue(item.key, item.forecast, item.format)}`
+          + (item.forecast === undefined ? '' : ` · ${item.forecastSource?.name ?? 'MT5'}`)
+        forecast.title = item.forecastSource?.url ?? ''
         time.dateTime = new Date(item.releasedAt).toISOString()
         time.textContent = (item.missing?.lastKnown ? 'Last known schedule · ' : '')
           + (item.missing?.dateOnly ? `${time.dateTime.slice(0, 10)} · Date only` : format(item.releasedAt))

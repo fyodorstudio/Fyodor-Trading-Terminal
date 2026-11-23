@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "event_id": "392030007",
+  "currency": "JPY",
+  "country": "JP",
+  "releases": [
+    {
+      "value_id": "285739",
+      "source_url": "https://www.jil.go.jp/english/estatis/esaikin/2026/e202609.html",
+      "set": {
+        "actual": 2.5
+      }
+    },
+    {
+      "value_id": "285740",
+      "source_url": "https://www.stat.go.jp/data/roudou/sokuhou/tsuki/pdf/gaiyou.pdf",
+      "set": {
+        "actual": 2.4
+      }
+    }
+  ]
+}

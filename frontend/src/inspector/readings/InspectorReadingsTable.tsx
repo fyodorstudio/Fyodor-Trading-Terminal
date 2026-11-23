@@ -38,6 +38,7 @@ export function InspectorReadingsTable({ release, timeDisplay, sharedPeriod, foc
         const commentary = isInspectorCommentary(event), prior = suppliedPriorLabels(event)
         return <tr key={event.value_id} data-series-id={event.event_id} data-value-id={event.value_id} data-ledger-focused={event.value_id === focusedValueId || undefined}>
           <th scope="row"><strong>{event.name || `MT5 event ${event.event_id}`}</strong>
+            {event.release_stage && <span> · {event.release_stage}</span>}
             {event.revision > 0 && <span className="inspector-revision"> · Revision {event.revision}</span>}
             {sharedPeriod === null && event.period_seconds > 0 && <small>Period: {
               formatAppTimestamp(event.period_seconds * 1000, { mode: 'utc', utcOffsetMinutes: 0 }, 'date')}</small>}</th>

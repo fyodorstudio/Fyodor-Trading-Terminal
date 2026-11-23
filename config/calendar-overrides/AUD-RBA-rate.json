@@ -14,7 +14,8 @@
         "actual": 4.85,
         "forecast": 4.85,
         "previous": 4.6
-      }
+      },
+      "source_url": "https://www.rba.gov.au/media-releases/2026/mr-26-30.html"
     },
     {
       "value_id": "258538",
@@ -1114,5 +1115,9 @@
         "previous": 2.5
       }
     }
-  ]
+  ],
+  "forecast_source": {
+    "name": "Investing.com (user-supplied history)",
+    "url": "https://www.investing.com/economic-calendar/interest-rate-decision-171"
+  }
 }

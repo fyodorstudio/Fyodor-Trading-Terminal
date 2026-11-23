@@ -3,8 +3,10 @@ from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
+from unittest.mock import patch
 
 from storage.alert_calendar import day_snapshot
+from storage.calendar_evidence import CalendarEvidence
 from storage.calendar_overrides import CalendarOverrides, DIRECTORY
 from storage.calendar_store import CalendarStore
 from storage.currency_ledger import ledger_snapshot
@@ -18,6 +20,7 @@ def ms(instant):
 
 class CalendarOverrideTests(TestCase):
     def setUp(self):
+        self.enterContext(patch.object(CalendarEvidence, 'load', return_value=CalendarEvidence([])))
         self.temp = TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.path = Path(self.temp.name) / 'calendar.sqlite3'

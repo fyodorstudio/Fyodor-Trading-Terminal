@@ -7,14 +7,21 @@ import type { OhlcBar } from '../../contracts/OhlcBar'
 import type { MacroMetric, MacroPreferences } from './macro-preferences'
 import type { FedForecasts } from './fed-forecast'
 import { isPublishedTentative } from '../../../inspector/releases/group-releases'
+import type { CalendarEvidenceSource, EconomicCalendarEvent } from '../../../economic-calendar/contracts/calendar-event'
+import { officialActualSource } from '../../../economic-calendar/presentation/calendar-evidence'
 
 export type MacroReading = { time: number; releasedAt: number; value: number; id: string; currency?: string; brokerValue?: number; unit?: number; multiplier?: number; digits?: number;
-  revision?: number; forecast?: number | null; previous?: number | null; impact?: string; actualSource?: string }
+  revision?: number; forecast?: number | null; previous?: number | null; impact?: string; actualSource?: string;
+  forecastSource?: CalendarEvidenceSource; actualEvidence?: CalendarEvidenceSource; stage?: EconomicCalendarEvent['release_stage'] }
 export type MacroHistory = Record<MacroMetric, MacroReading[]>
 export type MacroScheduled = { time: number; releasedAt: number; metrics: MacroMetric[]; forecasts?: Partial<Record<MacroMetric, number>>;
+  forecastSources?: Partial<Record<MacroMetric, CalendarEvidenceSource>>;
   formats?: Partial<Record<MacroMetric, Pick<MacroReading, 'unit' | 'multiplier' | 'digits'>>> }
 export type MacroTextEvent = { id: string; time: number; at: number | null; title: string; details: string; wildcardId?: string }
-export type MacroMissing = { key: string; time: number; releasedAt: number; dateOnly: boolean; lastKnown: boolean }
+export type MacroMissing = { key: string; time: number; releasedAt: number; dateOnly: boolean; lastKnown: boolean;
+  forecast?: number; forecastSource?: CalendarEvidenceSource; format?: Pick<MacroReading, 'unit' | 'multiplier' | 'digits'> }
+export type MacroPendingDetails = { key: string; forecast?: number; forecastSource?: CalendarEvidenceSource; releasedAt: number;
+  missing?: MacroMissing; format?: Pick<MacroReading, 'unit' | 'multiplier' | 'digits'> }
 export type MacroIndicator = { enabled: boolean; history: MacroHistory; forecastHistory?: MacroHistory; upcoming: MacroScheduled[]; missing?: MacroMissing[]; status: string; preferences: MacroPreferences; forecasts?: FedForecasts; sourceId?: string | null; events?: MacroTextEvent[]; eventStatus?: string }
 export function supportsMacro(symbol: string) { return !!symbol.trim() }
 export function macroValue(metric: MacroMetric, value: number, reading?: Pick<MacroReading, 'unit' | 'multiplier' | 'digits'>) {
@@ -76,9 +83,15 @@ export function macroHistory(events: StoredCalendarEvent[], now: number, field: 
         readings.set(event.chart_time_seconds, event)
     }
     history[key] = [...readings.values()].filter(event => event[field] !== null && Number.isFinite(event[field]))
-      .map(event => ({ time: event.chart_time_seconds!, releasedAt: event.release_at!, value: event[field]!, id: event.value_id, currency: event.currency, unit: event.unit, multiplier: event.multiplier, digits: event.digits,
-        revision: event.revision, forecast: Number.isFinite(event.forecast) ? event.forecast : null, previous: Number.isFinite(event.previous) ? event.previous : null, impact: event.impact,
-        ...(event.actual_override_source ? { actualSource: event.actual_override_source } : {}) }))
+      .map(event => {
+        const actualEvidence = officialActualSource(event), forecastSource = event.calendar_sources?.forecast
+        return { time: event.chart_time_seconds!, releasedAt: event.release_at!, value: event[field]!, id: event.value_id, currency: event.currency, unit: event.unit, multiplier: event.multiplier, digits: event.digits,
+          revision: event.revision, forecast: Number.isFinite(event.forecast) ? event.forecast : null, previous: Number.isFinite(event.previous) ? event.previous : null,
+          impact: actualEvidence || forecastSource ? 'none' : event.impact,
+          ...(event.actual_override_source ? { actualSource: event.actual_override_source } : {}),
+          ...(actualEvidence ? { actualEvidence } : {}), ...(forecastSource ? { forecastSource } : {}),
+          ...(event.release_stage ? { stage: event.release_stage } : {}) }
+      })
       .sort((a, b) => a.time - b.time)
   }
   return history
@@ -98,7 +111,11 @@ export function macroMissing(events: StoredCalendarEvent[], now: number, keys: r
       const releasedAt = dateOnly ? (time ?? 0) * 1000 : event.release_at
       if (event.chart_clock_profile === null || time === null || !Number.isFinite(time) || time <= 0
         || releasedAt === null || !Number.isFinite(releasedAt) || releasedAt > now || actualTimes.has(time)) continue
-      missing.set(time, { key, time, releasedAt, dateOnly, lastKnown: event.availability !== 'observed' })
+      const forecast = event.calendar_sources?.forecast && event.forecast != null ? {
+        forecast: event.forecast, forecastSource: event.calendar_sources.forecast,
+        format: { unit: event.unit, multiplier: event.multiplier, digits: event.digits },
+      } : {}
+      missing.set(time, { key, time, releasedAt, dateOnly, lastKnown: event.availability !== 'observed', ...forecast })
     }
     return [...missing.values()]
   })
@@ -123,14 +140,16 @@ export function macroUpcoming(events: StoredCalendarEvent[], now: number, keys: 
     for (const event of readings.values()) {
       const existing = packages.get(event.release_at!)
       const forecast = event.forecast !== null && Number.isFinite(event.forecast) ? { [key]: event.forecast } : {}
+      const forecastSource = event.calendar_sources?.forecast ? { [key]: event.calendar_sources.forecast } : {}
       const format = { [key]: { unit: event.unit, multiplier: event.multiplier, digits: event.digits } }
       if (existing) {
         if (existing.time === event.chart_time_seconds) {
           existing.metrics.push(key)
           Object.assign(existing.forecasts!, forecast)
+          Object.assign(existing.forecastSources!, forecastSource)
           Object.assign(existing.formats!, format)
         }
-      } else packages.set(event.release_at!, { time: event.chart_time_seconds!, releasedAt: event.release_at!, metrics: [key], forecasts: forecast, formats: format })
+      } else packages.set(event.release_at!, { time: event.chart_time_seconds!, releasedAt: event.release_at!, metrics: [key], forecasts: forecast, forecastSources: forecastSource, formats: format })
     }
   }
   return [...packages.values()].sort((a, b) => a.releasedAt - b.releasedAt)

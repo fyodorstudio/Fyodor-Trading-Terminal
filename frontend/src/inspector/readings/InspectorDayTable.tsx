@@ -34,6 +34,7 @@ export function InspectorDayTable({ release, timeDisplay }: {
           const delta = inspectorDelta(event)
           return <tr key={event.value_id} data-series-id={event.event_id}>
             <th scope="row"><strong>{event.name || `MT5 event ${event.event_id}`}</strong>
+              {event.release_stage && <span> · {event.release_stage}</span>}
               {event.revision > 0 && <span className="inspector-revision"> · Revision {event.revision}</span>}
               {!sharedPeriod && event.period_seconds > 0 && <small>Period: {periodLabel(event.period_seconds)}</small>}</th>
             {showCountry && <td title={event.country_name}>{event.country_code}</td>}

@@ -68,6 +68,11 @@ value ID, with numeric replacements or a timezone-qualified `released_at`.
 Omitted fields keep their values; `null` clears a number. Restart storage after
 editing corrections.
 
+The [calendar audit workflow](../config/calendar-overrides/README.md) compares
+publisher evidence with MT5. Verified releases under `config/calendar-overrides/publisher/`
+join the existing calendar read model and can appear in Inspector, MFDI and Alert
+before a matching MT5 row exists.
+
 Ledger and Detail share the selected chart time. Detail can follow the cursor
 or stay pinned to a clicked candle.
 

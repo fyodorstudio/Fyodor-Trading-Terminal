@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Callable
 
 from ..calendar_overrides import calendar_overrides
+from ..calendar_evidence import CalendarEvidence
 
 
 class StoreSchema:
@@ -21,11 +22,14 @@ class StoreSchema:
                                   uri=readonly, check_same_thread=False, timeout=10)
         self.db.row_factory = sqlite3.Row
         self.overrides = calendar_overrides()
+        self.evidence = CalendarEvidence.load()
+        self.calendar_revision = f'{self.overrides.revision}-{self.evidence.revision}'
         if readonly:
             if self.db.execute("PRAGMA user_version").fetchone()[0] != 2:
                 self.db.close()
                 raise ValueError("Status needs storage schema 2; start storage to migrate supported older data")
             self.overrides.install(self.db)
+            self.evidence.install(self.db)
             self.db.commit()
             self.db.execute("BEGIN")  # All status queries use one read-only snapshot.
             return
@@ -106,6 +110,7 @@ class StoreSchema:
         self.db.execute("PRAGMA user_version=2")
         self.db.commit()
         self.overrides.install(self.db)
+        self.evidence.install(self.db)
         self.db.commit()
 
     def close(self):

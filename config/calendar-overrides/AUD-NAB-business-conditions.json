@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "event_id": "36040002",
+  "currency": "AUD",
+  "country": "AU",
+  "source_url": "https://www.nab.com.au/news/economy-markets/triple-squeeze-hits-business-confidence---nab-monthly-business-s",
+  "releases": [
+    {
+      "value_id": "325173",
+      "set": {
+        "actual": -1
+      }
+    }
+  ]
+}

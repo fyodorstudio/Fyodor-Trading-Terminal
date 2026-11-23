@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "event_id": "756020007",
+  "currency": "CHF",
+  "country": "CH",
+  "source_url": "https://statistik.admin.ch/en/asset/36970308",
+  "releases": [
+    {
+      "value_id": "322349",
+      "set": {
+        "actual": 1.6
+      }
+    }
+  ]
+}

@@ -1,3 +1,5 @@
+export type CalendarEvidenceSource = { name: string; url: string; as_of?: string }
+
 export type EconomicCalendarEvent = {
   value_id: string
   event_id: string
@@ -15,9 +17,12 @@ export type EconomicCalendarEvent = {
   multiplier: number
   digits: number
   time_mode: number
+  timing_basis?: string
   impact: 'none' | 'positive' | 'negative'
   actual: number | null
   actual_override_source?: string
+  calendar_sources?: Partial<Record<'schedule' | 'actual' | 'forecast' | 'previous', CalendarEvidenceSource>>
+  release_stage?: 'Flash' | 'Preliminary' | 'Final'
   availability?: 'observed' | 'not-returned-by-latest-query'
   forecast: number | null
   previous: number | null

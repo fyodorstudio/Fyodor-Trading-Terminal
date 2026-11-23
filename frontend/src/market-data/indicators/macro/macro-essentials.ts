@@ -52,7 +52,7 @@ export const macroEssentials = Object.fromEntries(Object.entries(originalEssenti
 ]))
 
 export const macroEssentialGaps: Record<string, string> = {
-  AUD: 'Monthly headline CPI, monthly trimmed-mean CPI and Household Spending are unavailable in the stored MT5 catalog. Quarterly CPI and Services PMI are available.',
+  AUD: 'Monthly headline and trimmed-mean CPI are available from publisher evidence. Household Spending is unavailable in the stored calendar.',
   CAD: 'Average hourly wage growth is unavailable in the stored MT5 catalog.',
   CHF: 'The SNB conditional inflation forecast is unavailable in the stored MT5 catalog.',
   EUR: 'Euro-area services HICP is unavailable in the stored MT5 catalog.',

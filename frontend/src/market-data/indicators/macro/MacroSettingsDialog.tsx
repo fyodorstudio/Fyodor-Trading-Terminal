@@ -1,7 +1,19 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { MacroPreferences, MacroStyle } from './macro-preferences'
 import { resetMacroAppearance } from './macro-workspace'
+import { macroCatalog } from './macro-catalog'
 import './macro-settings.css'
+
+function exportSeries(preferences: MacroPreferences) {
+  const series = Object.values(preferences.eventsByCurrency ?? {}).flat().map(key => macroCatalog[key]).filter(Boolean)
+    .map(item => ({ event_id: item.eventId, currency: item.currency, country: item.country, label: item.controlLabel }))
+  const url = URL.createObjectURL(new Blob([JSON.stringify({ schema: 1, series }, null, 2)], { type: 'application/json' }))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'mfdi-series.json'
+  link.click()
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
 
 export function MacroSettingsDialog({ preferences, onSave, onClose }: {
   preferences: MacroPreferences; onSave: (next: MacroPreferences) => void; onClose: () => void
@@ -42,7 +54,8 @@ export function MacroSettingsDialog({ preferences, onSave, onClose }: {
           <option value="mixed" disabled>Mixed</option>{[1, 2, 3, 4].map(width => <option key={width} value={width}>{width}</option>)}
         </select></label>
       </div>
-      <footer><button type="button" onClick={() => setDraft(resetMacroAppearance)}>Reset appearance · all currencies</button>
+      <footer><button type="button" onClick={() => exportSeries(preferences)}>Export selected series</button>
+        <button type="button" onClick={() => setDraft(resetMacroAppearance)}>Reset appearance · all currencies</button>
         <button type="button" onClick={onClose}>Cancel</button><button type="submit">OK</button></footer>
     </form>
   </div>

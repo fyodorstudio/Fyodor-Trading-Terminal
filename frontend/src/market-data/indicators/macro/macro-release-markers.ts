@@ -1,9 +1,7 @@
 import { selectedMacroMetrics } from './macro-preferences'
-import type { MacroIndicator, MacroMissing, MacroReading } from './macro-data'
+import type { MacroIndicator, MacroPendingDetails, MacroReading } from './macro-data'
 
-type ReleaseMarker = { key: string; time: number; releasedAt: number; forecast?: number; actual?: MacroReading;
-  missing?: MacroMissing;
-  format?: Pick<MacroReading, 'unit' | 'multiplier' | 'digits'> }
+type ReleaseMarker = MacroPendingDetails & { time: number; actual?: MacroReading }
 const identity = (key: string, releasedAt: number) => `${key}:${releasedAt}`
 
 export function createMacroReleaseMarkers() {
@@ -21,7 +19,8 @@ export function createMacroReleaseMarkers() {
         if (scheduled.releasedAt <= now && !markers.has(id)) continue
         const value = scheduled.forecasts?.[key]
         incoming.add(id)
-        markers.set(id, { key, time: scheduled.time, releasedAt: scheduled.releasedAt, forecast: Number.isFinite(value) ? value : undefined, format: scheduled.formats?.[key] })
+        markers.set(id, { key, time: scheduled.time, releasedAt: scheduled.releasedAt, forecast: Number.isFinite(value) ? value : undefined,
+          forecastSource: scheduled.forecastSources?.[key], format: scheduled.formats?.[key] })
       }
       for (const missing of indicator.missing ?? []) {
         if (!selected.has(missing.key)) continue

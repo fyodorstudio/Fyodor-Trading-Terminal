@@ -1,0 +1,326 @@
+{
+  "schema": 1,
+  "releases": [
+    {
+      "series": {
+        "event_id": "36040002",
+        "country": "AU",
+        "currency": "AUD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 0
+      },
+      "released_at": "2026-11-10T00:30:00Z",
+      "period": "2026-10-01",
+      "importance": "medium",
+      "schedule": {
+        "name": "Perpetual",
+        "url": "https://marketespresso.perpetual.com.au/2026/11/10/"
+      },
+      "actual": {
+        "name": "NAB",
+        "url": "https://www.nab.com.au/news/economy-markets/nab-monthly-business-survey--order-books-thin-as-business-sentim",
+        "value": -2
+      },
+      "previous": {
+        "name": "NAB",
+        "url": "https://www.nab.com.au/news/economy-markets/nab-monthly-business-survey--order-books-thin-as-business-sentim",
+        "value": -1
+      }
+    },
+    {
+      "series": {
+        "event_id": "36500001",
+        "country": "AU",
+        "currency": "AUD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-11-22T22:00:00Z",
+      "period": "2026-11-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates"
+      },
+      "stage": "Flash"
+    },
+    {
+      "series": {
+        "event_id": "36500002",
+        "country": "AU",
+        "currency": "AUD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-11-22T22:00:00Z",
+      "period": "2026-11-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates"
+      },
+      "stage": "Flash"
+    },
+    {
+      "series": {
+        "event_id": "36500003",
+        "country": "AU",
+        "currency": "AUD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-11-22T22:00:00Z",
+      "period": "2026-11-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates"
+      },
+      "stage": "Flash"
+    },
+    {
+      "series": {
+        "event_id": "840500001",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-11-02T14:45:00Z",
+      "period": "2026-10-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates"
+      },
+      "stage": "Final",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.spglobal.com/market-intelligence/en/news-insights/research/2026/11/us-manufacturing-pmi-holds-close-to-highest-since-2022-as-price-pressures-build",
+        "value": 54.9
+      },
+      "forecast": {
+        "name": "TD Economics",
+        "url": "https://economics.td.com/domains/economics.td.com/documents/reports/bottom-line/USBottomLine_20261030.pdf",
+        "as_of": "2026-10-30",
+        "value": 56.0
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500001",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-11-23T14:45:00Z",
+      "period": "2026-11-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates"
+      },
+      "stage": "Flash",
+      "forecast": {
+        "name": "Forex Factory",
+        "url": "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
+        "as_of": "2026-11-23T13:31:34Z",
+        "value": 54.5
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500002",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-11-23T14:45:00Z",
+      "period": "2026-11-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates"
+      },
+      "stage": "Flash",
+      "forecast": {
+        "name": "Forex Factory",
+        "url": "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
+        "as_of": "2026-11-23T13:31:34Z",
+        "value": 55.6
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500003",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "period": "2026-10-01",
+      "released_at": "2026-10-23T13:45:00Z",
+      "stage": "Flash",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates"
+      },
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.spglobal.com/market-intelligence/en/news-insights/research/2026/10/us-flash-pmi-signals-sustained-strong-growth-but-also-further-inflation-uplift-in-october",
+        "value": 57.6
+      },
+      "importance": "medium"
+    },
+    {
+      "series": {
+        "event_id": "840500003",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-11-23T14:45:00Z",
+      "period": "2026-11-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates"
+      },
+      "stage": "Flash"
+    },
+    {
+      "series": {
+        "event_id": "99360001",
+        "country": "AU",
+        "currency": "AUD",
+        "unit": 1,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-10-28T00:30:00Z",
+      "period": "2026-09-01",
+      "schedule": {
+        "name": "Australian Bureau of Statistics",
+        "url": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/sep-2026"
+      },
+      "actual": {
+        "name": "Australian Bureau of Statistics",
+        "url": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/sep-2026",
+        "value": 0.8
+      }
+    },
+    {
+      "series": {
+        "event_id": "99360001",
+        "country": "AU",
+        "currency": "AUD",
+        "unit": 1,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-11-25T00:30:00Z",
+      "period": "2026-10-01",
+      "schedule": {
+        "name": "Australian Bureau of Statistics",
+        "url": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia"
+      },
+      "forecast": {
+        "name": "Forex Factory",
+        "url": "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
+        "as_of": "2026-11-23T13:31:34Z",
+        "value": 0.4
+      }
+    },
+    {
+      "series": {
+        "event_id": "99360002",
+        "country": "AU",
+        "currency": "AUD",
+        "unit": 1,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-10-28T00:30:00Z",
+      "period": "2026-09-01",
+      "schedule": {
+        "name": "Australian Bureau of Statistics",
+        "url": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/sep-2026"
+      },
+      "actual": {
+        "name": "Australian Bureau of Statistics",
+        "url": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/sep-2026",
+        "value": 4.3
+      }
+    },
+    {
+      "series": {
+        "event_id": "99360002",
+        "country": "AU",
+        "currency": "AUD",
+        "unit": 1,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-11-25T00:30:00Z",
+      "period": "2026-10-01",
+      "schedule": {
+        "name": "Australian Bureau of Statistics",
+        "url": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia"
+      },
+      "forecast": {
+        "name": "Forex Factory",
+        "url": "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
+        "as_of": "2026-11-23T13:31:34Z",
+        "value": 4.8
+      }
+    },
+    {
+      "series": {
+        "event_id": "99360003",
+        "country": "AU",
+        "currency": "AUD",
+        "unit": 1,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-10-28T00:30:00Z",
+      "period": "2026-09-01",
+      "schedule": {
+        "name": "Australian Bureau of Statistics",
+        "url": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/sep-2026"
+      },
+      "actual": {
+        "name": "Australian Bureau of Statistics",
+        "url": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/sep-2026",
+        "value": 0.3
+      }
+    },
+    {
+      "series": {
+        "event_id": "99360003",
+        "country": "AU",
+        "currency": "AUD",
+        "unit": 1,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-11-25T00:30:00Z",
+      "period": "2026-10-01",
+      "schedule": {
+        "name": "Australian Bureau of Statistics",
+        "url": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia"
+      },
+      "forecast": {
+        "name": "Forex Factory",
+        "url": "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
+        "as_of": "2026-11-23T13:31:34Z",
+        "value": 0.3
+      }
+    }
+  ]
+}

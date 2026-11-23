@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "event_id": "826010019",
+  "currency": "GBP",
+  "country": "GB",
+  "releases": [
+    {
+      "value_id": "324437",
+      "source_url": "https://www.ons.gov.uk/businessindustryandtrade/retailindustry/bulletins/retailsales/september2026",
+      "set": {
+        "actual": -0.4
+      }
+    }
+  ]
+}

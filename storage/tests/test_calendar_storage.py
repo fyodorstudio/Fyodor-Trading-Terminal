@@ -513,7 +513,8 @@ try {
         ids = model['ids']
         self.assertGreater(len(ids), 64, 'Reproduce the former pair-only cap')
         self.assertGreater(len(','.join(ids)), 1343, 'Reproduce the former length cap')
-        self.assertEqual(len(ids), 1051)
+        self.assertEqual(len(ids), 1054)
+        self.assertTrue({'99360001', '99360002', '99360003'} <= set(ids))
         self.assertEqual(self.request('/publisher', context(publisher_version='2.0.4').model_dump())[0], 200)
         path = f"/calendar?source_id=Broker-Demo&from_server_seconds={HISTORY_START}&to_server_seconds={NOW}&time_basis=chart"
         status, page = self.request(path + '&currencies=' + ','.join(model['currencies']))

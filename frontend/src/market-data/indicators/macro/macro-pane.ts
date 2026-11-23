@@ -1,6 +1,6 @@
 import { LineSeries, LineType, type Coordinate, type IChartApi, type ISeriesApi, type IPrimitivePaneRenderer, type IPanePrimitive, type Logical, type MouseEventParams, type Time } from 'lightweight-charts'
 import type { OhlcBar } from '../../contracts/OhlcBar'
-import { macroDeltaColor, macroNumberLabels, macroPlot, macroValue, type MacroIndicator, type MacroMissing, type MacroReading } from './macro-data'
+import { macroDeltaColor, macroNumberLabels, macroPlot, macroValue, type MacroIndicator, type MacroPendingDetails, type MacroReading } from './macro-data'
 import { macroCatalog } from './macro-catalog'
 import { claimChartClick } from '../../candlestick-chart/chart-click-selection'
 import { futureTimelineSeconds } from '../../candlestick-chart/future-timeline'
@@ -36,7 +36,7 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
   let markerSnapshot: { history: MacroIndicator['history']; upcoming: MacroIndicator['upcoming']; missing: MacroIndicator['missing']; keys: string } | undefined
   let markerBars: OhlcBar[] = []
   let markerHits: { key: string; reading: MacroReading; time: Time; x: number; y: number; rx: number; ry: number }[] = []
-  type PendingHit = { key: string; releasedAt: number; forecast?: number; format?: Pick<MacroReading, 'unit' | 'multiplier' | 'digits'>; missing?: MacroMissing; x: number; y: number; rx: number; ry: number }
+  type PendingHit = MacroPendingDetails & { x: number; y: number; rx: number; ry: number }
   let pendingHits: PendingHit[] = [], pendingHover: PendingHit | undefined
   const colourDrafts = new Map<string, string>(), colourPreviews = new Map<string, string>()
   let colourTimer: number | null = null
@@ -260,6 +260,11 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
   chart.chartElement().addEventListener('wheel', laneWheel, { capture: true, passive: false })
   const plotY = (key: string, value: number) => laneMode ? laneControls.y(key) : series[key]?.priceToCoordinate(value) ?? null
   let outlineColor = '#888888', markerBackground = '#ffffff'
+  const fedForecast = (reading: MacroReading) => {
+    if (reading.forecastSource && reading.forecast != null) return { value: reading.forecast, source: reading.forecastSource }
+    const saved = indicator?.forecasts?.meetings.get(reading.releasedAt)?.consensus.find(row => row.provider === 'investing')
+    return saved ? { value: saved.value, source: { name: 'Investing.com', url: saved.url } } : undefined
+  }
   const updateForecast = () => {
     if (pendingHover) {
       releaseTooltip.showScheduled(pendingHits.filter(hit => Math.abs(hit.x - pendingHover!.x) <= hit.rx + pendingHover!.rx && Math.abs(hit.y - pendingHover!.y) <= hit.ry + pendingHover!.ry), formatRelease)
@@ -267,9 +272,9 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
     }
     if (!releaseHover || !indicator) { releaseTooltip.hide(); return }
     const { key, reading } = releaseHover
-    const meeting = key === 'rate' ? indicator.forecasts?.meetings.get(reading.releasedAt) : undefined
-    const forecast = meeting ? meeting.consensus.find(row => row.provider === 'investing')?.value : reading.forecast
-    releaseTooltip.show(key, reading, forecast, formatRelease, indicator.preferences.colorMode === 'ap-delta')
+    const primary = key === 'rate' ? fedForecast(reading) : undefined
+    releaseTooltip.show(key, primary ? { ...reading, forecastSource: primary.source } : reading,
+      primary?.value ?? reading.forecast, formatRelease, indicator.preferences.colorMode === 'ap-delta')
   }
   type Bounds = { from: number; to: number }
   const bounds = new Map<MacroAxis, Bounds>()
@@ -702,7 +707,7 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
               || y > mediaSize.height || x < 0 || x > mediaSize.width) continue
             context.save(); context.strokeStyle = '#6b7280'; context.lineWidth = 2
             context.beginPath(); context.arc(x, y, 4, 0, Math.PI * 2); context.stroke(); context.restore()
-            pendingHits.push({ key, releasedAt: marker.releasedAt, missing, x, y, rx: 7, ry: 7 })
+            pendingHits.push({ ...missing, missing, x, y, rx: 7, ry: 7 })
             continue
           }
           const y = value === undefined ? laneMode ? plotY(key, 0) : null : plotY(key, value), { x, time } = coordinate
@@ -716,7 +721,7 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
           }
           if (!style.pointsVisible || x < 0 || x > mediaSize.width || y < (laneMode ? laneControls.contentTop : 0) || y > mediaSize.height) continue
           const text = value === undefined ? '—' : macroValue(key, value, actual ?? marker.format)
-          const pending = { key, releasedAt: marker.releasedAt, forecast: marker.forecast, format: marker.format, x, y, rx: 7, ry: 7 }
+          const pending = { key, releasedAt: marker.releasedAt, forecast: marker.forecast, forecastSource: marker.forecastSource, format: marker.format, x, y, rx: 7, ry: 7 }
           if (indicator!.preferences.numberPlacement === 'dots' || !style.numbersVisible) {
             if (!actual) pendingHits.push(pending)
             context.save(); context.fillStyle = color; context.strokeStyle = color; context.beginPath(); context.arc(x, y, 4, 0, Math.PI * 2); if (actual) context.fill(); else context.stroke(); context.restore(); continue
@@ -763,7 +768,7 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
       context.save(); context.strokeStyle = outlineColor; context.lineWidth = 1.5; context.setLineDash([])
       for (const point of plots.rate?.dots ?? []) {
         const reading = plots.rate!.readings.get(point.time)!
-        const primary = indicator!.forecasts?.meetings.get(reading.releasedAt)?.consensus.find(row => row.provider === 'investing')
+        const primary = fedForecast(reading)
         if (!primary || fedSurprise(reading.value, primary.value).bp <= 0) continue
         const x = chart.timeScale().timeToCoordinate(point.time), y = plotY('rate', point.value)
         if (x === null || y === null || x < 0 || x > mediaSize.width || y < (laneMode ? laneControls.contentTop : 0) || y > mediaSize.height) continue
@@ -774,7 +779,7 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
         if (x === null || y === null || x < 0 || x > mediaSize.width || y < (laneMode ? laneControls.contentTop : 0) || y > mediaSize.height) {
           releaseTooltip.hide()
         } else {
-          const primary = indicator!.forecasts?.meetings.get(forecastHover.reading.releasedAt)?.consensus.find(row => row.provider === 'investing')
+          const primary = fedForecast(forecastHover.reading)
           const fy = primary ? plotY('rate', primary.value) : null
           if (fy !== null) {
             context.strokeStyle = colourFor('rate'); context.lineWidth = 1; context.setLineDash([3, 3])

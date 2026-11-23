@@ -63,7 +63,10 @@ try {
     assert.equal(validAlertPreferences(readAlertPreferences()), true, 'Legacy stored horizons remain readable without restoring their UI')
     assert.equal(readAlertPreferences().days, days)
   }
-  assert.equal(alertSeriesIds(defaultAlertPreferences()).length, 1051)
+  const allSeries = alertSeriesIds(defaultAlertPreferences())
+  const monthlyAustralianCpi = ['99360001', '99360002', '99360003']
+  assert.equal(allSeries.length, 1051 + monthlyAustralianCpi.length)
+  assert.ok(monthlyAustralianCpi.every(id => allSeries.includes(id)), 'Publisher-only CPI series are included in the default calendar')
   const calendarEvent={key:'calendar:test',source:'calendar',broker:'Pepperstone-Demo',reference:'test',value_ids:events.map(e=>e.value_id),at,eligible:true}
   const index=indexAlarmEvents([calendarEvent])
   assert.deepEqual(groupAlarmEvents(index,groups[0],'Pepperstone-Demo'),[calendarEvent])

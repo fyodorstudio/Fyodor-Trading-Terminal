@@ -6,7 +6,7 @@ export const audCalendarFamilies = [
   { id: 'rba-speakers', label: 'RBA speeches', country: 'AU', currency: 'AUD', category: 'policy', symbol: 'snowflake',
     events: ['36030006', '36030007', '36030024', '36030031'] },
   { id: 'au-cpi', label: 'Australia CPI / underlying inflation', country: 'AU', currency: 'AUD', category: 'inflation', symbol: 'star',
-    events: ['36010014', '36010015', '36010018', '36030014', '36030015', '36030009', '36030010'] },
+    events: ['36010014', '36010015', '36010018', '36030014', '36030015', '36030009', '36030010', '99360001', '99360002', '99360003'] },
   { id: 'au-labor', label: 'Australia employment / unemployment', country: 'AU', currency: 'AUD', category: 'labor', symbol: 'cloud',
     events: ['36010003', '36010004', '36010005', '36010006'] },
   { id: 'au-wages', label: 'Australia Wage Price Index', country: 'AU', currency: 'AUD', category: 'labor', symbol: 'cloud',

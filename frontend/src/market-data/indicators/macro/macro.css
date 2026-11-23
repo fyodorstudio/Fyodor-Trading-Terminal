@@ -74,6 +74,7 @@
 .macro-release-tooltip th, .macro-release-tooltip td { padding: 5px 10px 5px 0; text-align: left; border-bottom: 1px solid var(--border); }
 .macro-release-tooltip th { font-weight: 500; color: var(--text-muted); font-size: 11px; }
 .macro-release-tooltip time { display: block; margin-top: 12px; font-size: 13px; }
+.macro-release-tooltip small { display: block; color: var(--text-muted); }
 .macro-tooltip-connector { position: absolute; left: 0; top: 0; z-index: 59; pointer-events: none; overflow: visible; }
 .macro-tooltip-connector path { stroke: var(--text-muted); stroke-width: 1; fill: none; }
 

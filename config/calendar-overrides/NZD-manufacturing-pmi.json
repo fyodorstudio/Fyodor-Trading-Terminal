@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "event_id": "554060001",
+  "currency": "NZD",
+  "country": "NZ",
+  "releases": [
+    {
+      "value_id": "313564",
+      "source_url": "https://www.bnz.co.nz/assets/markets/research/BNZ-BusinessNZ-PMI-Release_September-2026_ftjk.pdf?441e1c382e22b8ec9030cc23b9988a06b690e9c9=",
+      "set": {
+        "actual": 56.5
+      }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "event_id": "756060001",
+  "currency": "CHF",
+  "country": "CH",
+  "releases": [
+    {
+      "value_id": "313538",
+      "source_url": "https://www.procure.ch/magazin/artikel/pmi-september-2026-schweiz-weiterhin-deutlich-ueber-50",
+      "set": {
+        "actual": 55.3
+      }
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "event_id": "554020010",
+  "currency": "NZD",
+  "country": "NZ",
+  "source_url": "https://www.rbnz.govt.nz/-/media/project/sites/rbnz/files/statistics/series/m/m14/insights/2026/survey-of-expectations-november-2026.pdf",
+  "releases": [
+    {
+      "value_id": "315073",
+      "set": {
+        "actual": 2.36,
+        "previous": 2.34
+      }
+    }
+  ]
+}

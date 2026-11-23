@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "event_id": "392020006",
+  "currency": "JPY",
+  "country": "JP",
+  "releases": [
+    {
+      "value_id": "289149",
+      "source_url": "https://www.jil.go.jp/english/estatis/esaikin/2026/e202610.html",
+      "set": {
+        "actual": -2.4
+      }
+    },
+    {
+      "value_id": "289150",
+      "source_url": "https://www.jil.go.jp/english/estatis/esaikin/2026/e202610.html",
+      "set": {
+        "actual": 2.2
+      }
+    }
+  ]
+}

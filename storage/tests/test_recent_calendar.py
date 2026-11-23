@@ -4,9 +4,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
+from unittest.mock import patch
 from urllib.parse import urlencode
 
 from storage.app import create_app
+from storage.calendar_evidence import CalendarEvidence
 from storage.calendar_store import CalendarStore
 from storage.recent_calendar import recent_snapshot
 from test_calendar_storage import event
@@ -14,6 +16,7 @@ from test_calendar_storage import event
 
 class RecentCalendarTests(TestCase):
     def setUp(self):
+        self.enterContext(patch.object(CalendarEvidence, 'load', return_value=CalendarEvidence([])))
         self.temp = TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.store = CalendarStore(Path(self.temp.name) / 'calendar.sqlite3')

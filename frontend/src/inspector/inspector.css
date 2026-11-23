@@ -29,6 +29,8 @@
 .inspector-detail .inspector-publication-heading th { position: static; width: auto; text-align: left; background: var(--surface-inset); }
 .inspector-detail-heading { flex: 1 1 480px; min-width: 0; min-height: 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
 .inspector-detail-heading span { color: var(--text-muted); font-size: 10px; }
+.inspector-release-sources { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 3px 10px; }
+.inspector-release-sources a { color: inherit; }
 .inspector-release-date { white-space: nowrap; }
 .inspector-table-scroll { flex: 1; min-height: 0; overflow: auto; }
 .inspector-detail table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }

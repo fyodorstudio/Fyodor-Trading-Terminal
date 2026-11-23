@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from storage.alert_calendar import day_snapshot
 from storage.alert_subscriptions import calendar_subscription, load_selected_schedule
+from storage.calendar_evidence import CalendarEvidence
 from storage.alarms import AlarmEngine
 from storage.calendar_store import CalendarStore
 from storage.app import create_app
@@ -22,6 +23,7 @@ from test_calendar_storage import event
 class AlertScheduleTests(TestCase):
 
     def setUp(self):
+        self.enterContext(patch.object(CalendarEvidence, 'load', return_value=CalendarEvidence([])))
         self.temp = TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.database = Path(self.temp.name) / 'calendar.sqlite3'

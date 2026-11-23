@@ -8,7 +8,7 @@ def recent_snapshot(store, source_id, start_ms, end_ms, currencies):
         # Ingestion bounds capture offsets to ±14 hours. Limit the indexed raw
         # time scan before applying publication UTC and currency predicates.
         rows = store.db.execute(f'''SELECT e.* FROM calendar_readings e
-            WHERE e.source_id=? AND e.server_time>=? AND e.server_time<=?
+            WHERE e.source_id=? AND e.server_time>=? AND e.server_time<=? AND e.displayed
                 AND e.currency IN ({','.join('?' for _ in currencies)})
                 AND e.release_at>=? AND e.release_at<=?
             ORDER BY e.release_at DESC,e.currency,e.value_id''',

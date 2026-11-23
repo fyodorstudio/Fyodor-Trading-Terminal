@@ -3,6 +3,7 @@ from collections import defaultdict
 from copy import deepcopy
 import hashlib
 from pathlib import Path
+import re
 
 from .calendar_store import CalendarStore
 
@@ -11,7 +12,7 @@ from .calendar_store import CalendarStore
 def calendar_subscription(store, broker, ids, title, enabled):
     if not isinstance(broker, str) or not broker.startswith('Pepperstone-'):
         raise ValueError('Choose a Pepperstone calendar source')
-    if not isinstance(ids, list) or not 1 <= len(ids) <= 512 or any(not isinstance(i, str) or not i.isdigit() for i in ids):
+    if not isinstance(ids, list) or not 1 <= len(ids) <= 512 or any(not isinstance(i, str) or not re.fullmatch(r'\d{1,24}|ext-[a-f0-9]{24}', i) for i in ids):
         raise ValueError('Calendar reminder requires exact value IDs')
     if not isinstance(title, str) or not title.strip() or len(title) > 500 or type(enabled) is not bool:
         raise ValueError('Invalid calendar reminder')
@@ -43,7 +44,7 @@ def load_selected_schedule(database, engine):
                     'value_ids': [r['value_id'] for r in members], 'title': subscription['title'], 'currencies': sorted({r['currency'] for r in members}),
                     'at': at, 'date': None, 'eligible': at is not None and complete
                         and all(r['time_mode'] == 0 and r['availability'] == 'observed' for r in members),
-                    'default_enabled': subscription['enabled'], 'note': 'Verified broker publication. Alarm choice is independent of date and filters.'})
+                    'default_enabled': subscription['enabled'], 'note': 'Verified publication time. Alarm choice is independent of date and filters.'})
         return result
     finally:
         store.close()

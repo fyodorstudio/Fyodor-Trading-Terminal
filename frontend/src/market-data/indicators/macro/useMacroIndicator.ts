@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useStoredCalendar } from '../../../economic-calendar/storage/useStoredCalendar'
-import { macroMetrics, macroHistory, macroMissing, macroUpcoming, supportsMacro, type MacroIndicator, type MacroTextEvent } from './macro-data'
+import { macroHistory, macroMissing, macroUpcoming, supportsMacro, type MacroIndicator, type MacroTextEvent } from './macro-data'
 import { readMacroPreferences, saveMacroPreferences, selectedMacroMetrics, type MacroPreferences } from './macro-preferences'
 import { isMacroTextEvent, macroCatalog } from './macro-catalog'
 import { useFedForecasts } from './useFedForecasts'
@@ -24,6 +24,7 @@ export function useMacroIndicator(symbol: string, brokerId: string | null) {
   const selection = selectedMacroMetrics(macroPreferences).join('|')
   const keys = useMemo(() => selection ? selection.split('|') : [], [selection])
   const active = macroPreferences.enabled && supportsMacro(symbol)
+  const [releaseBoundary, setReleaseBoundary] = useState(0)
   const forecasts = useFedForecasts(active && keys.includes('rate'))
   const meetings = forecasts.meetings
   // Selected exact series share one paged snapshot and one calendar polling clock.
@@ -47,28 +48,34 @@ export function useMacroIndicator(symbol: string, brokerId: string | null) {
     return result.sort((a, b) => a.time - b.time || a.id.localeCompare(b.id))
   }, [textStored.events, wildcards?.snapshot?.items, brokerId, active, macroPreferences.showEventRow, textKeys, textCurrency])
   const { history, forecastHistory, upcoming, missing } = useMemo(() => {
-    // Advance the release cutoff only when the captured calendar snapshot changes.
+    // Recompute the release cutoff on calendar changes and scheduled releases.
     // oxlint-disable-next-line react/purity
-    const now = Date.now()
-    const history = macroHistory(stored.events, now, 'actual', keys)
-    const forecastHistory = macroHistory(stored.events, now, 'forecast', keys)
-    // Saved Fed consensus takes precedence only at its exact calendar release.
-    // An explicitly blank saved consensus must not borrow a different vintage.
+    const now = Math.max(Date.now(), releaseBoundary)
+    const readings = stored.events
+    const history = macroHistory(readings, now, 'actual', keys)
+    const forecastHistory = macroHistory(readings, now, 'forecast', keys)
+    // Use the same sourced value for history, the box, and surprise.
     const rateForecasts = new Map((forecastHistory.rate ?? []).map(reading => [reading.releasedAt, reading]))
-    for (const reading of history.rate ?? []) {
-      const meeting = meetings.get(reading.releasedAt)
-      if (!meeting) continue
-      const consensus = meeting.consensus.find(row => row.provider === 'investing')
-      if (consensus) rateForecasts.set(reading.releasedAt, { ...reading, value: consensus.value })
-      else rateForecasts.delete(reading.releasedAt)
-    }
-    if (keys.some(key => macroCatalog[key].eventId === macroMetrics.rate.eventId)) forecastHistory.rate = [...rateForecasts.values()].sort((a, b) => a.time - b.time)
     if (keys.includes('rate')) history.rate = (history.rate ?? []).map(reading => {
-      const official = meetings.get(reading.releasedAt)?.actual
-      return official ? { ...reading, value: official.upper, brokerValue: reading.value } : reading
+      const meeting = meetings.get(reading.releasedAt)
+      const official = meeting?.actual
+      const consensus = meeting?.consensus.find(row => row.provider === 'investing')
+      const published = official ? { ...reading, value: official.upper, brokerValue: reading.value,
+        actualEvidence: { name: 'Federal Reserve', url: official.url } } : reading
+      if (!consensus || published.forecastSource) return published
+      const forecastSource = { name: 'Investing.com', url: consensus.url, as_of: consensus.as_of ?? undefined }
+      rateForecasts.set(reading.releasedAt, { ...reading, value: consensus.value, forecastSource })
+      return { ...published, forecast: consensus.value, forecastSource }
     })
-    return { history, forecastHistory, upcoming: macroUpcoming(stored.events, now, keys), missing: macroMissing(stored.events, now, keys, history) }
-  }, [stored.events, meetings, keys])
+    if (keys.includes('rate')) forecastHistory.rate = [...rateForecasts.values()].sort((a, b) => a.time - b.time)
+    return { history, forecastHistory, upcoming: macroUpcoming(readings, now, keys), missing: macroMissing(readings, now, keys, history) }
+  }, [stored.events, meetings, keys, releaseBoundary])
+  const nextRelease = upcoming[0]?.releasedAt
+  useEffect(() => {
+    if (!active || nextRelease === undefined) return
+    const timer = window.setTimeout(() => setReleaseBoundary(Date.now()), Math.min(2147483647, Math.max(1, nextRelease - Date.now())))
+    return () => window.clearTimeout(timer)
+  }, [active, nextRelease, releaseBoundary])
   const status = !preferencesSaved ? 'MFDI layout could not be saved. Local storage is full or unavailable.' : !brokerId ? 'Connect a broker to load stored macro data'
     : stored.loading ? 'Loading macro releases…'
     : stored.error ? `Macro history unavailable · ${stored.error}`

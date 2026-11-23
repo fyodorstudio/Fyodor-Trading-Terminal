@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "event_id": "554010001",
+  "currency": "NZD",
+  "country": "NZ",
+  "releases": [
+    {
+      "value_id": "317170",
+      "source_url": "https://www.stats.govt.nz/information-releases/electronic-card-transactions-september-2026/",
+      "set": {
+        "actual": -0.4
+      }
+    }
+  ]
+}

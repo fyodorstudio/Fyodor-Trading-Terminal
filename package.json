@@ -14,6 +14,7 @@
     "storage:import": "bridge\\.venv\\Scripts\\python.exe storage\\run.py import",
     "storage:status": "bridge\\.venv\\Scripts\\python.exe storage\\run.py status",
     "storage:fed-forecasts": "bridge\\.venv\\Scripts\\python.exe storage\\run.py fed-forecasts",
+    "storage:calendar-audit": "bridge\\.venv\\Scripts\\python.exe storage\\run.py calendar-audit",
     "install:frontend": "pnpm --dir frontend install --frozen-lockfile",
     "clean-ports": "pnpm --dir frontend run clean-ports",
     "dev:all": "pnpm --dir frontend run dev:all",

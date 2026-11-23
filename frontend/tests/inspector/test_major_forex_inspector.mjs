@@ -210,6 +210,13 @@ try {
   await React.act(async () => view.selectRelease(view.releases[0].id))
   assert.match(host.querySelector('tbody').textContent, /BoJ Interest Rate Decision.*1.3%/)
   assert.doesNotMatch(host.querySelector('tbody').textContent, /Time uncertain/)
+  await render({ symbol: 'USDJPY', events: [{ ...boj, calendar_sources: {
+    schedule: { name: 'Bank of Japan', url: 'https://www.boj.or.jp/' },
+    forecast: { name: 'Forex Factory', url: 'https://nfs.faireconomy.media/ff_calendar_thisweek.json' },
+  } }], chartBars: bojBars })
+  const releaseSources = host.querySelector('.inspector-release-sources')
+  assert.match(releaseSources.textContent, /Source.*Schedule · Bank of Japan.*Actual · MT5.*Forecast · Forex Factory/)
+  assert.equal(releaseSources.querySelectorAll('a').length, 2)
   const dayTime = Math.floor(bojTime / 86400) * 86400
   await render({ symbol: 'USDJPY', events: [{ ...boj, actual: null, release_at: null, chart_time_seconds: null }],
     chartBars: [{ ...bars[0], time: dayTime }] })

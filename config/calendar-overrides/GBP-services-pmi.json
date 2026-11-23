@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "event_id": "826500002",
+  "currency": "GBP",
+  "country": "GB",
+  "releases": [
+    {
+      "value_id": "318240",
+      "source_url": "https://www.bnz.co.nz/assets/markets/research/BNZ-BusinessNZ-PSI-Release-September-2026_web.pdf?a16914beba381670846506f1e80032d2f25df8ea=",
+      "set": {
+        "actual": 52.1
+      }
+    }
+  ]
+}

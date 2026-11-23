@@ -1070,6 +1070,7 @@ try {
     assert.deepEqual([...tooltip.querySelectorAll('th')].map(node => node.textContent), ['Actual', 'Forecast', 'Previous'])
     assert.equal(tooltip.querySelector('[data-macro-tooltip-field="actual"]').textContent, '5.25%')
     assert.equal(tooltip.querySelector('[data-macro-tooltip-field="forecast"]').textContent, `${value.toFixed(2)}%`)
+    assert.match(tooltip.textContent, /Forecast · Investing\.com · Surprise/)
     assert.equal(tooltip.querySelector('[data-macro-tooltip-field="previous"]').textContent, '—')
     assert.equal(tooltip.querySelector('time').dateTime, new Date(fedDecision.releasedAt).toISOString())
     assert.ok(forecastStrokes.length > 0, 'Hovered actual anchors a dashed connector')

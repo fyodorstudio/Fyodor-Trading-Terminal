@@ -17,6 +17,8 @@ the chart's own currency, such as GBP releases on GBPX.
 Inspector shows saved release dates with a blank Actual when the result is
 unavailable. MFDI uses grey markers for past releases without an actual on
 selected series. A last known schedule may differ from the final publication time.
+The Inspector release heading shows the sources for its schedule and readings.
+The MFDI box tooltip identifies the forecast provider and shows Actual minus Forecast.
 Pan or zoom to browse history. **Refocus** returns to the latest candles.
 Timeframe changes retain the selected dates and price bounds in either direction.
 Pairs remember their own price bounds; a new pair inherits proportional vertical
@@ -196,6 +198,8 @@ browser-local. No article-version archive or per-headline price-return boxes.
 Click MFDI beside RSI and Volume. Select a currency tab, then open **Series**.
 The window title identifies the currency being edited. Each currency starts with
 essential policy, inflation, labor and growth events and remembers later edits.
+Use **Export selected series** in MFDI settings to save the selection across the
+eight currencies for a calendar audit.
 
 **+ Events** opens that currency's searchable calendar. Check or uncheck events
 there; choose a destination category when adding a numerical series. Selected
