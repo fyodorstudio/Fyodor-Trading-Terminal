@@ -12,17 +12,13 @@ STEPS = {"M1": 60, "M5": 300, "M15": 900, "M30": 1800, "H1": 3600, "H4": 14400, 
 ANCHOR = int(datetime(2025, 1, 6, tzinfo=timezone.utc).timestamp())
 
 
-def index_quotes():
-    return [
-        dict(symbol=symbol, description=f"Synthetic {currency} index", synthetic=True,
-             bid=0, ask=0, daily_change=None, precision=3)
-        for symbol, currency in SYMBOLS.items()
-    ]
-
-
 def basket_members(currency):
     return [(base + quote, 1 if base == currency else -1)
             for base, quote in combinations(CURRENCIES, 2) if currency in (base, quote)]
+
+
+MEMBERS = {symbol: basket_members(currency) for symbol, currency in SYMBOLS.items()}
+PAIR_NAMES = sorted({pair for members in MEMBERS.values() for pair, _ in members})
 
 
 def read_prices(mt5, pair, frame, count, before):
@@ -38,18 +34,19 @@ def read_prices(mt5, pair, frame, count, before):
     return {int(rate["time"]): (float(rate["open"]), float(rate["close"])) for rate in rates}
 
 
+def index_price(prices, reference):
+    log_return = sum(weight * (log(price) - baseline)
+                     for price, (weight, baseline) in zip(prices, reference))
+    return 100 * exp(log_return)
+
+
 def synchronized_prices(legs, reference):
     common = set.intersection(*(set(leg) for leg in legs))
     for at in sorted(common):
         observations = [leg[at] for leg in legs]
         if not all(isfinite(value) and value > 0 for prices in observations for value in prices):
             continue
-        levels = []
-        for prices in zip(*observations):
-            log_return = sum(weight * (log(price) - baseline)
-                             for price, (weight, baseline) in zip(prices, reference))
-            levels.append(100 * exp(log_return))
-        yield at, levels
+        yield at, [index_price(prices, reference) for prices in zip(*observations)]
 
 
 def sampled_candles(legs, reference, step):
@@ -80,30 +77,60 @@ class CurrencyIndexHistory:
         self.references = {}
         self.pages = OrderedDict()
 
+    def set_account(self, identity):
+        if self.account != identity:
+            self.account = identity
+            self.references.clear()
+            self.pages.clear()
+
+    def reference(self, mt5, members):
+        for pair, _ in members:
+            if pair not in self.references:
+                prices = read_prices(mt5, pair, mt5.TIMEFRAME_D1, 1, ANCHOR + 1).get(ANCHOR)
+                if prices is None or not isfinite(prices[0]) or prices[0] <= 0:
+                    raise RuntimeError(f"{pair} requires 6 Jan 2025 D1 history for the synthetic index")
+                self.references[pair] = log(prices[0])
+        return [(direction / 7, self.references[pair]) for pair, direction in members]
+
+    def quotes(self, mt5, account):
+        identity = (account.server, account.login)
+        self.set_account(identity)
+        ticks = {pair: mt5.symbol_info_tick(pair) for pair in PAIR_NAMES}
+        rows = []
+        for symbol, members in MEMBERS.items():
+            row = dict(symbol=symbol, description=f"Synthetic {SYMBOLS[symbol]} index", synthetic=True,
+                       bid=0, ask=0, daily_change=None, precision=3)
+            rows.append(row)
+            legs = [ticks[pair] for pair, _ in members]
+            if not all(tick and tick.time > 0 and isfinite(tick.bid) and tick.bid > 0 for tick in legs):
+                continue
+            try:
+                reference = self.reference(mt5, members)
+            except RuntimeError:
+                continue
+            # FX chart candles are in constituent Bid prices. Use the same
+            # inputs and anchor for the synthetic level monitored by alerts.
+            row.update(index_level=index_price([tick.bid for tick in legs], reference),
+                       oldest_tick=min(tick.time for tick in legs), newest_tick=max(tick.time for tick in legs))
+        current = mt5.account_info()
+        if current is None or (current.server, current.login) != identity:
+            self.set_account(None)
+            return []
+        return rows
+
     def read(self, mt5, symbol, timeframe, count, before):
         account = mt5.account_info()
         if account is None or account.server != SERVER:
             raise RuntimeError("Synthetic currency indices require Pepperstone-Demo")
         identity = (account.server, account.login)
-        if self.account != identity:
-            self.account = identity
-            self.references.clear()
-            self.pages.clear()
+        self.set_account(identity)
         cache_key = (symbol, timeframe, count, before)
         if before is not None and cache_key in self.pages:
             self.pages.move_to_end(cache_key)
             return self.pages[cache_key]
 
-        members = basket_members(SYMBOLS[symbol])
-        reference = self.references.get(symbol)
-        if reference is None:
-            opening_prices = [read_prices(mt5, pair, mt5.TIMEFRAME_D1, 1, ANCHOR + 1).get(ANCHOR)
-                              for pair, _ in members]
-            if any(prices is None or not isfinite(prices[0]) or prices[0] <= 0 for prices in opening_prices):
-                raise RuntimeError(f"{symbol} requires 6 Jan 2025 D1 history for all seven FX pairs")
-            reference = [(direction / 7, log(prices[0]))
-                         for (_, direction), prices in zip(members, opening_prices)]
-            self.references[symbol] = reference
+        members = MEMBERS[symbol]
+        reference = self.reference(mt5, members)
 
         step = STEPS[timeframe]
         minute_count = min(21_600, (count + 2) * (step // 60))
@@ -120,8 +147,7 @@ class CurrencyIndexHistory:
 
         current = mt5.account_info()
         if current is None or (current.server, current.login) != identity:
-            self.references.clear()
-            self.pages.clear()
+            self.set_account(None)
             raise RuntimeError("MT5 account changed during the synthetic index read")
         if not candles and before is None:
             raise RuntimeError(f"No synchronized {timeframe} history for {symbol}. Check the seven FX pairs in MT5.")

@@ -13,6 +13,7 @@ import { inspectorPreferenceKey, readInspectorPreferences, saveInspectorPreferen
 import { chartEventSymbol as inspectorPair, chartEventCurrencies as inspectorPairCurrencies } from '../economic-calendar/forex/chart-event-scope'
 import { createInspectorReadingSelector } from '../economic-calendar/forex/select-pair-readings'
 import { useStoredCalendar } from '../economic-calendar/storage/useStoredCalendar'
+import { chartCalendarRows } from '../economic-calendar/storage/chart-calendar-rows'
 import { policyEpisodeWindowMs } from './episodes/policy-episodes'
 import { groupSimultaneousReleases } from './releases/simultaneous-releases'
 import { useMarkerBars } from './chart/useMarkerBars'
@@ -84,8 +85,9 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
     if (!isMajorCurrency(currency)) return
     setEventFocus({ key: focusKey, valueId: reading.value_id, currency, at: reading.at, date: reading.date })
   }, [focusKey])
-  const readings = useMemo(() => brokerTime ? storage.events.filter((event) => event.availability === 'observed') : events,
-    [brokerTime, storage.events, events])
+  const scheduleCutoff = Math.floor(now / 60_000) * 60_000
+  const readings = useMemo(() => brokerTime ? chartCalendarRows(storage.events, scheduleCutoff) : events,
+    [brokerTime, storage.events, events, scheduleCutoff])
   const selectPairReadings = useMemo(() => createInspectorReadingSelector(currencies), [currencies])
   const pairReadings = useMemo(() => selectPairReadings(readings), [readings, selectPairReadings])
   const allReleases = useMemo(() => groupInspectorReleases(pairReadings), [pairReadings])

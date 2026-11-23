@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { SymbolQuote } from '../market-data/contracts/SymbolQuote'
-import { alertDirection, evaluatePriceAlerts, priceAlertStorageKey, readPriceAlerts, savePriceAlerts,
+import { alertDirection, evaluatePriceAlerts, priceAlertQuote, priceAlertStorageKey, readPriceAlerts, savePriceAlerts,
   type PriceAlertStore } from './price-alert-store'
 import { createPriceAlertSound } from './price-alert-sound'
 import { usePriceAlertDelivery } from './usePriceAlertDelivery'
@@ -181,7 +181,7 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
     const target = Number(price.toFixed(precision))
     if (target <= 0) return ''
     const id = crypto.randomUUID()
-    const bid = live ? quotes.find(quote => quote.symbol === symbol)?.bid : undefined
+    const bid = live ? priceAlertQuote(quotes.find(quote => quote.symbol === symbol)) : undefined
     commit({ ...current.current, alerts: [...current.current.alerts, {
       id, brokerId, symbol, price: target, precision, direction: alertDirection(target, bid), status: 'armed',
       createdAt: Date.now(), triggeredAt: null, triggeredBid: null,
@@ -198,7 +198,7 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
       if (action === 'pause') return [{ ...alert, status: 'paused' as const, soundStatus: alert.soundStatus === 'pending' ? 'muted' as const : alert.soundStatus }]
       const target = action === 'price' || action === 'move' ? Number(price!.toFixed(alert.precision)) : alert.price
       if (target <= 0) return [alert]
-      const bid = live && alert.brokerId === brokerId ? quotes.find(quote => quote.symbol === alert.symbol)?.bid : undefined
+      const bid = live && alert.brokerId === brokerId ? priceAlertQuote(quotes.find(quote => quote.symbol === alert.symbol)) : undefined
       return [{ ...alert, price: target, direction: alertDirection(target, bid), status: action === 'move' ? alert.status : 'armed' as const,
         triggeredAt: null, triggeredBid: null, soundStatus: undefined, soundDeliveryId: undefined }]
     })
@@ -230,7 +230,7 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
   }, [commit])
   const brokerAlerts = useMemo(() => store.alerts.filter(alert => alert.brokerId === brokerId), [store.alerts, brokerId])
   const selectedAlertId = useMemo(() => brokerAlerts.some(alert => alert.id === selectedId) ? selectedId : null, [brokerAlerts, selectedId])
-  const liveSymbols = useMemo(() => new Set(quotes.filter(quote => Number.isFinite(quote.bid) && quote.bid > 0).map(quote => quote.symbol)), [quotes])
+  const liveSymbols = useMemo(() => new Set(quotes.filter(quote => priceAlertQuote(quote) !== undefined).map(quote => quote.symbol)), [quotes])
   return { alerts: store.alerts, brokerAlerts, addAlert, updateAlert, playSound: store.playSound, duration: store.duration, soundId: store.soundId,
     volume: store.volume, setVolume, stopSound, previewing, setSound, enableSound, previewSound, soundBlocked, storageError, live, liveSymbols, renameAlert, moveAlert, deleteAlert, setDraggingAlertId: changeDraggingAlert,
     customSoundName, customSoundError, customSoundLoading, uploadCustomSound, selectedAlertId, selectAlert, pendingSounds: delivery.pendingSounds, missedSounds: delivery.missedSounds, dismissSoundWarnings: stopSound }

@@ -1,5 +1,6 @@
 import type { LineData, UTCTimestamp } from 'lightweight-charts'
 import type { StoredCalendarEvent } from '../../../economic-calendar/storage/useStoredCalendar'
+import { chartCalendarRows, hasChartActual } from '../../../economic-calendar/storage/chart-calendar-rows'
 import { macroCatalog, macroMetrics } from './macro-catalog'
 export { macroMetrics } from './macro-catalog'
 import type { OhlcBar } from '../../contracts/OhlcBar'
@@ -8,12 +9,13 @@ import type { FedForecasts } from './fed-forecast'
 import { isPublishedTentative } from '../../../inspector/releases/group-releases'
 
 export type MacroReading = { time: number; releasedAt: number; value: number; id: string; currency?: string; brokerValue?: number; unit?: number; multiplier?: number; digits?: number;
-  revision?: number; forecast?: number | null; previous?: number | null; impact?: string }
+  revision?: number; forecast?: number | null; previous?: number | null; impact?: string; actualSource?: string }
 export type MacroHistory = Record<MacroMetric, MacroReading[]>
 export type MacroScheduled = { time: number; releasedAt: number; metrics: MacroMetric[]; forecasts?: Partial<Record<MacroMetric, number>>;
   formats?: Partial<Record<MacroMetric, Pick<MacroReading, 'unit' | 'multiplier' | 'digits'>>> }
 export type MacroTextEvent = { id: string; time: number; at: number | null; title: string; details: string; wildcardId?: string }
-export type MacroIndicator = { enabled: boolean; history: MacroHistory; forecastHistory?: MacroHistory; upcoming: MacroScheduled[]; status: string; preferences: MacroPreferences; forecasts?: FedForecasts; sourceId?: string | null; events?: MacroTextEvent[]; eventStatus?: string }
+export type MacroMissing = { key: string; time: number; releasedAt: number; dateOnly: boolean; lastKnown: boolean }
+export type MacroIndicator = { enabled: boolean; history: MacroHistory; forecastHistory?: MacroHistory; upcoming: MacroScheduled[]; missing?: MacroMissing[]; status: string; preferences: MacroPreferences; forecasts?: FedForecasts; sourceId?: string | null; events?: MacroTextEvent[]; eventStatus?: string }
 export function supportsMacro(symbol: string) { return !!symbol.trim() }
 export function macroValue(metric: MacroMetric, value: number, reading?: Pick<MacroReading, 'unit' | 'multiplier' | 'digits'>) {
   const definition = macroCatalog[metric], unit = reading?.unit ?? definition?.unit
@@ -65,19 +67,41 @@ export function macroHistory(events: StoredCalendarEvent[], now: number, field: 
       if (event.event_id !== metric.eventId || event.currency !== metric.currency || event.country_code !== metric.country
         || (metric.unit !== undefined && event.unit !== metric.unit) || (metric.multiplier !== undefined && event.multiplier !== metric.multiplier)
         || event.time_mode !== 0 && !isPublishedTentative(event, true)
-        || event.availability !== 'observed'
+        || (event.availability !== 'observed' && (field !== 'actual' || !hasChartActual(event)))
         || event.release_at === null || !Number.isFinite(event.release_at) || event.release_at > now
         || event.chart_time_seconds === null || !Number.isFinite(event.chart_time_seconds)) continue
       const previous = readings.get(event.chart_time_seconds)
-      if (!previous || newerReading(event, previous))
+      if (!previous || (field === 'actual' && event.period_seconds === previous.period_seconds && !!event.actual_override_source !== !!previous.actual_override_source
+        ? !!event.actual_override_source : newerReading(event, previous)))
         readings.set(event.chart_time_seconds, event)
     }
     history[key] = [...readings.values()].filter(event => event[field] !== null && Number.isFinite(event[field]))
       .map(event => ({ time: event.chart_time_seconds!, releasedAt: event.release_at!, value: event[field]!, id: event.value_id, currency: event.currency, unit: event.unit, multiplier: event.multiplier, digits: event.digits,
-        revision: event.revision, forecast: Number.isFinite(event.forecast) ? event.forecast : null, previous: Number.isFinite(event.previous) ? event.previous : null, impact: event.impact }))
+        revision: event.revision, forecast: Number.isFinite(event.forecast) ? event.forecast : null, previous: Number.isFinite(event.previous) ? event.previous : null, impact: event.impact,
+        ...(event.actual_override_source ? { actualSource: event.actual_override_source } : {}) }))
       .sort((a, b) => a.time - b.time)
   }
   return history
+}
+
+export function macroMissing(events: StoredCalendarEvent[], now: number, keys: readonly string[], history: MacroHistory): MacroMissing[] {
+  const grouped = groupEvents(chartCalendarRows(events, now))
+  return keys.flatMap(key => {
+    const metric = macroCatalog[key], actualTimes = new Set(history[key]?.map(reading => reading.time))
+    const missing = new Map<number, MacroMissing>()
+    for (const event of grouped.get(metric.eventId) ?? []) {
+      if (event.currency !== metric.currency || event.country_code !== metric.country
+        || (metric.unit !== undefined && metric.unit !== event.unit)
+        || (metric.multiplier !== undefined && metric.multiplier !== event.multiplier) || hasChartActual(event)) continue
+      const dateOnly = event.time_mode !== 0 || event.release_at === null
+      const time = dateOnly ? Math.floor(event.server_time_seconds / 86400) * 86400 : event.chart_time_seconds
+      const releasedAt = dateOnly ? (time ?? 0) * 1000 : event.release_at
+      if (event.chart_clock_profile === null || time === null || !Number.isFinite(time) || time <= 0
+        || releasedAt === null || !Number.isFinite(releasedAt) || releasedAt > now || actualTimes.has(time)) continue
+      missing.set(time, { key, time, releasedAt, dateOnly, lastKnown: event.availability !== 'observed' })
+    }
+    return [...missing.values()]
+  })
 }
 
 /** Scheduled metadata stays separate from actuals; companions share a publication instant. */

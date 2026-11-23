@@ -1538,10 +1538,12 @@ try {
   assert.match(container.querySelector('#news-flow-panel').textContent, /Reuters headline/)
   assert.equal(container.querySelector('#currency-detail-panel'), null)
   assertQuiet('Opening News Flow')
-  const newsClassification = container.querySelector('.news-classification-row')
-  assert.equal(newsClassification.querySelectorAll('[role="tab"]').length, 4)
-  assert.equal(newsClassification.nextElementSibling.className, 'news-tools')
-  assert.equal(newsClassification.nextElementSibling.querySelector('button').getAttribute('aria-label'), 'Search news')
+  const newsClassification = container.querySelector('#news-flow-panel [aria-label="Headline classification"]')
+  assert.ok(newsClassification.closest('.news-tools'))
+  const tiers = [...newsClassification.querySelectorAll('input[type="checkbox"]')]
+  assert.deepEqual(tiers.map(input => input.getAttribute('aria-label')),
+    ['Show Priority 1 headlines', 'Show Priority 2 headlines', 'Show Excluded headlines'])
+  assert.equal(newsClassification.closest('.news-tools').querySelector('button').getAttribute('aria-label'), 'Search news')
   assert.equal(container.querySelector('[aria-label="Search news"]').nextElementSibling.contains(container.querySelector('[aria-label="Headline alarms"]')), true)
   assert.equal(container.querySelector('[aria-label="Headline alarms"]').parentElement.nextElementSibling.contains(container.querySelector('[aria-label="Select news providers"]')), true)
   assert.equal(container.querySelector('[aria-label="Select news providers"]').parentElement.nextElementSibling.contains(container.querySelector('[aria-label="News publication date"]')), true)

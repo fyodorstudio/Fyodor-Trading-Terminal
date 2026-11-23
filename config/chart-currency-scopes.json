@@ -8,6 +8,21 @@
   "USDX": [
     "USD"
   ],
+  "GBPX": [
+    "GBP"
+  ],
+  "CHFX": [
+    "CHF"
+  ],
+  "CADX": [
+    "CAD"
+  ],
+  "AUDX": [
+    "AUD"
+  ],
+  "NZDX": [
+    "NZD"
+  ],
   "USDX-F": [
     "USD"
   ],

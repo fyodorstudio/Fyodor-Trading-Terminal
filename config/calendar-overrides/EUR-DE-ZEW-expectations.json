@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "event_id": "276070001",
+  "currency": "EUR",
+  "country": "DE",
+  "source": "ZEW",
+  "source_url": "https://www.zew.de/en/zew/news/economic-expectations-rise-in-november",
+  "releases": [
+    {
+      "value_id": "316475",
+      "set": {
+        "released_at": "2026-11-17T11:05:00+01:00",
+        "actual": 35.6,
+        "previous": 28.1
+      }
+    }
+  ]
+}

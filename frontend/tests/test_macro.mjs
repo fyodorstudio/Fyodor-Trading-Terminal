@@ -28,7 +28,7 @@ const event = (overrides = {}) => ({ value_id: 'one', event_id: '840050014', cur
   release_at: at, chart_time_seconds: start, availability: 'observed', revision: 0, ...overrides })
 const reply = (request, body) => React.act(async () => request.resolve({ ok: true, json: async () => body }))
 try {
-  const { macroHistory, macroUpcoming, macroPlot, macroNumberLabels, macroDeltaColor, supportsMacro, macroMetrics, macroValue } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-data.ts')
+  const { macroHistory, macroMissing, macroUpcoming, macroPlot, macroNumberLabels, macroDeltaColor, supportsMacro, macroMetrics, macroValue } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-data.ts')
   const { macroCatalog } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-catalog.ts')
   const keyForId = id => Object.keys(macroCatalog).find(key => macroCatalog[key].eventId === id)
   for (const [eventId, currency, country, actual] of [['392060022', 'JPY', 'JP', 1.3], ['554050001', 'NZD', 'NZ', -2.4]]) {
@@ -165,6 +165,20 @@ try {
   const markerIndicator = { enabled: true, status: '', preferences: defaultMacroPreferences, history: {}, upcoming: [
     { time: start, releasedAt: markerAt, metrics: ['payrolls'], forecasts: { payrolls: 0 } },
   ] }
+  const archived = scheduledEvent('coreCpi', -1, { availability: 'not-returned-by-latest-query' })
+  const missing = macroMissing([archived, { ...archived, value_id: '42' }, scheduledEvent('coreCpi')], at, ['coreCpi'], {})
+  assert.equal(missing.length, 1, 'A dropped historical schedule survives reopening without duplicate markers')
+  assert.equal(missing[0].lastKnown, true)
+  assert.deepEqual(macroHistory([archived], at, 'actual', ['coreCpi']).coreCpi, [])
+  const official = { ...archived, actual: .3, actual_override_source: 'https://www.bls.gov/' }
+  const officialHistory = macroHistory([archived, official], at, 'actual', ['coreCpi'])
+  assert.equal(officialHistory.coreCpi[0].value, .3)
+  assert.deepEqual(macroMissing([archived, official], at, ['coreCpi'], officialHistory), [])
+  markerState.sync({ ...markerIndicator, upcoming: [], missing }, at)
+  assert.equal(markerState.all()[0].missing, missing[0])
+  markerState.sync({ ...markerIndicator, upcoming: [], history: officialHistory }, at)
+  assert.equal(markerState.all()[0].actual, officialHistory.coreCpi[0])
+  markerState.clear()
   markerState.sync(markerIndicator, at)
   assert.equal(markerState.all()[0].forecast, 0)
   markerState.sync({ ...markerIndicator, upcoming: [] }, markerAt + 1)

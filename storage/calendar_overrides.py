@@ -38,7 +38,8 @@ class CalendarOverrides:
                         raise ValueError(f'Release time needs a timezone: {key}')
                     release = round(instant.timestamp() * 1000)
                 self.rows[key] = {**changes, '_release_at': release,
-                                  '_currency': document['currency'], '_country': document['country']}
+                                  '_currency': document['currency'], '_country': document['country'],
+                                  '_actual_source': document.get('source_url')}
         self.revision = sha256(json.dumps(sorted(self.rows.items()), sort_keys=True).encode()).hexdigest()[:16]
 
     def actual_ids(self, event_id, currency, country):
@@ -51,6 +52,8 @@ class CalendarOverrides:
         if not change or (event['currency'], event['country_code']) != (change['_currency'], change['_country']):
             return event
         event = dict(event)
+        if change.get('actual') is not None and change['_actual_source']:
+            event['actual_override_source'] = change['_actual_source']
         for field in VALUE_FIELDS:
             if field in change:
                 event[field] = change[field]

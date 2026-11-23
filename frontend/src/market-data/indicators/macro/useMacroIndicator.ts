@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useStoredCalendar } from '../../../economic-calendar/storage/useStoredCalendar'
-import { macroMetrics, macroHistory, macroUpcoming, supportsMacro, type MacroIndicator, type MacroTextEvent } from './macro-data'
+import { macroMetrics, macroHistory, macroMissing, macroUpcoming, supportsMacro, type MacroIndicator, type MacroTextEvent } from './macro-data'
 import { readMacroPreferences, saveMacroPreferences, selectedMacroMetrics, type MacroPreferences } from './macro-preferences'
 import { isMacroTextEvent, macroCatalog } from './macro-catalog'
 import { useFedForecasts } from './useFedForecasts'
@@ -46,7 +46,7 @@ export function useMacroIndicator(symbol: string, brokerId: string | null) {
     }
     return result.sort((a, b) => a.time - b.time || a.id.localeCompare(b.id))
   }, [textStored.events, wildcards?.snapshot?.items, brokerId, active, macroPreferences.showEventRow, textKeys, textCurrency])
-  const { history, forecastHistory, upcoming } = useMemo(() => {
+  const { history, forecastHistory, upcoming, missing } = useMemo(() => {
     // Advance the release cutoff only when the captured calendar snapshot changes.
     // oxlint-disable-next-line react/purity
     const now = Date.now()
@@ -67,7 +67,7 @@ export function useMacroIndicator(symbol: string, brokerId: string | null) {
       const official = meetings.get(reading.releasedAt)?.actual
       return official ? { ...reading, value: official.upper, brokerValue: reading.value } : reading
     })
-    return { history, forecastHistory, upcoming: macroUpcoming(stored.events, now, keys) }
+    return { history, forecastHistory, upcoming: macroUpcoming(stored.events, now, keys), missing: macroMissing(stored.events, now, keys, history) }
   }, [stored.events, meetings, keys])
   const status = !preferencesSaved ? 'MFDI layout could not be saved. Local storage is full or unavailable.' : !brokerId ? 'Connect a broker to load stored macro data'
     : stored.loading ? 'Loading macro releases…'
@@ -75,6 +75,6 @@ export function useMacroIndicator(symbol: string, brokerId: string | null) {
     : stored.collectorError ? 'Calendar collector unavailable'
     : ''
   const eventStatus = active && macroPreferences.showEventRow !== false ? [textStored.error, wildcards?.error].filter(Boolean).join(' · ') : ''
-  const macro: MacroIndicator = useMemo(() => ({ enabled: active, history, forecastHistory, upcoming, status, forecasts, preferences: macroPreferences, sourceId: brokerId, events, eventStatus }), [active, history, forecastHistory, upcoming, status, forecasts, macroPreferences, brokerId, events, eventStatus])
+  const macro: MacroIndicator = useMemo(() => ({ enabled: active, history, forecastHistory, upcoming, missing, status, forecasts, preferences: macroPreferences, sourceId: brokerId, events, eventStatus }), [active, history, forecastHistory, upcoming, missing, status, forecasts, macroPreferences, brokerId, events, eventStatus])
   return { macro, macroPreferences, changeMacro, toggleMacro, macroSettingsOpen, setMacroSettingsOpen }
 }

@@ -87,6 +87,30 @@ try{
   reduced=false
   await render({entries:entries([.2,3])})
   assert.ok(active.size>0)
+
+  const navigation = []
+  const basketRows = entries([3, 2, 1])
+  for (const [index, currency] of ['GBP', 'USD', 'NZD'].entries()) {
+    basketRows[index].row.id = `basket:${currency}`
+    basketRows[index].row.label = currency
+  }
+  await render({ entries: basketRows, currencyCharts: new Set(['GBPX', 'USDX']), onOpenRow: row => navigation.push(row) })
+  const button = currency => host.querySelector(`[aria-label="Search Market Watch for ${currency}"]`)
+  const mouse = (type, detail) => new dom.MouseEvent(type, { bubbles: true, detail })
+  await React.act(async () => {
+    button('GBP').dispatchEvent(mouse('click', 1))
+    button('GBP').dispatchEvent(mouse('click', 2))
+    button('GBP').dispatchEvent(mouse('dblclick', 2))
+  })
+  assert.deepEqual(navigation, ['symbol:GBPX'], 'Double-click goes straight to the synthetic chart')
+  await React.act(async () => {
+    button('USD').dispatchEvent(new dom.KeyboardEvent('keydown', { bubbles: true, key: 'Enter', shiftKey: true }))
+    button('NZD').dispatchEvent(mouse('click', 1))
+    button('GBP').dispatchEvent(mouse('click', 1))
+    await new Promise(resolve => setTimeout(resolve, 550))
+  })
+  assert.deepEqual(navigation, ['symbol:GBPX', 'symbol:USDX', 'basket:NZD', 'basket:GBP'],
+    'The shortcut opens broker indices and single clicks keep the Market Watch search')
   await React.act(async()=>root.unmount())
   assert.equal(active.size,0,'Unmounting cancels all native animations')
   assert.equal(mediaListeners.size,0)

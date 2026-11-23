@@ -18,8 +18,12 @@ export function isPublishedTentative(event: InspectorEvent, requireChartTime = f
     (!requireChartTime || event.release_at !== null && Number.isFinite(event.release_at) && event.chart_time_seconds !== null) &&
     event.server_time_seconds % 86400 !== 0
 }
+export function isInspectorDateOnly(event: InspectorEvent) {
+  return (event.time_mode !== 0 && !isPublishedTentative(event))
+    || (event.availability !== undefined && event.release_at === null && event.actual === null)
+}
 export function inspectorEventChartTime(event: InspectorEvent): number | null {
-  if (event.time_mode !== 0 && !isPublishedTentative(event) && event.server_time_seconds > 0)
+  if (isInspectorDateOnly(event) && event.server_time_seconds > 0)
     return event.chart_clock_profile === null ? null : Math.floor(event.server_time_seconds / 86400) * 86400
   return event.chart_time_seconds === undefined ? event.release_at === null ? null : event.release_at / 1000 : event.chart_time_seconds
 }
@@ -62,14 +66,14 @@ export function groupInspectorReleases(events: InspectorEvent[], combinePolicy =
       group = { id, familyId: family.id, label, currency: family.currency,
         country: event.country_code, releaseAt: event.release_at, chartTime, serverTime: chartTime ?? event.server_time_seconds,
         // Publication certainty is independent of native candle placement.
-        timingUncertain: event.time_mode !== 0 && !isPublishedTentative(event),
+        timingUncertain: isInspectorDateOnly(event),
         events: [] }
       groups.set(id, group)
     }
     group.events.push(event)
     group.releaseAt ??= event.release_at
     group.chartTime ??= chartTime
-    group.timingUncertain ||= event.time_mode !== 0 && !isPublishedTentative(event)
+    group.timingUncertain ||= isInspectorDateOnly(event)
   }
   const publications = groupFrenchCpiReleases([...groups.values()], clock === 'chart')
   const episodes = combinePolicy ? groupPolicyEpisodes(publications, clock === 'chart') : publications

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { UTCTimestamp } from 'lightweight-charts'
+import { chartClockToUtc } from '../../appearance/time-display/chart-clock'
 import { BridgeRequestError, bridgeRequest } from '../../system-connectivity/bridge-status/bridge-client'
 import { useActivityActions } from '../../system-observability/activity-log/use-activity-log'
 import { replaceRecentBars } from './market-snapshots'
@@ -13,6 +14,9 @@ type MarketWatchResponse = {
     symbol: string
     description: string
     synthetic?: boolean
+    index_level?: number
+    oldest_tick?: number
+    newest_tick?: number
     bid: number
     ask: number
     daily_change: number | null
@@ -41,6 +45,15 @@ type OhlcResponse = {
   observed_at: number
   duration_ms: number
   source_generation: number
+}
+
+function liveIndexQuote(symbol: MarketWatchResponse['symbols'][number], brokerId: string | null, now: number) {
+  if (!symbol.synthetic || !brokerId || symbol.oldest_tick == null || symbol.newest_tick == null) return undefined
+  const clock = { brokerId, brokerOffsetSeconds: 0 }
+  const oldest = chartClockToUtc(symbol.oldest_tick * 1000, clock)
+  const newest = chartClockToUtc(symbol.newest_tick * 1000, clock)
+  return oldest != null && newest != null && newest >= oldest && oldest >= now - 60_000 && newest <= now + 5_000
+    ? { indexLevel: symbol.index_level, indexExpiresAt: oldest + 60_000 } : undefined
 }
 
 type ChartHistoryState = {
@@ -127,10 +140,12 @@ export function useMt5MarketData(
       try {
         const response = await bridgeRequest<MarketWatchResponse>('/market-watch', controller.signal)
         if (disposed) return
+        const now = Date.now()
         const nextSymbols = response.symbols.map((symbol) => ({
           symbol: symbol.symbol,
           description: symbol.description,
           synthetic: symbol.synthetic,
+          ...liveIndexQuote(symbol, brokerId, now),
           bid: symbol.bid,
           ask: symbol.ask,
           dailyChange: null,
@@ -165,7 +180,7 @@ export function useMt5MarketData(
       controller?.abort()
       if (timer) window.clearTimeout(timer)
     }
-  }, [appendActivity, connected, sourceGeneration, updateQuotes])
+  }, [appendActivity, brokerId, connected, sourceGeneration, updateQuotes])
 
   const symbolsAreCurrent = connected && marketGeneration === sourceGeneration
   const currentSymbols = symbolsAreCurrent ? symbols : noSymbols

@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "event_id": "826010012",
+  "currency": "GBP",
+  "country": "GB",
+  "source": "Office for National Statistics",
+  "source_url": "https://www.ons.gov.uk/economy/inflationandpriceindices/bulletins/consumerpriceinflation/october2026",
+  "releases": [
+    {
+      "value_id": "328338",
+      "set": {
+        "released_at": "2026-11-18T07:00:00+00:00",
+        "actual": 3.6,
+        "previous": 3.5,
+        "forecast": null,
+        "revised_previous": null
+      }
+    }
+  ]
+}

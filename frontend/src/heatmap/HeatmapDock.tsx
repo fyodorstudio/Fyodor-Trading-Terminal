@@ -1,6 +1,7 @@
 import { createPortal } from 'react-dom'
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { SymbolQuote } from '../market-data/contracts/SymbolQuote'
+import { isMajorCurrency } from '../economic-calendar/forex/currencies'
 import { chartOffsetAt, brokerClockProfile } from '../appearance/time-display/chart-clock'
 import { formatAppTimestamp } from '../appearance/time-display/time-display-preference'
 import { useDisplayClock } from '../appearance/time-display/useDisplayClock'
@@ -29,12 +30,14 @@ const firstHeatmapDate = '2015-01-01'
 
 // Quote ticks do not invalidate the history, basket calculations or timeline.
 export function HeatmapDock({ symbols, broker, generation, active = true, connected = true, dockActive = active, rankingTarget = null, onCloseRanking, onOpenNews, onOpenRow }: { symbols: SymbolQuote[]; broker: string | null; generation: number; active?: boolean; connected?: boolean; dockActive?: boolean; rankingTarget?: HTMLElement | null; onCloseRanking?: () => void; onOpenNews?: (date: string) => void; onOpenRow?: (rowId: string) => void }) {
-  const catalog = JSON.stringify(symbols.map(s => ({ symbol: s.symbol, description: s.description })))
-  return <HeatmapContent key={`${broker}:${generation}`} catalogJson={catalog} broker={broker} generation={generation} active={active} connected={connected} dockActive={dockActive} rankingTarget={rankingTarget} onCloseRanking={onCloseRanking} onOpenNews={onOpenNews} onOpenRow={onOpenRow} />
+  const catalog = JSON.stringify(symbols.filter(s => !s.synthetic).map(s => ({ symbol: s.symbol, description: s.description })))
+  const currencyCharts = symbols.map(s => s.symbol).filter(symbol => symbol.endsWith('X') && isMajorCurrency(symbol.slice(0, -1))).join(' ')
+  return <HeatmapContent key={`${broker}:${generation}`} catalogJson={catalog} currencyCharts={currencyCharts} broker={broker} generation={generation} active={active} connected={connected} dockActive={dockActive} rankingTarget={rankingTarget} onCloseRanking={onCloseRanking} onOpenNews={onOpenNews} onOpenRow={onOpenRow} />
 }
 
-const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, generation, active, connected, dockActive, rankingTarget, onCloseRanking, onOpenNews, onOpenRow }: { catalogJson: string; broker: string | null; generation: number; active: boolean; connected: boolean; dockActive: boolean; rankingTarget: HTMLElement | null; onCloseRanking?: () => void; onOpenNews?: (date: string) => void; onOpenRow?: (rowId: string) => void }) {
+const HeatmapContent = memo(function HeatmapContent({ catalogJson, currencyCharts, broker, generation, active, connected, dockActive, rankingTarget, onCloseRanking, onOpenNews, onOpenRow }: { catalogJson: string; currencyCharts: string; broker: string | null; generation: number; active: boolean; connected: boolean; dockActive: boolean; rankingTarget: HTMLElement | null; onCloseRanking?: () => void; onOpenNews?: (date: string) => void; onOpenRow?: (rowId: string) => void }) {
   const catalog: HeatmapInstrument[] = useMemo(() => JSON.parse(catalogJson), [catalogJson])
+  const indexSymbols = useMemo(() => new Set(currencyCharts.split(' ')), [currencyCharts])
   const { preference } = useDisplayClock()
   const [eventMode, setEventMode] = useState(false)
   const [eventWindow, setEventWindow] = useState<EventWindow>(() => { const end=Math.floor(Date.now()/60000)*60000; return { from:end-3600000, through:end, anchor:end-3600000, minutes:5 } })
@@ -188,7 +191,7 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
     next: selected < lastRankingDate ? () => stepRankingDate(1) : undefined,
   } : undefined
   const notePeriod = [broker, eventMode ? copyScope : preferences.mode, selected]
-  const rankingView = <HeatmapRanking entries={ranking} fields={preferences.fields} preferences={preferences} onChange={option} onOpenRow={onOpenRow}
+  const rankingView = <HeatmapRanking entries={ranking} fields={preferences.fields} preferences={preferences} onChange={option} onOpenRow={onOpenRow} currencyCharts={indexSymbols}
     animate={!!rankingTarget} motionScope={`${copyScope}:${selected}`} dateNavigation={rankingDates} notePeriod={notePeriod}
     heading={`${eventMode ? selected === 'window' ? 'Window summary' : jakartaTime(Date.parse(selected)) : selected}${!eventMode && preferences.mode === 'weekly' ? ' · Week' : ''}`}
     status={`${eventMode ? 'Common anchor · ' + jakartaTime(eventWindow.anchor) : view.pinned ? 'Pinned' : 'Following hover'}${chosenPeriod?.partial ? ' · In progress' : ''}`}

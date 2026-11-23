@@ -93,6 +93,21 @@ class CalendarOverrideTests(TestCase):
         before_release = ledger_snapshot(self.store, self.broker, now_ms=self.release - 1, currencies=['AUD'])
         self.assertFalse(any(entry['value'] is not None for m in before_release['metrics'] for entry in m['entries']))
 
+    def test_official_override_preserves_broker_absence_and_adds_provenance(self):
+        gbp = event(value_id='328338', event_id='826010012', currency='GBP', country_code='GB',
+                    server_time_seconds=ms('2026-11-18T09:00:00+00:00') // 1000, actual=None)
+        with self.store.db:
+            self.store._observe(self.broker, gbp, 'fixture', self.release / 1000, {'capture_offset_seconds': 7200})
+            self.store.db.execute('INSERT INTO query_absences VALUES (?,?,?,?)',
+                                  (self.broker, gbp['value_id'], 'missed', self.release / 1000 + 1))
+        corrected = self.store.values(self.broker, [gbp['value_id']])[0]
+        self.assertEqual((corrected['actual'], corrected['previous']), (3.6, 3.5))
+        self.assertEqual(corrected['availability'], 'not-returned-by-latest-query')
+        self.assertEqual(corrected['release_at'], ms('2026-11-18T07:00:00+00:00'))
+        self.assertIn('www.ons.gov.uk', corrected['actual_override_source'])
+        original = self.store.db.execute('SELECT payload FROM events WHERE value_id=?', (gbp['value_id'],)).fetchone()[0]
+        self.assertIsNone(json.loads(original)['actual'])
+
     def test_partial_numeric_correction_preserves_other_fields_and_explicit_null(self):
         folder = Path(self.temp.name) / 'overrides'
         folder.mkdir()

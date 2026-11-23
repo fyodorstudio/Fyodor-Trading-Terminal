@@ -240,7 +240,7 @@ function TerminalWorkspaceContent() {
                   if (priceAlerts.playSound) void priceAlerts.enableSound()
                   createDrawing('price-alert', selectedLevel.points)
                 } : undefined}
-                priceAlertDisabled={!brokerId || !quote || quote.synthetic || !priceAlerts.live}
+                priceAlertDisabled={!brokerId || !quote || !priceAlerts.live}
               />
               )}
               <div className="chart-watermark" aria-hidden="true">
@@ -266,7 +266,7 @@ function TerminalWorkspaceContent() {
           hidden={!bottomDockWindow}
         >
           {heatmapStarted && <div className="heatmap-slot" hidden={bottomDockWindow !== 'heatmap'}>
-            <HeatmapDock symbols={marketData.brokerSymbols} broker={brokerId} generation={bridge.generation} active={bottomDockWindow === 'heatmap' || rankingOpen} dockActive={bottomDockWindow === 'heatmap'} rankingTarget={rankingTarget} onCloseRanking={closeRanking} onOpenNews={showHeatmapNews} onOpenRow={openHeatmapInstrument} connected={bridge.connected} />
+            <HeatmapDock symbols={marketData.symbols} broker={brokerId} generation={bridge.generation} active={bottomDockWindow === 'heatmap' || rankingOpen} dockActive={bottomDockWindow === 'heatmap'} rankingTarget={rankingTarget} onCloseRanking={closeRanking} onOpenNews={showHeatmapNews} onOpenRow={openHeatmapInstrument} connected={bridge.connected} />
           </div>}
           {bottomDockWindow === 'wildcards' && <WildcardsDock />}
           {bottomDockWindow === 'ledger' && <LedgerDock supported={ledgerSupported} broker={brokerId} onOpenDetail={openLedgerDetail} onViewEvent={viewLedgerEvent} />}

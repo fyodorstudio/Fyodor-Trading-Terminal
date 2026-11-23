@@ -1,6 +1,6 @@
 import { LineSeries, LineType, type Coordinate, type IChartApi, type ISeriesApi, type IPrimitivePaneRenderer, type IPanePrimitive, type Logical, type MouseEventParams, type Time } from 'lightweight-charts'
 import type { OhlcBar } from '../../contracts/OhlcBar'
-import { macroDeltaColor, macroNumberLabels, macroPlot, macroValue, type MacroIndicator, type MacroReading } from './macro-data'
+import { macroDeltaColor, macroNumberLabels, macroPlot, macroValue, type MacroIndicator, type MacroMissing, type MacroReading } from './macro-data'
 import { macroCatalog } from './macro-catalog'
 import { claimChartClick } from '../../candlestick-chart/chart-click-selection'
 import { futureTimelineSeconds } from '../../candlestick-chart/future-timeline'
@@ -33,10 +33,10 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
   const releaseMarkers = createMacroReleaseMarkers()
   let numericalInput: unknown[] | undefined
   let markerSource: string | null | undefined
-  let markerSnapshot: { history: MacroIndicator['history']; upcoming: MacroIndicator['upcoming']; keys: string } | undefined
+  let markerSnapshot: { history: MacroIndicator['history']; upcoming: MacroIndicator['upcoming']; missing: MacroIndicator['missing']; keys: string } | undefined
   let markerBars: OhlcBar[] = []
   let markerHits: { key: string; reading: MacroReading; time: Time; x: number; y: number; rx: number; ry: number }[] = []
-  type PendingHit = { key: string; releasedAt: number; forecast?: number; format?: Pick<MacroReading, 'unit' | 'multiplier' | 'digits'>; x: number; y: number; rx: number; ry: number }
+  type PendingHit = { key: string; releasedAt: number; forecast?: number; format?: Pick<MacroReading, 'unit' | 'multiplier' | 'digits'>; missing?: MacroMissing; x: number; y: number; rx: number; ry: number }
   let pendingHits: PendingHit[] = [], pendingHover: PendingHit | undefined
   const colourDrafts = new Map<string, string>(), colourPreviews = new Map<string, string>()
   let colourTimer: number | null = null
@@ -515,7 +515,7 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
     return hit
   }
   const hitScheduled = (event: MouseEventParams<Time>) => event.point && event.paneIndex === pane.paneIndex()
-    ? pendingHits.find(hit => indicator && macroMetricVisible(indicator.preferences, hit.key) && indicator.preferences.series[hit.key].forecastVisible
+    ? pendingHits.find(hit => indicator && macroMetricVisible(indicator.preferences, hit.key) && (hit.missing || indicator.preferences.series[hit.key].forecastVisible)
       && indicator.preferences.series[hit.key].pointsVisible && Math.abs(event.point!.x - hit.x) <= hit.rx && Math.abs(event.point!.y - hit.y) <= hit.ry) : undefined
   const onClick = (event: MouseEventParams<Time>) => {
     const hit = hitDot(event)
@@ -558,13 +558,14 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
       return x0 === null || x1 === null ? null : x0 + (x1 - x0) * (logical - left)
     }
   }
-  const markerCoordinate = (time: number, futureX: ReturnType<typeof futureCoordinates>) => {
+  const markerCoordinate = (time: number, futureX: ReturnType<typeof futureCoordinates>, dateOnly = false) => {
     if (latestTime === undefined) return
     if (time >= latestTime + step) { const x = futureX?.(time); return x === undefined || x === null ? undefined : { x, time } }
     let lo = 0, hi = markerBars.length
     while (lo < hi) { const mid = (lo + hi) >>> 1; if (markerBars[mid].time <= time) lo = mid + 1; else hi = mid }
-    const bar = markerBars[lo - 1]
-    if (!bar || time >= bar.time + step) return
+    const containing = markerBars[lo - 1]
+    const bar = dateOnly && (!containing || time >= containing.time + step) ? markerBars[lo] : containing
+    if (!bar || (dateOnly ? bar.time >= time + 86400 : time >= bar.time + step)) return
     const x = chart.timeScale().timeToCoordinate(bar.time as Time)
     return x === null ? undefined : { x, time: bar.time }
   }
@@ -691,10 +692,19 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
           if (x !== null && x !== undefined && y !== null && y !== undefined) previous.set(key, { x, y })
         }
         for (const marker of releaseMarkers.all()) {
-          const { key, actual, forecast } = marker, style = indicator!.preferences.series[key]
-          if (!macroMetricVisible(indicator!.preferences, key) || (!actual && !style.forecastVisible)) continue
-          const value = actual?.value ?? forecast, coordinate = markerCoordinate(marker.time, futureX)
+          const { key, actual, forecast, missing } = marker, style = indicator!.preferences.series[key]
+          if (!macroMetricVisible(indicator!.preferences, key) || (!actual && !missing && !style.forecastVisible)) continue
+          const value = actual?.value ?? forecast, coordinate = markerCoordinate(marker.time, futureX, missing?.dateOnly)
           if (!coordinate || (actual && plots[key]?.readings.get(coordinate.time)?.id !== actual.id)) continue
+          if (missing) {
+            const { x } = coordinate, y = laneMode ? laneControls.y(key) : mediaSize.height - 11
+            if (!style.pointsVisible || y === null || y < (laneMode ? laneControls.contentTop : 0)
+              || y > mediaSize.height || x < 0 || x > mediaSize.width) continue
+            context.save(); context.strokeStyle = '#6b7280'; context.lineWidth = 2
+            context.beginPath(); context.arc(x, y, 4, 0, Math.PI * 2); context.stroke(); context.restore()
+            pendingHits.push({ key, releasedAt: marker.releasedAt, missing, x, y, rx: 7, ry: 7 })
+            continue
+          }
           const y = value === undefined ? laneMode ? plotY(key, 0) : null : plotY(key, value), { x, time } = coordinate
           if (value === undefined) previous.delete(key)
           if (y === null) continue
@@ -792,7 +802,7 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
       // Navigation and saved placement changes do not replace chart data or restore
       // the shared time window. Only numerical inputs and styles need that work.
       const presentation = JSON.stringify([selectedAxisFor(next.preferences), next.preferences.colorMode, next.preferences.invertUnemployment, keys.map(key => [key, macroMetricVisible(next.preferences, key), next.preferences.series[key]])])
-      const input = [bars, next.history, next.forecastHistory, next.upcoming, presentation, next.preferences.layout?.axisRestoreId, next.sourceId, next.status, next.forecasts, seconds, format]
+      const input = [bars, next.history, next.forecastHistory, next.upcoming, next.missing, presentation, next.preferences.layout?.axisRestoreId, next.sourceId, next.status, next.forecasts, seconds, format]
       if (numericalInput?.every((value, index) => value === input[index])) {
         const changedMode = laneMode !== macroLayout(next.preferences).laneMode
         indicator = next; formatRelease = format; toggleMetric = callbacks.toggleMetric; selectMetric = callbacks.selectMetric
@@ -836,8 +846,8 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
       }
       if (markerSource !== next.sourceId) { releaseMarkers.clear(); markerSnapshot = undefined; markerSource = next.sourceId }
       const markerKeys = keys.join('|')
-      if (!markerSnapshot || markerSnapshot.history !== next.history || markerSnapshot.upcoming !== next.upcoming || markerSnapshot.keys !== markerKeys) {
-        releaseMarkers.sync(next, Date.now()); markerSnapshot = { history: next.history, upcoming: next.upcoming, keys: markerKeys }
+      if (!markerSnapshot || markerSnapshot.history !== next.history || markerSnapshot.upcoming !== next.upcoming || markerSnapshot.missing !== next.missing || markerSnapshot.keys !== markerKeys) {
+        releaseMarkers.sync(next, Date.now()); markerSnapshot = { history: next.history, upcoming: next.upcoming, missing: next.missing, keys: markerKeys }
       }
       for (const key of colourDrafts.keys()) if (!keys.includes(key)) { colourDrafts.delete(key); colourPreviews.delete(key) }
       if (!colourDrafts.size) stopColourTimer()

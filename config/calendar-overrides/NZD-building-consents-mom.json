@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "event_id": "554010004",
+  "currency": "NZD",
+  "country": "NZ",
+  "source": "Stats NZ",
+  "source_url": "https://www.stats.govt.nz/information-releases/building-consents-issued-september-2026/",
+  "releases": [
+    {
+      "value_id": "321838",
+      "set": {
+        "released_at": "2026-11-03T10:45:00+13:00",
+        "actual": -7.9,
+        "previous": 5.3
+      }
+    }
+  ]
+}

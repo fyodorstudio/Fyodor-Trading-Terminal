@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "event_id": "826010008",
+  "currency": "GBP",
+  "country": "GB",
+  "source": "Office for National Statistics",
+  "source_url": "https://www.ons.gov.uk/economy/inflationandpriceindices/bulletins/producerpriceinflation/october2026",
+  "releases": [
+    {
+      "value_id": "328330",
+      "set": {
+        "released_at": "2026-11-18T07:00:00+00:00",
+        "actual": 5.1,
+        "previous": 4.7,
+        "forecast": null,
+        "revised_previous": null
+      }
+    }
+  ]
+}

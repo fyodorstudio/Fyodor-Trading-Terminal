@@ -16,7 +16,7 @@ import xml.etree.ElementTree as ET
 
 from storage.news_flow.collector import NewsCollector, retry_delay
 from storage.news_flow.feeds import MAX_FEED_BYTES, fetch_feed, parse_feed, parse_treasury
-from storage.news_flow.store import NewsStore
+from storage.news_flow.store import NewsStore, decision, level
 from storage.news_flow.providers import PROVIDERS, PROVIDER_MIGRATION, TREASURY_URL
 from storage.news_flow.rules import matches, patterns, priority_reason
 from storage.news_flow.policy import policy_currencies, policy_details
@@ -48,6 +48,49 @@ class NewsFlowTests(unittest.TestCase):
 
     def ingest(self):
         self.store.success(self.source, self.items, 'version-1', '', self.now)
+
+    def test_reader_cache_follows_content_and_preserves_out_of_range_totals(self):
+        self.ingest()
+        url = self.items[0]['url']
+        with patch('storage.news_flow.store.decision', wraps=decision) as classify:
+            initial = self.store.query()
+            self.assertEqual(classify.call_count, 2)
+            self.store.success(self.source, self.items, 'version-2', '', self.now + 1000)
+            self.store.fetch_timing(self.source, 25, 20)
+            self.assertEqual(self.store.query(), initial)
+            self.assertEqual(classify.call_count, 2, 'Collector metadata and identical items keep the cached page')
+
+            other = NewsStore(self.root)
+            other.pin(url, True)
+            self.assertTrue(next(item for item in self.store.query()['items'] if item['url'] == url)['pinned'])
+            other.save_source('Renamed feed', self.source['url'], self.source['id'])
+            self.assertEqual({item['source_name'] for item in self.store.query()['items']}, {'Renamed feed'})
+            self.store.success(self.source, [{**self.items[0], 'title': 'Updated headline'}], '', '', self.now + 2000)
+            self.assertIn('Updated headline', [item['title'] for item in self.store.query()['items']])
+            self.assertEqual(self.store.query(offset=200), {'items': [], 'total': 2})
+
+    def test_classifying_reader_keeps_its_snapshot_while_collection_writes(self):
+        self.ingest()
+        entered, release = Event(), Event()
+
+        def wait_for_collection(*args):
+            entered.set()
+            if not release.wait(5):
+                raise TimeoutError('Collection did not finish while the reader was active')
+            return level(*args)
+
+        scope = dict(mode='included', include='oil')
+        item = {**self.items[0], 'identity': 'new', 'title': 'Oil prices rise', 'url': 'https://example.com/new-oil'}
+        with patch('storage.news_flow.store.level', side_effect=wait_for_collection), ThreadPoolExecutor(max_workers=2) as workers:
+            reading = workers.submit(self.store.query, **scope)
+            try:
+                self.assertTrue(entered.wait(3))
+                writing = workers.submit(self.store.success, self.source, [item], '', '', self.now + 1)
+                self.assertTrue(writing.result(timeout=3))
+            finally:
+                release.set()
+            self.assertEqual(reading.result(timeout=3)['total'], 1)
+        self.assertEqual(self.store.query(**scope)['total'], 2)
 
     def test_keyword_boundaries_limits_and_classification_partition(self):
         for title, rule, expected in [('Retail chair said Federer won', 'AI, Fed', 0), ('AI and Fed policy', 'ai, FED', 1),

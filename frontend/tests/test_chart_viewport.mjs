@@ -16,7 +16,7 @@ let id = 0, fitted = 0, autoscaled = 0, range = null, plotted = [], future = []
 let dailyCloses = [], watch = []
 let futureSets = 0, futureUpdates = 0
 const timers = new Map(), listeners = new Set(), requests = []
-dom.setTimeout = fn => { timers.set(++id, fn); return id }; dom.clearTimeout = id => timers.delete(id)
+dom.setTimeout = (fn, delay) => { timers.set(++id, { fn, delay }); return id }; dom.clearTimeout = id => timers.delete(id)
 const emit = next => { range = next; for (const fn of listeners) fn(next) }
 const scale = {
   width: () => 900,
@@ -43,6 +43,7 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
   }] })
 globalThis.fetch = (url, options = {}) => {
   if (String(url).includes('/market-watch')) return Promise.resolve({ ok: true, json: async () => ({ symbols: watch }) })
+  if (String(url).startsWith('/storage-api/')) return Promise.resolve({ ok: false })
   return new Promise(resolve => requests.push({ url: String(url), signal: options.signal, resolve }))
 }
 const { createRoot } = await import('react-dom/client')
@@ -248,6 +249,47 @@ try {
   await reply(pending()[0], dates)
   assert.equal(dailyCloses.length, 0)
   assert.ok(plotted.every(bar => Number.isFinite(bar.open)), 'Broker indices continue to draw native candles')
+  await React.act(async () => root.render(null))
+
+  const { usePriceAlerts } = await server.ssrLoadModule('./src/price-alerts/usePriceAlerts.ts')
+  const { utcToChartClock } = await server.ssrLoadModule('./src/appearance/time-display/chart-clock.ts')
+  const brokerId = 'Pepperstone-Demo'
+  const tick = Math.floor(utcToChartClock(Date.now(), { brokerId, brokerOffsetSeconds: 0 }) / 1000)
+  watch[0] = { ...watch[0], index_level: 100, oldest_tick: tick - 10, newest_tick: tick }
+  let alerts
+  function AlertHarness() {
+    const feed = useMt5MarketData(true, 1, 'USDX', 'H1', brokerId)
+    const controller = usePriceAlerts(brokerId, feed.symbols, feed.marketWatchStatus === 'live')
+    React.useLayoutEffect(() => { alerts = controller })
+    return null
+  }
+  async function pollQuotes() {
+    const [timer, { fn }] = [...timers].find(([, value]) => value.delay === 2500)
+    timers.delete(timer)
+    await React.act(async () => { await fn() })
+  }
+  await React.act(async () => root.render(React.createElement(ActivityLogProvider, null, React.createElement(AlertHarness))))
+  assert.ok(alerts.liveSymbols.has('GBPX'))
+  await React.act(async () => {
+    alerts.setSound(false, 3)
+    assert.ok(alerts.addAlert('GBPX', 101, 3))
+  })
+  const originalNow = Date.now
+  let expiredQuoteAlert
+  try {
+    Date.now = () => originalNow() + 61_000
+    await React.act(async () => { expiredQuoteAlert = alerts.addAlert('GBPX', 100, 3) })
+    assert.equal(alerts.alerts.find(alert => alert.id === expiredQuoteAlert)?.status, 'armed',
+      'An expired quote cannot fire an alert while the Market Watch poll is stalled')
+    await React.act(async () => alerts.deleteAlert(expiredQuoteAlert))
+  } finally { Date.now = originalNow }
+  watch[0] = { ...watch[0], index_level: 102, oldest_tick: tick - 90 }
+  await pollQuotes()
+  assert.equal(alerts.liveSymbols.has('GBPX'), false)
+  assert.equal(alerts.alerts[0].status, 'armed')
+  watch[0] = { ...watch[0], oldest_tick: tick - 10 }
+  await pollQuotes()
+  assert.equal(alerts.alerts[0].triggeredBid, 102, 'A fresh index level triggers the alert while a broker chart is selected')
   await React.act(async () => root.render(null))
   console.log('✓ Shared dates, zoom and future space; serial MT5 backfill, stop/retry, missing history, stale replies, timeframe/broker scope and cleanup')
 } finally {

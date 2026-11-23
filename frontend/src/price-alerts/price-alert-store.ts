@@ -55,6 +55,12 @@ export function alertDirection(price: number, bid?: number): PriceAlert['directi
   return bid === undefined || !Number.isFinite(bid) || bid <= 0 ? null : price >= bid ? 'above' : 'below'
 }
 
+export function priceAlertQuote(quote: SymbolQuote | undefined, now?: number) {
+  if (quote?.synthetic && (quote.indexExpiresAt == null || (now ?? Date.now()) > quote.indexExpiresAt)) return undefined
+  const level = quote?.synthetic ? quote.indexLevel : quote?.bid
+  return level != null && Number.isFinite(level) && level > 0 ? level : undefined
+}
+
 // Quotes are sampled, so a jump across the line counts as reaching it too.
 // Never use candle highs/lows: those may precede the alert's creation.
 export function evaluatePriceAlerts(alerts: PriceAlert[], brokerId: string, quotes: SymbolQuote[], now: number, draggingId: string | null = null) {
@@ -63,8 +69,8 @@ export function evaluatePriceAlerts(alerts: PriceAlert[], brokerId: string, quot
   const triggered: PriceAlert[] = []
   const next = alerts.map(alert => {
     if (alert.brokerId !== brokerId || alert.status !== 'armed' || alert.id === draggingId) return alert
-    const bid = bySymbol.get(alert.symbol)?.bid
-    if (bid === undefined || !Number.isFinite(bid) || bid <= 0) return alert
+    const bid = priceAlertQuote(bySymbol.get(alert.symbol), now)
+    if (bid === undefined) return alert
     const direction = alert.direction ?? alertDirection(alert.price, bid)
     const reached = direction === 'above' ? bid >= alert.price : bid <= alert.price
     if (reached) {

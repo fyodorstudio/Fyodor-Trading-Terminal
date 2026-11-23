@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "event_id": "826010038",
+  "currency": "GBP",
+  "country": "GB",
+  "source": "Office for National Statistics",
+  "source_url": "https://www.ons.gov.uk/economy/grossdomesticproductgdp/bulletins/gdpfirstquarterlyestimateuk/julytoseptember2026",
+  "releases": [
+    {
+      "value_id": "327215",
+      "set": {
+        "released_at": "2026-11-12T07:00:00+00:00",
+        "actual": 1.9,
+        "previous": 1.4,
+        "forecast": null,
+        "revised_previous": null
+      }
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "event_id": "276010015",
+  "currency": "EUR",
+  "country": "DE",
+  "source": "Destatis",
+  "source_url": "https://www.destatis.de/EN/Press/2026/11/PE26_407_61241.html",
+  "releases": [
+    {
+      "value_id": "319670",
+      "set": {
+        "actual": 8.1,
+        "previous": 6.7
+      }
+    }
+  ]
+}

@@ -1,6 +1,9 @@
 # Price alerts
 
-`usePriceAlerts.ts` evaluates live Bid quotes once per armed crossing. It saves
+`usePriceAlerts.ts` evaluates live Bid quotes and synthetic currency index levels
+once per armed crossing. The bridge calculates each index level from its seven
+constituent Bid quotes using the chart's fixed reference. The frontend checks
+both ends of the quote timestamp range before evaluating an alert. It saves
 the triggered state and a unique sound-delivery token together, before playback.
 `usePriceAlertDelivery.ts` owns delivery recovery independently of quote evaluation:
 

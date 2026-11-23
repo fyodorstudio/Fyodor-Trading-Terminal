@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "event_id": "756020001",
+  "currency": "CHF",
+  "country": "CH",
+  "source": "Swiss Federal Statistical Office",
+  "source_url": "https://dam-api.bfs.admin.ch/hub/api/dam/assets/36894291/master",
+  "releases": [
+    {
+      "value_id": "270615",
+      "set": {
+        "released_at": "2026-11-03T08:30:00+01:00",
+        "actual": 0.2,
+        "previous": 0
+      }
+    }
+  ]
+}

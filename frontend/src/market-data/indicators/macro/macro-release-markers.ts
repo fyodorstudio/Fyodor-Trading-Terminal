@@ -1,7 +1,8 @@
 import { selectedMacroMetrics } from './macro-preferences'
-import type { MacroIndicator, MacroReading } from './macro-data'
+import type { MacroIndicator, MacroMissing, MacroReading } from './macro-data'
 
 type ReleaseMarker = { key: string; time: number; releasedAt: number; forecast?: number; actual?: MacroReading;
+  missing?: MacroMissing;
   format?: Pick<MacroReading, 'unit' | 'multiplier' | 'digits'> }
 const identity = (key: string, releasedAt: number) => `${key}:${releasedAt}`
 
@@ -22,12 +23,18 @@ export function createMacroReleaseMarkers() {
         incoming.add(id)
         markers.set(id, { key, time: scheduled.time, releasedAt: scheduled.releasedAt, forecast: Number.isFinite(value) ? value : undefined, format: scheduled.formats?.[key] })
       }
+      for (const missing of indicator.missing ?? []) {
+        if (!selected.has(missing.key)) continue
+        const id = identity(missing.key, missing.releasedAt)
+        incoming.add(id)
+        markers.set(id, { ...missing, missing })
+      }
       for (const key of selected) for (const reading of indicator.history[key] ?? []) {
         const id = identity(key, reading.releasedAt), marker = markers.get(id)
-        if (marker) { marker.actual = reading; marker.time = reading.time; actuals.add(id) }
+        if (marker) { marker.actual = reading; marker.missing = undefined; marker.time = reading.time; actuals.add(id) }
       }
       for (const [id, marker] of markers) {
-        if (!selected.has(marker.key) || (marker.releasedAt > now && !incoming.has(id)) || (marker.actual && !actuals.has(id))) markers.delete(id)
+        if (!selected.has(marker.key) || ((marker.missing || marker.releasedAt > now) && !incoming.has(id)) || (marker.actual && !actuals.has(id))) markers.delete(id)
       }
       ordered = [...markers.values()].sort((a, b) => a.time - b.time)
     },

@@ -1,4 +1,4 @@
-import { useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { formatHeatmapChange, heatmapOHLC, type HeatmapField, type HeatmapPoint, type HeatmapRow } from './heatmap-model'
 import type { HeatmapPreferences } from './heatmap-preferences'
 import { useRankingMotion } from './useRankingMotion'
@@ -27,17 +27,20 @@ function RankingNote({ storageKey, label }: { storageKey: string; label: string 
   </div>
 }
 
-export function HeatmapRanking({ entries, fields, heading, status, dateNavigation, notePeriod, groups, group, onGroup, preferences, onChange, eventMode, actions, onOpenRow, animate = false, motionScope = '' }: {
+export function HeatmapRanking({ entries, fields, heading, status, dateNavigation, notePeriod, groups, group, onGroup, preferences, onChange, eventMode, actions, onOpenRow, currencyCharts, animate = false, motionScope = '' }: {
   entries: Entry[]; fields: readonly HeatmapField[]; heading: string; status: string
   dateNavigation?: { previous: (() => void) | undefined; next: (() => void) | undefined }
   notePeriod: readonly (string | null)[]
   groups: string[]; group: string; onGroup: (group: string) => void
   preferences: HeatmapPreferences; onChange: (next: HeatmapPreferences) => void
   eventMode: boolean; actions: ReactNode; onOpenRow?: (rowId: string) => void; animate?: boolean; motionScope?: string
+  currencyCharts?: ReadonlySet<string>
 }) {
   const bars = preferences.rankingView === 'bars'
   const notes = preferences.rankingView === 'note'
   const [expandedNote, setExpandedNote] = useState<string | null>(null)
+  const clickTimer = useRef<number | undefined>(undefined)
+  useEffect(() => () => window.clearTimeout(clickTimer.current), [onOpenRow, currencyCharts, notes])
   const available = entries.filter(entry => entry.point?.value != null)
   const up = available.filter(entry => entry.point!.value! > 0).length
   const down = available.filter(entry => entry.point!.value! < 0).length
@@ -78,11 +81,31 @@ export function HeatmapRanking({ entries, fields, heading, status, dateNavigatio
       const value = point?.value ?? null
       const width = value == null || maximum === 0 ? 0 : Math.abs(value) / maximum * 50
       const noteOpen = notes && expandedNote === row.id
-      const rowAction = row.id.startsWith('basket:') ? `Search Market Watch for ${row.id.slice(7)}` : `Open chart for ${row.label}`
+      const basketCurrency = row.id.startsWith('basket:') ? row.id.slice(7) : null
+      const chartSymbol = basketCurrency ? `${basketCurrency}X` : ''
+      const opensIndex = !notes && currencyCharts?.has(chartSymbol)
+      const rowAction = basketCurrency ? `Search Market Watch for ${basketCurrency}` : `Open chart for ${row.label}`
       const noteKey = noteOpen ? `fyodor.heatmap.note.v1:${JSON.stringify([...notePeriod, row.id])}` : null
       return <li key={row.id} data-ranking-row={row.id} title={point?.reason || undefined}>
         <button type="button" className="heatmap-ranking-entry" disabled={!notes && !onOpenRow}
-          onClick={() => notes ? setExpandedNote(noteOpen ? null : row.id) : onOpenRow?.(row.id)}
+          onClick={event => {
+            window.clearTimeout(clickTimer.current)
+            if (notes) setExpandedNote(noteOpen ? null : row.id)
+            else if (!opensIndex || event.detail === 0) onOpenRow?.(row.id)
+            else if (event.detail === 1) clickTimer.current = window.setTimeout(() => onOpenRow?.(row.id), 500)
+          }}
+          onDoubleClick={opensIndex ? () => {
+            window.clearTimeout(clickTimer.current)
+            onOpenRow?.(`symbol:${chartSymbol}`)
+          } : undefined}
+          onKeyDown={opensIndex ? event => {
+            if (event.key !== 'Enter' || !event.shiftKey) return
+            event.preventDefault()
+            window.clearTimeout(clickTimer.current)
+            onOpenRow?.(`symbol:${chartSymbol}`)
+          } : undefined}
+          title={opensIndex ? `Double-click or press Shift+Enter to open ${chartSymbol}` : undefined}
+          aria-keyshortcuts={opensIndex ? 'Shift+Enter' : undefined}
           aria-label={notes ? `Edit note for ${row.label}` : rowAction} aria-expanded={notes ? noteOpen : undefined}>
         <div className="heatmap-ranking-name"><span title={`${row.label} · ${row.group}`}>{row.label}</span>
           {preferences.rank === 'unusual' && <small data-rank-field="relative" title="Return relative to usual volatility">{formatHeatmapChange(point?.relative ?? null, '×')}</small>}

@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "event_id": "36030011",
+  "currency": "AUD",
+  "country": "AU",
+  "source": "Reserve Bank of Australia",
+  "source_url": "https://www.rba.gov.au/statistics/frequency/commodity-prices/2026/icp-1026.html",
+  "releases": [
+    {
+      "value_id": "313341",
+      "set": {
+        "actual": 12.5,
+        "previous": 15.5
+      }
+    }
+  ]
+}

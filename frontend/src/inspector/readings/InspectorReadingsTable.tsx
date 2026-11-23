@@ -43,7 +43,7 @@ export function InspectorReadingsTable({ release, timeDisplay, sharedPeriod, foc
               formatAppTimestamp(event.period_seconds * 1000, { mode: 'utc', utcOffsetMinutes: 0 }, 'date')}</small>}</th>
           {showCountry && <td title={event.country_name}>{event.country_code}</td>}
           {showTimes && <InspectorReadingTime event={event} timeDisplay={timeDisplay} />}
-          <td data-mt5-impact={actualImpact(event.actual,event.impact)} title={`MT5 assessment: ${event.impact}`}>
+          <td data-mt5-impact={actualImpact(event.actual,event.impact)} title={event.actual_override_source ?? `MT5 assessment: ${event.impact}`}>
             {formatInspectorValue(event.actual, event)}</td>
           <td>{formatInspectorValue(event.previous, event)}{revised && <small title={prior.description}>
             {prior.value}: {formatInspectorValue(event.revised_previous, event)}</small>}</td>

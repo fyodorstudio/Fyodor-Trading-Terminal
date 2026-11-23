@@ -1,10 +1,12 @@
 """Separate SQLite history; no calendar or Wildcard tables are touched."""
-from contextlib import closing, contextmanager
+from collections import OrderedDict
+from concurrent.futures import Future
+from contextlib import closing, contextmanager, nullcontext
 from pathlib import Path
 import sqlite3
 import time
 import re
-from threading import RLock
+from threading import Lock, RLock
 from uuid import uuid4
 
 from .providers import PROVIDERS, PROVIDER_MIGRATION, RETIRED
@@ -19,6 +21,7 @@ from .relevance import headline_key
 # an old announcement when wall-clock time catches up with the feed timestamp.
 TIMELINE = 'CASE WHEN i.published_at IS NULL OR i.published_at-i.first_seen>=60000 THEN i.first_seen ELSE i.published_at END'
 MAX_EXPORT_ITEMS = 10000
+PAGE_CACHE_SIZE = 24
 
 
 class NewsStore:
@@ -26,11 +29,14 @@ class NewsStore:
         self.path = Path(root) / 'news-flow' / 'news.sqlite3'
         self.lock = RLock()
         self.initialized = False
+        self.page_lock = Lock()
+        self.pages = OrderedDict()
 
     @contextmanager
-    def database(self):
-        with self.lock:
-            self.path.parent.mkdir(parents=True, exist_ok=True)
+    def database(self, *, reader=False):
+        with nullcontext() if reader and self.initialized else self.lock:
+            if not self.initialized:
+                self.path.parent.mkdir(parents=True, exist_ok=True)
             with closing(sqlite3.connect(self.path, timeout=10)) as db:
                 db.row_factory = sqlite3.Row
                 db.create_function('casefold', 1, lambda value: value.casefold())
@@ -41,6 +47,7 @@ class NewsStore:
                 db.create_function('news_priority', 2, priority_reason, deterministic=True)
                 db.create_function('news_banks', 5, lambda *args: '|'.join(policy_currencies(*args)), deterministic=True)
                 if not self.initialized:
+                    db.execute('PRAGMA journal_mode=WAL')
                     db.executescript('''
                         CREATE TABLE IF NOT EXISTS sources (
                             id TEXT PRIMARY KEY, name TEXT NOT NULL, url TEXT NOT NULL UNIQUE,
@@ -51,7 +58,6 @@ class NewsStore:
                             title TEXT NOT NULL, summary TEXT NOT NULL, publisher TEXT NOT NULL,
                             url TEXT NOT NULL, published_at INTEGER, first_seen INTEGER NOT NULL,
                             UNIQUE(source_id, identity));
-                        CREATE INDEX IF NOT EXISTS news_time ON items(COALESCE(published_at, first_seen) DESC, id);
                         CREATE INDEX IF NOT EXISTS news_source ON items(source_id);
                         CREATE INDEX IF NOT EXISTS news_url ON items(url);
                         CREATE TABLE IF NOT EXISTS migrations (name TEXT PRIMARY KEY);
@@ -66,6 +72,20 @@ class NewsStore:
                             retry_at INTEGER NOT NULL, failures INTEGER NOT NULL,
                             PRIMARY KEY(source_id,url,start,end));
                     ''')
+                    db.execute(f'CREATE INDEX IF NOT EXISTS news_timeline ON items({TIMELINE.replace("i.", "")},id)')
+                    db.execute('DROP INDEX IF EXISTS news_time')
+                    db.execute('CREATE TABLE IF NOT EXISTS reader_revision (value INTEGER NOT NULL)')
+                    db.execute('INSERT INTO reader_revision SELECT 0 WHERE NOT EXISTS (SELECT 1 FROM reader_revision)')
+                    for table, operations in (
+                        ('items', ('INSERT', 'UPDATE', 'DELETE')),
+                        ('pins', ('INSERT', 'UPDATE', 'DELETE')),
+                        ('sources', ('INSERT', 'DELETE', 'UPDATE OF name,url')),
+                    ):
+                        for operation in operations:
+                            trigger = f'reader_{table}_{operation.split()[0].lower()}'
+                            when = ' WHEN OLD.name IS NOT NEW.name OR OLD.url IS NOT NEW.url' if operation == 'UPDATE OF name,url' else ''
+                            db.execute(f'CREATE TRIGGER IF NOT EXISTS {trigger} AFTER {operation} ON {table}{when}'
+                                       ' BEGIN UPDATE reader_revision SET value=value+1; END')
                     db.executescript(SCHEMA)
                     item_columns = {row['name'] for row in db.execute('PRAGMA table_info(items)')}
                     if 'previous_check_at' not in item_columns:
@@ -132,7 +152,10 @@ class NewsStore:
                 db.execute('''INSERT INTO items(id,source_id,identity,title,summary,publisher,url,published_at,first_seen,previous_check_at)
                     VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(source_id,identity) DO UPDATE SET
                     title=excluded.title,summary=excluded.summary,publisher=excluded.publisher,url=excluded.url,
-                    published_at=COALESCE(excluded.published_at,items.published_at)''',
+                    published_at=COALESCE(excluded.published_at,items.published_at)
+                    WHERE excluded.title IS NOT items.title OR excluded.summary IS NOT items.summary
+                       OR excluded.publisher IS NOT items.publisher OR excluded.url IS NOT items.url
+                       OR COALESCE(excluded.published_at,items.published_at) IS NOT items.published_at''',
                     (source['id'] + ':' + item['identity'], source['id'], item['identity'], item['title'], item['summary'],
                      item['publisher'], item['url'], item['published_at'], now, current['last_success'] if update_status and not known else None))
                 # Historical imports and subsequent edits never create live alerts.
@@ -225,32 +248,85 @@ class NewsStore:
         where = ' WHERE ' + ' AND '.join(clauses) if clauses else ''
         direction = 'ASC' if order == 'oldest' else 'DESC'
         sort_column = 'first_seen' if sort_by == 'collected' else 'timeline_at'
-        with self.database() as db:
-            # Deduplicate overlapping feeds after filtering, preserving per-provider browsing.
-            candidates = 'WITH candidates AS (SELECT i.*,' + TIMELINE + ' AS timeline_at,s.name AS source_name,s.url AS source_feed,p.url IS NOT NULL AS pinned,ROW_NUMBER() OVER (PARTITION BY i.url ORDER BY i.first_seen,i.id) AS duplicate FROM items i JOIN sources s ON s.id=i.source_id LEFT JOIN pins p ON p.url=i.url' + where + ') '
-            relation, selected = 'candidates', 'duplicate=1'
-            if mode == 'priority':
-                # Collapse title republication after URL deduplication. Different
-                # figures/directions, manual research and summary-only signals
-                # remain independent. All/P2 retain the wider research view.
-                candidates += ', grouped AS (SELECT *,ROW_NUMBER() OVER (PARTITION BY '
-                candidates += 'CASE WHEN pinned OR NOT news_clear_title(title) THEN url ELSE news_headline_key(title) END,'
-                candidates += 'CAST(timeline_at/86400000 AS INTEGER) ORDER BY first_seen,id) AS repeat FROM candidates WHERE duplicate=1) '
-                relation, selected = 'grouped', 'repeat=1'
-            total = db.execute(candidates + f'SELECT count(*) FROM {relation} WHERE {selected}', args).fetchone()[0]
-            if headlines_only:
-                if total > MAX_EXPORT_ITEMS:
-                    raise OverflowError(f'More than {MAX_EXPORT_ITEMS:,} headlines match. Choose a shorter range or fewer providers.')
-                rows = db.execute(candidates + f'SELECT title,url FROM {relation} WHERE {selected} ORDER BY {sort_column} {direction},id {direction}', args)
-                return {'items': [dict(row) for row in rows], 'total': total}
-            rows = db.execute(candidates + f'SELECT *,news_priority(title,summary) AS priority_reason FROM {relation} WHERE {selected}' +
-                              (' ORDER BY pinned DESC,' if priority else ' ORDER BY ') + f'{sort_column} {direction},id {direction} LIMIT ? OFFSET ?', [*args, limit, offset])
-            return {'items': [{**{key: value for key, value in dict(row).items() if key not in ('duplicate', 'repeat', 'source_feed')},
-                               'relevance': decision(row['title'], row['source_id'], row['url'], row['source_feed'], include, exclude, market_relevance, row['pinned'], filter_policy, row['summary'], row['published_at']),
-                               **policy_details(row['title'], row['summary'], row['source_id'], row['url'], row['source_feed'])} for row in rows], 'total': total}
+        # Sort and deduplicate narrow rows before loading the selected headlines and summaries.
+        candidates = (
+            f'WITH candidates AS (SELECT i.id,i.url,i.first_seen,{TIMELINE} AS timeline_at,'
+            'p.url IS NOT NULL AS pinned,ROW_NUMBER() OVER (PARTITION BY i.url ORDER BY i.first_seen,i.id) AS duplicate '
+            'FROM items i JOIN sources s ON s.id=i.source_id LEFT JOIN pins p ON p.url=i.url' + where + ')'
+        )
+        relation, selected = 'candidates', 'duplicate=1'
+        if mode == 'priority':
+            candidates += (
+                ', grouped AS (SELECT c.*,ROW_NUMBER() OVER (PARTITION BY '
+                'CASE WHEN c.pinned OR NOT news_clear_title(i.title) THEN c.url ELSE news_headline_key(i.title) END,'
+                'CAST(c.timeline_at/86400000 AS INTEGER) ORDER BY c.first_seen,c.id) AS repeat '
+                'FROM candidates c JOIN items i ON i.id=c.id WHERE c.duplicate=1)'
+            )
+            relation, selected = 'grouped', 'repeat=1'
+        candidates += f', matched AS MATERIALIZED (SELECT id,url,first_seen,timeline_at,pinned FROM {relation} WHERE {selected})'
+        order_by = f'p.{sort_column} {direction},p.id {direction}'
+        if headlines_only:
+            with self.database(reader=True) as db:
+                rows = db.execute(candidates + ' SELECT i.title,p.url FROM matched p JOIN items i ON i.id=p.id'
+                                  + f' ORDER BY {order_by} LIMIT ?', [*args, MAX_EXPORT_ITEMS + 1]).fetchall()
+            if len(rows) > MAX_EXPORT_ITEMS:
+                raise OverflowError(f'More than {MAX_EXPORT_ITEMS:,} headlines match. Choose a shorter range or fewer providers.')
+            return {'items': [dict(row) for row in rows], 'total': len(rows)}
+        if priority:
+            order_by = 'p.pinned DESC,' + order_by
+        sql = (candidates + f', page AS (SELECT p.* FROM matched p ORDER BY {order_by} LIMIT ? OFFSET ?)'
+               ' SELECT i.*,p.timeline_at,s.name AS source_name,s.url AS source_feed,p.pinned,totals.reader_total'
+               ' FROM (SELECT count(*) AS reader_total FROM matched) totals LEFT JOIN page p ON 1'
+               ' LEFT JOIN items i ON i.id=p.id LEFT JOIN sources s ON s.id=i.source_id'
+               f' ORDER BY {order_by}')
+        profile = (include, exclude, market_relevance, filter_policy)
+        return self._page(sql, (*args, limit, offset), profile)
+
+    def _page(self, sql, args, profile):
+        owner = False
+        try:
+            with self.database(reader=True) as db:
+                # Use the same SQLite snapshot for the revision and its rows.
+                db.execute('BEGIN')
+                revision = db.execute('SELECT value FROM reader_revision').fetchone()[0]
+                key = (revision, sql, args, profile)
+                with self.page_lock:
+                    pending = self.pages.get(key)
+                    if pending is None:
+                        owner = True
+                        pending = self.pages[key] = Future()
+                        if len(self.pages) > PAGE_CACHE_SIZE:
+                            self.pages.popitem(last=False)
+                    self.pages.move_to_end(key)
+                if owner:
+                    rows = db.execute(sql, args).fetchall()
+            if not owner:
+                return pending.result()
+            include, exclude, market_relevance, filter_policy = profile
+            items = []
+            for row in rows:
+                if row['id'] is None:
+                    break  # An empty page still carries the total for this scope.
+                title, summary, source, url, feed = (row[k] for k in ('title', 'summary', 'source_id', 'url', 'source_feed'))
+                item = {key: value for key, value in dict(row).items() if key not in ('source_feed', 'reader_total')}
+                item.update(priority_reason=priority_reason(title, summary),
+                            relevance=decision(title, source, url, feed, include, exclude, market_relevance,
+                                               row['pinned'], filter_policy, summary, row['published_at']),
+                            **policy_details(title, summary, source, url, feed))
+                items.append(item)
+            page = {'items': items, 'total': rows[0]['reader_total']}
+            pending.set_result(page)
+            return page
+        except BaseException as error:
+            if owner:
+                with self.page_lock:
+                    if self.pages.get(key) is pending:
+                        del self.pages[key]
+                pending.set_exception(error)
+            raise
 
     def export_headlines(self, **scope):
-        # One locked snapshot, all matching rows, same scopes and URL deduplication
+        # One SQLite snapshot, all matching rows, same scopes and URL deduplication
         # as the reader. No page walking while collection changes the list.
         page = self.query(**scope, headlines_only=True)
         text = '\n\n'.join(row['title'] + '\n' + row['url'] for row in page['items'])
@@ -315,3 +391,4 @@ def backup_news(source, destination):
     with closing(sqlite3.connect(path.resolve().as_uri() + '?mode=ro', uri=True)) as original:
         with closing(sqlite3.connect(target)) as copied:
             original.backup(copied)
+            copied.execute('PRAGMA journal_mode=DELETE')

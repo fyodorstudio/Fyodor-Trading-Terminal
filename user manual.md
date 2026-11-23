@@ -10,8 +10,13 @@ With Pepperstone-Demo connected, **Currency indices** includes synthetic
 against the other seven majors with equal geometric weights. Its base is 100
 at the broker session open on 6 January 2025. Candles use synchronized
 one-minute opens and closes. A line shows historical D1 closes where the chart
-has only daily data. Synthetic charts have no traded volume or broker quote
-for price alerts.
+has only daily data. Synthetic price alerts monitor the live index level
+calculated from all seven constituent Bid quotes. Alerts wait when any quote is
+missing or stale. Synthetic charts have no traded volume. Inspector icons follow
+the chart's own currency, such as GBP releases on GBPX.
+Inspector shows saved release dates with a blank Actual when the result is
+unavailable. MFDI uses grey markers for past releases without an actual on
+selected series. A last known schedule may differ from the final publication time.
 Pan or zoom to browse history. **Refocus** returns to the latest candles.
 Timeframe changes retain the selected dates and price bounds in either direction.
 Pairs remember their own price bounds; a new pair inherits proportional vertical
@@ -290,6 +295,8 @@ next day or week. Change the period mode and other ranking settings from the
 bottom dock. Click a ranking block in either Details or Bars
 to open that instrument's chart. Synthetic currency baskets open Market Watch
 with the currency code already entered in its search and the category set to All.
+Double-click a basket in Details or Bars to open its currency index chart
+when the symbol is available in Market Watch. Shift+Enter also opens the chart.
 Only the right panel flashes the whole instrument block when a displayed number
 changes: gray in light mode and pale gray in dark mode, fading out in 450 ms.
 Changing dates, filters, sort or view does not trigger flashes. Reduced-motion

@@ -42,7 +42,11 @@ try {
   const { useInspector } = await server.ssrLoadModule('./src/inspector/useInspector.ts')
   const { InspectorPanel } = await server.ssrLoadModule('./src/inspector/InspectorPanel.tsx')
   const { InspectorChartMarkers } = await server.ssrLoadModule('./src/inspector/InspectorChartMarkers.tsx')
-  rows = ['JPY', 'EUR', 'USD', 'GBP'].map(currency => {
+  const scopes = {
+    JPYX: 'JPY', EURX: 'EUR', USDX: 'USD', GBPX: 'GBP', CHFX: 'CHF', CADX: 'CAD', AUDX: 'AUD', NZDX: 'NZD',
+    'USDX-F': 'USD', JPN225: 'JPY', 'JPN225-F': 'JPY', XAUUSD: 'USD', 'XAUUSD-F': 'USD',
+  }
+  rows = [...new Set(Object.values(scopes))].map(currency => {
     const family = data.inspectorFamilies.find(f => f.currency === currency && f.category === 'inflation' && f.events.length)
     return { value_id: currency, event_id: family.events[0], currency, country_code: family.country, name: family.label,
       server_time_seconds: chartAt, chart_time_seconds: chartAt, release_at: at, availability: 'observed', period_seconds: 0,
@@ -56,7 +60,6 @@ try {
       React.createElement(InspectorPanel, { symbol, view: next, source: null, error: null, timeDisplay: utc }))
   }
   const render = (symbol, timeframe = 'H1') => React.act(async () => root.render(React.createElement(Harness, { symbol, timeframe })))
-  const scopes = { JPYX: 'JPY', EURX: 'EUR', USDX: 'USD', 'USDX-F': 'USD', JPN225: 'JPY', 'JPN225-F': 'JPY', XAUUSD: 'USD', 'XAUUSD-F': 'USD' }
   assert.equal(majorForexPairs.length, 28)
   for (const [symbol, currency] of Object.entries(scopes)) {
     assert.equal(forexPair(symbol), null, 'Instrument support must not change forex identities')
@@ -80,6 +83,22 @@ try {
     await action('Cancel')
     assert.equal(view.markers.length, 1, 'Cancel restores icons')
   }
+  const gbpReading = rows.find(row => row.currency === 'GBP')
+  const archived = { ...gbpReading, value_id: '101', server_time_seconds: chartAt - 3600, chart_time_seconds: chartAt - 3600,
+    release_at: at - 3600000, actual: null, availability: 'not-returned-by-latest-query' }
+  rows = [...rows, archived, { ...archived, value_id: '102' }]
+  await render('GBPX')
+  const archivedMarker = view.markers.find(marker => marker.time === chartAt - 3600)
+  assert.equal(archivedMarker.release.events.length, 1, 'Duplicate dropped schedules leave one reading')
+  assert.equal(archivedMarker.release.events[0].actual, null)
+  assert.match(host.querySelector('.inspector-chart-symbol').title, /Last known schedule/)
+  await React.act(async () => view.selectRelease(archivedMarker.release.id))
+  assert.match(host.querySelector('tbody').textContent, /—/)
+  assert.match(host.textContent, /Actual unavailable/)
+  rows = [...rows, { ...archived, value_id: '103', actual: .5, actual_override_source: 'https://www.ons.gov.uk/' }]
+  await render('NZDX'); await render('GBPX')
+  const correctedMarker = view.markers.find(marker => marker.time === chartAt - 3600)
+  assert.deepEqual(correctedMarker.release.events.map(event => event.actual), [.5], 'An official correction replaces archived blanks')
   for (const symbol of ['BTCUSD', 'EURUSDJPY', 'JPYXFAKE', 'XAUUSDT', 'USDX-PERP', 'JPN2250']) assert.equal(chartEventSymbol(symbol), null)
   // Save persists per instrument, while family selection is shared with FX.
   await render('JPYX')
@@ -136,7 +155,7 @@ try {
   await React.act(async () => root.render(null))
   assert.equal(timers.size, 0)
   assert.ok(requests.every(request => request.signal.aborted), 'Symbol switches/unmount cancel outstanding calendar work')
-  console.log('✓ Eight instrument charts: scoped broker reads, markers→raw tables, single-currency filters, Save/Cancel, shared FX families and independent appearance')
+  console.log('✓ Broker and synthetic charts: scoped calendar reads, markers→raw tables, single-currency filters, Save/Cancel, shared FX families and independent appearance')
 } finally {
   await React.act(async () => root.unmount()); await server.close(); await dom.happyDOM.close()
   for (const [key, descriptor] of previous) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key] }

@@ -17,6 +17,8 @@ export type EconomicCalendarEvent = {
   time_mode: number
   impact: 'none' | 'positive' | 'negative'
   actual: number | null
+  actual_override_source?: string
+  availability?: 'observed' | 'not-returned-by-latest-query'
   forecast: number | null
   previous: number | null
   revised_previous: number | null

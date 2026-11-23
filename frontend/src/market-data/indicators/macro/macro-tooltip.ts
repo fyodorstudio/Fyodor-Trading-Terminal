@@ -1,5 +1,5 @@
 import { macroCatalog } from './macro-catalog'
-import { macroActualDelta, macroValue, type MacroReading } from './macro-data'
+import { macroActualDelta, macroValue, type MacroMissing, type MacroReading } from './macro-data'
 
 function formatDelta(key: string, reading: MacroReading) {
   const delta = macroActualDelta(reading)
@@ -44,14 +44,23 @@ export function createMacroTooltip(container: HTMLElement) {
       const thead = document.createElement('thead'), tbody = document.createElement('tbody'); thead.append(head); tbody.append(values); table.append(thead, tbody)
       const time = document.createElement('time'); time.dateTime = new Date(reading.releasedAt).toISOString(); time.textContent = format(reading.releasedAt)
       element.append(title, table, time); element.hidden = false
+      if (reading.actualSource) {
+        const source = document.createElement('small')
+        source.textContent = 'Actual from official release'
+        source.title = reading.actualSource
+        element.append(source)
+      }
     },
-    showScheduled(items: { key: string; forecast?: number; releasedAt: number; format?: Pick<MacroReading, 'unit' | 'multiplier' | 'digits'> }[], format: (time: number) => string) {
+    showScheduled(items: { key: string; forecast?: number; releasedAt: number; missing?: MacroMissing; format?: Pick<MacroReading, 'unit' | 'multiplier' | 'digits'> }[], format: (time: number) => string) {
       element.replaceChildren()
       for (const item of items) {
         const title = document.createElement('strong'), forecast = document.createElement('p'), time = document.createElement('time')
         title.textContent = macroCatalog[item.key].controlLabel
-        forecast.textContent = `Forecast: ${item.forecast === undefined ? '—' : macroValue(item.key, item.forecast, item.format)}`
-        time.dateTime = new Date(item.releasedAt).toISOString(); time.textContent = format(item.releasedAt)
+        forecast.textContent = item.missing ? 'Actual unavailable'
+          : `Forecast: ${item.forecast === undefined ? '—' : macroValue(item.key, item.forecast, item.format)}`
+        time.dateTime = new Date(item.releasedAt).toISOString()
+        time.textContent = (item.missing?.lastKnown ? 'Last known schedule · ' : '')
+          + (item.missing?.dateOnly ? `${time.dateTime.slice(0, 10)} · Date only` : format(item.releasedAt))
         element.append(title, forecast, time)
       }
       element.hidden = false

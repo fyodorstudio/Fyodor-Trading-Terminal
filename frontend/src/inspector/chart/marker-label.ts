@@ -12,7 +12,9 @@ export function markerLabel(marker: InspectorMarker, timeDisplay: TimeDisplayPre
   const known = cache.get(marker)
   if (known) return known
   const time = releaseTimeLabel(marker.release, timeDisplay)
-  const value = { time, description: `${marker.release.currency} · ${time} · ${marker.release.label}` }
+  const archived = marker.release.events.some(event => event.availability === 'not-returned-by-latest-query')
+    && marker.release.events.every(event => event.actual === null)
+  const value = { time, description: `${marker.release.currency} · ${time} · ${marker.release.label}${archived ? ' · Last known schedule' : ''}` }
   cache.set(marker, value)
   return value
 }

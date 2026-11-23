@@ -77,7 +77,7 @@ export function useTerminalWorkspace() {
   const brokerId = bridge.brokerId
   const quote = marketData.symbols.find((item) => item.symbol === activeSymbol) ?? null
   const macroState = useMacroIndicator(activeSymbol, brokerId)
-  const priceAlerts = usePriceAlerts(brokerId, marketData.brokerSymbols, mt5Connected && marketData.marketWatchStatus === 'live')
+  const priceAlerts = usePriceAlerts(brokerId, marketData.symbols, mt5Connected && marketData.marketWatchStatus === 'live')
   const addPriceAlert = priceAlerts.addAlert
   const enablePriceAlertSound = priceAlerts.enableSound
   const priceAlertSoundEnabled = priceAlerts.playSound
@@ -149,7 +149,7 @@ export function useTerminalWorkspace() {
     (tool: DrawingToolId, points: ChartDrawingPoint[]) => {
       if (tool === 'price-alert') {
         setLeftDockTab('price-alerts'); openMarketWatch()
-        if (!brokerId || quote?.synthetic || !points[0]) return ''
+        if (!brokerId || !points[0]) return ''
         const id = addPriceAlert(activeSymbol, points[0].price, quote?.precision ?? 5)
         if (id) appendActivity('Drawing', 'Price alert created', `${activeSymbol} · ${points[0].price.toFixed(quote?.precision ?? 5)}`)
         return id
@@ -158,13 +158,12 @@ export function useTerminalWorkspace() {
       appendActivity('Drawing', 'Drawing created', `${activeSymbol} ${timeframe} · ${tool}`)
       return drawingId
     },
-    [activeSymbol, addDrawing, appendActivity, timeframe, addPriceAlert, brokerId, quote?.precision, quote?.synthetic, openMarketWatch],
+    [activeSymbol, addDrawing, appendActivity, timeframe, addPriceAlert, brokerId, quote?.precision, openMarketWatch],
   )
 
   const chooseDrawingTool = (tool: DrawingToolId | null) => {
     if (tool === 'price-alert') {
       setLeftDockTab('price-alerts'); openMarketWatch()
-      if (quote?.synthetic) return
       if (priceAlertSoundEnabled) void enablePriceAlertSound()
     }
     setActiveDrawingTool(tool)

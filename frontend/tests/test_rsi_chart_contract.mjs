@@ -31,7 +31,7 @@ dom.HTMLCanvasElement.prototype.getContext = function () {
     beginPath() { this.fixtureStart = undefined; this.fixtureEnd = undefined },
     moveTo(x, y) { this.fixtureStart = [x, y] }, lineTo(x, y) { this.fixtureEnd = [x, y] },
     arc(x, y, radius) {
-      if (radius === 4) laneDots.push({ x, y, color: this.fillStyle })
+      if (radius === 4) laneDots.push({ x, y, color: this.fillStyle, stroke: this.strokeStyle })
       if (radius === 6.5) forecastRings.push({ x, y, radius })
       if (radius === 6) forecastCurveRings.push({ x, y, radius, color: this.strokeStyle, alpha: this.globalAlpha })
     },
@@ -1034,6 +1034,14 @@ try {
   assert.equal(releaseBadges.some(row => Math.abs(row.x - expectedFutureX) < 0.01), false, 'N off hides future value text')
   assert.ok(laneDots.some(row => Math.abs(row.x - expectedFutureX) < 0.01), 'The future forecast retains a hoverable marker when N is off')
   assert.deepEqual(coreLine.data(), upcomingData); closeRange(chart.timeScale().getVisibleLogicalRange(), upcomingDates)
+  const missingAt = macroBars.at(-5).time, missingX = chart.timeScale().timeToCoordinate(missingAt)
+  macro = { ...beforeUpcoming, missing: [{ key: 'coreCpi', time: missingAt, releasedAt: Date.now() - 86400000, dateOnly: false, lastKnown: true }],
+    preferences: { ...beforeUpcoming.preferences, series: { ...beforeUpcoming.preferences.series,
+      coreCpi: { ...beforeUpcoming.preferences.series.coreCpi, forecastVisible: false } } } }
+  laneDots.length = 0; await render({ macro })
+  assert.ok(laneDots.some(row => Math.abs(row.x - missingX) < .01 && row.stroke === '#6b7280'),
+    'A missing historical actual draws a grey marker with forecasts disabled')
+  assert.deepEqual(coreLine.data(), upcomingData, 'A missing actual does not enter the numeric series')
   macro = beforeUpcoming; await render({ macro })
   // Native drawing contracts: a transient primitive overlay never contributes
   // forecast values/timestamps to any series or to the independently bound axes.

@@ -3,7 +3,7 @@ from __future__ import annotations
 from queue import Empty
 from typing import Any
 
-from .currency_indices import SERVER, SYMBOLS, CurrencyIndexHistory, index_quotes
+from .currency_indices import SERVER, SYMBOLS, CurrencyIndexHistory
 from .market_data import read_market_watch, read_ohlc
 
 
@@ -72,7 +72,7 @@ def run_mt5_adapter(
                     result = read_market_watch(mt5)
                     account = mt5.account_info()
                     if account and account.server == SERVER:
-                        result = [row for row in result if row["symbol"] not in SYMBOLS] + index_quotes()
+                        result = [row for row in result if row["symbol"] not in SYMBOLS] + index_history.quotes(mt5, account)
                 elif operation == "ohlc":
                     symbol = str(arguments["symbol"])
                     timeframe = str(arguments["timeframe"])

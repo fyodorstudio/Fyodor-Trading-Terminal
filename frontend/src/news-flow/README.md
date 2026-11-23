@@ -22,11 +22,12 @@ models, classification results and server-backed notification settings.
 
 ## Reader behavior
 
-Tabs are All, Priority 1, Priority 2 and Excluded. Priority 1 holds strict catalyst
-alerts and manual stars; Priority 2 holds other relevant context and research. The
-two priority tabs are disjoint. Classification comes from the backend; the frontend
-uses the result for labels, colours and filtering. [Filter rules](../../../storage/news_flow/RELEVANCE.md)
-describe the shared classifier. `relevance.json` supplies tag defaults and aliases.
+The Priority 1, Priority 2 and Excluded checkboxes can be combined. Selecting all
+three shows every tier. Priority 1 holds strict catalysts and manual stars.
+Priority 2 holds other relevant context and research. The frontend uses the
+backend classification for labels, colours and filtering.
+[Filter rules](../../../storage/news_flow/RELEVANCE.md) describe the shared
+classifier. `relevance.json` supplies tag defaults and aliases.
 
 Provider, date, classification and text search apply before server pagination and
 copying. Copy exports headlines and links across all matching pages for a rolling

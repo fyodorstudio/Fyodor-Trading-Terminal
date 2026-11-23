@@ -6,6 +6,7 @@ import { sameCalendarRows } from './calendar-snapshot-identity'
 
 export type StoredCalendarEvent = EconomicCalendarEvent & {
   chart_time_seconds: number | null
+  chart_clock_profile?: string | null
   availability: 'observed' | 'not-returned-by-latest-query'
 }
 type Coverage = Record<string, { missing: number[][] }>
