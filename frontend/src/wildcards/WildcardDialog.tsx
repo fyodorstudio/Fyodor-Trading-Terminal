@@ -26,8 +26,11 @@ export function WildcardDialog() {
   }
   async function submit(event: FormEvent) {
     event.preventDefault()
-    try { await mutate({ ...draft, at: time ? new Date(`${draft.date}T${time}+07:00`).toISOString() : null }, source?.entry?.id) }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not save Wildcard') }
+    const { date, title, details, url, archived } = draft
+    try {
+      const at = time ? new Date(`${date}T${time}+07:00`).toISOString() : null
+      await mutate({ date, at, title, details, url, archived }, source?.entry?.id)
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not save Wildcard') }
   }
   async function remove() {
     try { await mutate(null, source!.entry!.id) }

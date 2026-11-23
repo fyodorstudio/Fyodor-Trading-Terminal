@@ -13,9 +13,11 @@ dom.requestAnimationFrame=fn=>{frames.set(++sequence,fn);return sequence};dom.ca
 dom.setTimeout=(fn,ms)=>{timers.set(++sequence,{fn,ms});return sequence};dom.clearTimeout=id=>timers.delete(id)
 const now=Date.parse('2026-11-14T10:00:00Z'), originalNow=Date.now; Date.now=()=>now
 let saved={schema:1,revision:0,items:[]}, fail=false, calls=[]
+const writableFields = new Set(['date', 'at', 'title', 'details', 'url', 'archived', 'expected_revision'])
 globalThis.fetch=async(url,options={})=>{
   calls.push([url,options]);if(fail&&options.method)return{ok:false,status:503,json:async()=>({detail:'Failed'})}
   if(options.method){const body=options.body?JSON.parse(options.body):null;const revision=body?.expected_revision??Number(new URL(url,'http://localhost').searchParams.get('expected_revision'))
+    if (body && Object.keys(body).some(field => !writableFields.has(field))) return { ok: false, status: 422 }
     if(revision!==saved.revision)return{ok:false,status:409,json:async()=>({detail:'Conflict'})}
     const id=new URL(url,'http://localhost').pathname.split('/').at(-1)
     if(options.method==='POST')saved.items.push({id:String(++sequence),...body})
@@ -53,11 +55,13 @@ try{
   await render();await flush();assert.match(host.textContent,/No wildcards for this selection/)
   await click(button('Add wildcard'));await change('Wildcard title','Manual headline');await change('Wildcard details','My notes <script>text</script>');await change('Wildcard time','10:15:00');await submit();await flush()
   assert.equal(saved.items.length,1);assert.equal(saved.items[0].at,'2026-11-14T03:15:00.000Z');assert.equal(host.querySelector('script'),null)
+  const originalId = saved.items[0].id
   assert.match(host.querySelector('.detail-wildcards').textContent,/Manual headline/)
   assert.ok(host.querySelector('[aria-label="Wildcard: Manual headline"]'))
   await click(host.querySelector('[aria-label="Wildcard: Manual headline"]'));await change('Wildcard title','Edited headline');fail=true;await submit()
   assert.match(host.querySelector('[role="alert"]').textContent,/draft is retained/);assert.equal(saved.items[0].title,'Manual headline')
   fail=false;await submit();await flush();assert.equal(saved.items[0].title,'Edited headline');assert.match(host.querySelector('.detail-wildcards').textContent,/Edited headline/)
+  assert.equal(saved.items[0].id, originalId, 'Saving an edit updates the existing Wildcard')
   await click(button('Edit / Delete'));await change('Wildcard title','Cancelled');await click(button('Cancel'));assert.equal(saved.items[0].title,'Edited headline')
   await React.act(async()=>state.setPlacing(true));assert.equal(clickListeners.size,1)
   await React.act(async()=>{for(const fn of clickListeners)fn({point:{x:180,y:100},time:bars[1].time,paneIndex:0})})

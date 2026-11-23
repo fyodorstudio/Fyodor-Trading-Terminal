@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "revision": 11,
+  "items": [
+    {
+      "id": "66ce0d0ebc6b4412baac1c4975cd9a6f",
+      "date": "2026-11-14",
+      "at": "2026-11-13T21:30:00Z",
+      "title": "**Nov 14, 2026 – 6:03 PM WIB | Trump Iran De-escalation Report:**",
+      "details": "Reuters reports that Trump privately told advisers he may hold off further attacks on Iran unless new provocations occur, following calls for restraint from Saudi Arabia and Turkey. This reinforces the existing de-escalation narrative that contributed to falling oil prices and weaker safe-haven USD demand on Nov 9–10. However, no final decision has been made, and U.S. military options remain active. **Market interpretation: Potentially bearish USD and oil through improved risk sentiment, but largely consistent with previously known information. Monday's reaction is required to determine whether additional repricing occurs.**",
+      "url": "",
+      "archived": false
+    },
+    {
+      "id": "5a8dde802b6e4e8abc56a3481f74c7e0",
+      "date": "2026-11-10",
+      "at": "2026-11-10T09:00:00Z",
+      "title": "Christopher Waller — November 10, 2026",
+      "details": "What he actually said\n- Supports a 25-basis-point hike in December, even if inflation improves.\n- Would consider a 50-basis-point hike if core inflation remains around 0.3% monthly or higher.\n- Believes the economy and employment remain sufficiently strong, but inflation is too high.",
+      "url": "https://www.federalreserve.gov/newsevents/speech/waller20261110a.htm?utm_source=chatgpt.com",
+      "archived": false
+    },
+    {
+      "id": "289c5203dddb4795ba8fba50c49fe943",
+      "date": "2026-11-09",
+      "at": "2026-11-09T06:00:00Z",
+      "title": "Trump's de-escalation comments reduced geopolitical risk, oil prices plunged, risk appetite improved, and safe-haven demand for USD weakened.",
+      "details": "",
+      "url": "",
+      "archived": false
+    },
+    {
+      "id": "548c03dc28b7459faac79b111017ad84",
+      "date": "2026-11-09",
+      "at": "2026-11-08T22:00:00Z",
+      "title": "Nov 9, 2026 – 12:28 AM WIB | U.S.–Iran De-escalation:",
+      "details": "**Nov 9, 2026 – 12:28 AM WIB | U.S.–Iran De-escalation:** CNN reports Trump saying renewed military strikes against Iran are highly unlikely if peace negotiations progress. Reuters confirms at approximately 12:42 AM WIB. News arrives before the Monday forex reopening, potentially reducing geopolitical risk premiums, oil prices, and safe-haven USD demand. **Interpretation: Potential bearish USD catalyst, requiring confirmation from oil, Treasury yields, and DXY after the market opens.**",
+      "url": "",
+      "archived": false
+    },
+    {
+      "id": "ab74ca4402314031977c3e7f7b6a03dc",
+      "date": "2026-10-29",
+      "at": "2026-10-28T18:30:00Z",
+      "title": "Fed Remarks",
+      "details": "The Fed held interest rates at 3.75%–4.00%, as widely expected (~95% probability), with two members favoring a 25-bp hike. The FOMC statement was hawkish, highlighting stronger economic growth, persistent inflation, and a resilient labor market. However, Chair Warsh's remarks were relatively dovish, acknowledging that previous tightening was taking effect and emphasizing the need for more economic data before deciding on further hikes, without committing to a December increase. Overall, the decision was largely priced in, while the cautious guidance temporarily weakened December hike expectations.",
+      "url": "",
+      "archived": false
+    },
+    {
+      "id": "7a1989e20040439ab42903dc5f9b83fe",
+      "date": "2026-09-02",
+      "at": "2026-09-02T01:00:00Z",
+      "title": "September 2–8: The market started fearing much faster BoJ tightening",
+      "details": "",
+      "url": "",
+      "archived": false
+    },
+    {
+      "id": "c0ba5847f07a4d96b1d8f02d895d745e",
+      "date": "2026-08-03",
+      "at": "2026-08-02T21:00:00Z",
+      "title": "August 3: The coordinated action was publicly confirmed, and",
+      "details": "both governments signaled willingness to act again. USD/JPY briefly reached approximately 155.20.",
+      "url": "",
+      "archived": false
+    },
+    {
+      "id": "b5165514e0d147d6aaa64e1aa6087462",
+      "date": "2026-07-31",
+      "at": "2026-07-31T01:00:00Z",
+      "title": "Japan and the US conducted a rare coordinated intervention to support the yen.",
+      "details": "Simultaneously, Bank of Japan Governor Kazuo Ueda warned that inflation could overshoot the 2% target and indicated a possible September rate hike.",
+      "url": "",
+      "archived": false
+    },
+    {
+      "id": "3fd94ae0be614cb5ba4c478e524058c2",
+      "date": "2026-07-30",
+      "at": "2026-07-30T09:00:00Z",
+      "title": "Japan began selling dollars and buying yen in the foreign-exchange market.",
+      "details": " USD/JPY plunged as much as 3%, reaching approximately 158.34. Reuters reported abnormally large trading volumes.",
+      "url": "",
+      "archived": false
+    },
+    {
+      "id": "6946a540899f43d5a6a5f45a6be1ffd8",
+      "date": "2026-04-07",
+      "at": "2026-04-07T12:00:00Z",
+      "title": "Stocks surge, oil dives below $100 as Iran ceasefire sparks relief rally",
+      "details": "The US dollar (DXY) fell sharply on April 7–8, 2026, primarily because of a breakthrough in the US–Iran conflict: President Donald Trump announced a conditional two-week ceasefire with Iran.\n\nThe announcement reversed weeks of safe-haven buying, as traders began unwinding their long-dollar positions.\n\nThree factors drove the selloff:\n1. Lower geopolitical risk: The ceasefire reduced fears of further US–Iran military escalation, encouraging investors to move away from the dollar toward riskier assets.\n2. Oil prices collapsed: Expectations that the Strait of Hormuz could reopen sent oil prices sharply lower, reducing inflation fears.\n3. Fed expectations shifted: Lower expected inflation weakened the case for prolonged restrictive US monetary policy, contributing to falling bond yields and renewed expectations of a possible Fed rate cut.\nOn April 8, DXY fell roughly 1% to around 98.9, while EUR/USD climbed above 1.16.",
+      "url": "",
+      "archived": false
+    }
+  ]
+}

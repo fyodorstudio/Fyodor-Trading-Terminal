@@ -14,7 +14,10 @@ bridge/mql5/compile-*.log
 
 # Local calendar inventory, database and transfer staging.
 # Service code and setup instructions under storage/ remain tracked.
-/storage/data/
+/storage/data/*
+!/storage/data/wildcards/
+/storage/data/wildcards/*
+!/storage/data/wildcards/wildcards.json
 /storage/tests/.runtime/
 /config/calendar-overrides/publisher/.fyodor-storage.lock
 
