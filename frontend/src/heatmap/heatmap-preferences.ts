@@ -2,7 +2,7 @@ import { majorCurrencies } from '../economic-calendar/forex/currencies'
 import { heatmapFields, type HeatmapField, type HeatmapMode } from './heatmap-model'
 
 export type HeatmapPreferences = { fields: HeatmapField[]; copyFields: HeatmapField[]; matchFields: boolean; copyRows: string[] | null; copyFormat: 'summary' | 'candles'; rows: string[] | null; groupOrder: string[]; mode: HeatmapMode; shade: 'return' | 'relative'
-  rank: 'largest' | 'highest' | 'lowest' | 'unusual'; rankingSortVersion: 1; rankingView: 'details' | 'bars'; presets: { name: string; rows: string[]; groupOrder: string[] }[] }
+  rank: 'largest' | 'highest' | 'lowest' | 'unusual'; rankingSortVersion: 1; rankingView: 'details' | 'bars' | 'note'; presets: { name: string; rows: string[]; groupOrder: string[] }[] }
 const storageKey = 'fyodor.heatmap.v1'
 const validRow = (v: unknown): v is string => typeof v === 'string' && (v.startsWith('symbol:') && v.length > 7 && v.length <= 135
   || majorCurrencies.some(c => v === `basket:${c}`))
@@ -17,7 +17,7 @@ export function readHeatmapPreferences(broker: string): HeatmapPreferences {
     const fields = (value: unknown) => { const selected = heatmapFields.filter(f => Array.isArray(value) && value.includes(f)); return selected.length ? selected : [...heatmapFields] }
     return { fields: fields(v.fields), copyFields: fields(v.copyFields), matchFields: v.matchFields !== false, copyRows: Array.isArray(v.copyRows) ? rows(v.copyRows) : null, copyFormat: v.copyFormat === 'candles' ? 'candles' : 'summary', rows: Array.isArray(v.rows) ? rows(v.rows) : null, groupOrder: groups(v.groupOrder), mode: v.mode === 'weekly' ? 'weekly' : 'daily',
       // Adopt the new default once for older preferences; subsequent choices persist.
-      shade: v.shade === 'relative' ? 'relative' : 'return', rank: v.rankingSortVersion === 1 && ['largest', 'highest', 'lowest', 'unusual'].includes(v.rank) ? v.rank : 'largest', rankingSortVersion: 1, rankingView: v.rankingView === 'bars' ? 'bars' : 'details',
+      shade: v.shade === 'relative' ? 'relative' : 'return', rank: v.rankingSortVersion === 1 && ['largest', 'highest', 'lowest', 'unusual'].includes(v.rank) ? v.rank : 'largest', rankingSortVersion: 1, rankingView: v.rankingView === 'bars' || v.rankingView === 'note' ? v.rankingView : 'details',
       presets: Array.isArray(v.presets) ? v.presets.filter((p: { name?: unknown }) => p && typeof p.name === 'string' && p.name.trim())
         .slice(0, 20).map((p: { name: string; rows: unknown; groupOrder?: unknown }) => ({ name: p.name.slice(0, 60), rows: rows(p.rows), groupOrder: groups(p.groupOrder) })) : [] }
   } catch { return defaults }

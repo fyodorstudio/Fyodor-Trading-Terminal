@@ -25,6 +25,7 @@ import './heatmap.css'
 
 const tapeMemory = new Map<string, { left: number; top: number }>()
 const sessions = new Map<string, { date: string; pinned: boolean; month: string }>()
+const firstHeatmapDate = '2015-01-01'
 
 // Quote ticks do not invalidate the history, basket calculations or timeline.
 export function HeatmapDock({ symbols, broker, generation, active = true, connected = true, dockActive = active, rankingTarget = null, onCloseRanking, onOpenNews, onOpenRow }: { symbols: SymbolQuote[]; broker: string | null; generation: number; active?: boolean; connected?: boolean; dockActive?: boolean; rankingTarget?: HTMLElement | null; onCloseRanking?: () => void; onOpenNews?: (date: string) => void; onOpenRow?: (rowId: string) => void }) {
@@ -174,8 +175,21 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
   const missing = data ? requested.filter(s => !data.symbols[s]).length : requested.length
   const unavailable = data ? requested.filter(s => data.symbols[s] && data.symbols[s].availability !== 'available').length : 0
   const newsAction = onOpenNews && <button type="button" aria-label="Open news for selected heatmap date" disabled={eventMode || preferences.mode !== 'daily' || (!!broker && !brokerClockProfile(broker))} onClick={() => onOpenNews(view.date)}>News for this date</button>
+  const weekly = preferences.mode === 'weekly'
+  const firstRankingDate = weekly ? weekStart(firstHeatmapDate) : firstHeatmapDate
+  const lastRankingDate = weekly ? weekStart(today) : today
+  function stepRankingDate(direction: -1 | 1) {
+    const date = heatmapDate(Date.parse(selected) + direction * (weekly ? 7 : 1) * 86400_000)
+    clearSelection()
+    changeView(date < firstHeatmapDate ? firstHeatmapDate : date, true, true)
+  }
+  const rankingDates = rankingTarget && !eventMode ? {
+    previous: selected > firstRankingDate ? () => stepRankingDate(-1) : undefined,
+    next: selected < lastRankingDate ? () => stepRankingDate(1) : undefined,
+  } : undefined
+  const notePeriod = [broker, eventMode ? copyScope : preferences.mode, selected]
   const rankingView = <HeatmapRanking entries={ranking} fields={preferences.fields} preferences={preferences} onChange={option} onOpenRow={onOpenRow}
-    animate={!!rankingTarget} motionScope={`${copyScope}:${selected}`}
+    animate={!!rankingTarget} motionScope={`${copyScope}:${selected}`} dateNavigation={rankingDates} notePeriod={notePeriod}
     heading={`${eventMode ? selected === 'window' ? 'Window summary' : jakartaTime(Date.parse(selected)) : selected}${!eventMode && preferences.mode === 'weekly' ? ' · Week' : ''}`}
     status={`${eventMode ? 'Common anchor · ' + jakartaTime(eventWindow.anchor) : view.pinned ? 'Pinned' : 'Following hover'}${chosenPeriod?.partial ? ' · In progress' : ''}`}
     groups={groups} group={effectiveGroup} onGroup={setRankGroup} eventMode={eventMode} actions={<>
@@ -203,8 +217,8 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
     <button type="button" aria-pressed={eventMode} onClick={()=>{setEventMode(true);if(preferences.rank==='unusual')option({...preferences,rank:'largest'})}}>Event window</button>
   </div>
   const eventControls = eventMode && <EventWindowControls key={eventWindow.from+':'+eventWindow.through+':'+eventWindow.anchor+':'+eventWindow.minutes} value={eventWindow} onApply={next=>{setEventWindow(next);setEventSelected('window');setFocusRequest(n=>n+1)}} />
-  const dateControl = !eventMode && <label>Date <input aria-label="Heatmap date" type="date" min="2015-01-01" max={today} value={view.date} onChange={e=>{
-    const day=e.target.value;if(day>='2015-01-01'&&day<=today&&Number.isFinite(Date.parse(day))){clearSelection();changeView(day,true,true)}
+  const dateControl = !eventMode && <label>Date <input aria-label="Heatmap date" type="date" min={firstHeatmapDate} max={today} value={view.date} onChange={e=>{
+    const day=e.target.value;if(day>=firstHeatmapDate&&day<=today&&Number.isFinite(Date.parse(day))){clearSelection();changeView(day,true,true)}
   }}/></label>
   function changeMonth(next: string) {
     if (!/^\d{4}-\d{2}$/.test(next) || Number(next.slice(5)) < 1 || Number(next.slice(5)) > 12 || next < '2015-01' || next > maxMonth) return

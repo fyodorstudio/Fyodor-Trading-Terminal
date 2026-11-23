@@ -54,6 +54,11 @@
 .heatmap-ranking header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 .heatmap-ranking header > div:first-child { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .heatmap-ranking header strong { color: var(--text-strong); font-size: 12px; }
+.heatmap-ranking-heading { display: flex; align-items: center; gap: 6px; }
+.heatmap-ranking-date-nav { display: inline-flex; flex-shrink: 0; }
+.heatmap-ranking-date-nav button { min-width: 20px; min-height: 22px; padding: 0 5px; }
+.heatmap-ranking-date-nav button:first-child { border-radius: 5px 0 0 5px; }
+.heatmap-ranking-date-nav button:last-child { border-left: 0; border-radius: 0 5px 5px 0; }
 .heatmap-ranking .heatmap-segmented { font-size: 11px; }
 .heatmap-ranking small { font-size: 10px; color: var(--text-muted); }
 .heatmap-ranking-controls { display: grid; grid-template-columns: minmax(0, .7fr) minmax(0, 1.3fr); gap: 6px; padding: 12px 0 8px; }
@@ -69,6 +74,9 @@
 .heatmap-ranking-name { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; min-width: 0; }
 .heatmap-ranking-name > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-strong); font-weight: 600; }
 .heatmap-ranking-name > small { flex-shrink: 0; }
+.heatmap-ranking-note { display: grid; gap: 4px; padding: 0 2px 8px; }
+.heatmap-ranking-note textarea { width: 100%; min-width: 0; resize: vertical; }
+.heatmap-ranking-note [role='alert'] { color: var(--negative); }
 .heatmap-ranking .heatmap-ohlc { gap: 5px; text-align: right; font-size: 10px; }
 .heatmap-ranking .heatmap-ohlc small { display: inline; margin-right: 3px; color: var(--text-muted); font-size: 9px; }
 .heatmap-ranking .positive { color: var(--positive); }

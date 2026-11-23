@@ -264,8 +264,10 @@ Changing months clears highlights. **Event window** provides
 intraday views between selected times; highlights override its default summary
 or candle-sequence export format.
 
-Ranking offers **Details** (O/H/L/C) and **Bars** (net C return), with the same
+Ranking offers **Details** (O/H/L/C), **Bars** (net C return), and **Note**, with the same
 remembered choice in the bottom dock and standalone **Heatmap Ranking** panel.
+In **Note**, click an instrument or basket to expand its text box. Notes save
+automatically in this browser for the broker, instrument, and selected period.
 Bars share a symmetric scale around zero. The default **Largest moves** sort ranks
 gainers and losers by the size of their net percentage return, without a multiplier.
 Other sort choices are remembered after this default is introduced.
@@ -274,8 +276,9 @@ keeps bars measured in return percent and shows unusualness separately in ×.
 Ranking follows the active period and group, independently of highlighted cells;
 **Copy displayed ranking** copies its visible fields in displayed order.
 It adds one copy timestamp in UTC+7 and omits repeated per-instrument Baseline/Through dates.
-The standalone panel is a light ranking view; period, date, instrument and export
-settings stay in the bottom dock. Click a ranking block in either Details or Bars
+Use the arrows beside the date in the standalone panel to pin the previous or
+next day or week. Change the period mode and other ranking settings from the
+bottom dock. Click a ranking block in either Details or Bars
 to open that instrument's chart. Synthetic currency baskets open Market Watch
 with the currency code already entered in its search and the category set to All.
 Only the right panel flashes the whole instrument block when a displayed number
