@@ -11,9 +11,10 @@ import { editRectangleCorner } from '../rectangle-drawing-geometry'
 import { useDrawingCrosshair } from '../useDrawingCrosshair'
 import type { ChartDrawingOverlayProps, EditingHandle } from './drawing-overlay-contract'
 import { shiftEditedDrawingPoints } from './drawing-edit-math'
+import { trendAlertPoints, trendAlertPrice } from '../../../price-alerts/trend-alert'
 
 function constrainDrag(tool: DrawingToolId | null, points: ChartDrawingPoint[], shift: boolean) {
-  if (!shift || (tool !== 'trend-line' && tool !== 'price-note') || points.length !== 2) return points
+  if (!shift || (tool !== 'trend-line' && tool !== 'trend-price-alert' && tool !== 'price-note') || points.length !== 2) return points
   return [points[0], { ...points[1], price: points[0].price }]
 }
 
@@ -28,6 +29,7 @@ export function useDrawingInteraction({
   symbol = '',
   precision = 5,
   onSelectDrawing,
+  onDrawingDragChange,
   onCreateDrawing,
   onUpdateDrawingPoint,
   onUpdateDrawingPoints,
@@ -42,6 +44,8 @@ export function useDrawingInteraction({
   const pathPointsRef = useRef<ChartDrawingPoint[]>([])
   const editingHandleRef = useRef<EditingHandle | null>(null)
   const cancelRef = useRef<() => void>(() => {})
+  const dragChangeRef = useRef(onDrawingDragChange)
+  useEffect(() => { dragChangeRef.current = onDrawingDragChange }, [onDrawingDragChange])
   const [draft, setDraft] = useState<ChartDrawingPoint[]>([])
   const viewport = useDrawingViewport(chartApi, seriesApi, overlayRef)
   const clipId = useId()
@@ -105,6 +109,28 @@ export function useDrawingInteraction({
       return x === null || y === null ? null : { x, y, price: point.price }
     })
     return points.some((point) => point === null) ? [] : points as ChartDrawingScreenPoint[]
+  }
+
+  const toTrendPath = (drawing: ChartDrawingRecord, endpoints: ChartDrawingScreenPoint[]) => {
+    if (drawing.tool !== 'trend-price-alert' || endpoints.length !== 2) return
+    const trend = trendAlertPoints(drawing.points)
+    if (!trend) return
+    const start = coordinates.timeToLogical(trend[0].time), end = coordinates.timeToLogical(trend[1].time)
+    const visible = chartApi.timeScale().getVisibleLogicalRange()
+    if (start === null || end === null || !visible) return
+    const from = Math.max(start, visible.from - 1), to = Math.min(end, visible.to + 1)
+    if (from >= to) return
+    const times = [from]
+    // The chart compresses session gaps. Sample the same price function at
+    // the visible candle boundaries so the rendered segment follows it there.
+    for (let index = Math.max(0, Math.floor(from) + 1); index < Math.min(to, bars.length); index++) times.push(index)
+    times.push(to)
+    return times.flatMap(logical => {
+      const time = coordinates.logicalToTime(logical)
+      if (time === null) return []
+      const x = coordinates.timeToX(time), y = seriesApi.priceToCoordinate(trendAlertPrice(trend, time))
+      return x === null || y === null ? [] : [`${x},${y}`]
+    }).join(' ')
   }
 
   const resetDraft = () => {
@@ -273,7 +299,7 @@ export function useDrawingInteraction({
     event.stopPropagation()
     const drawing = drawings.find((candidate) => candidate.id === drawingId)
     const point = eventToDataPoint(event)
-    if (!drawing || !point) return
+    if (!drawing || !point || drawing.alertStatus === 'triggered') return
     const captureTarget = overlayRef.current?.setPointerCapture ? overlayRef.current : event.currentTarget
     captureTarget.setPointerCapture?.(event.pointerId)
 
@@ -299,10 +325,12 @@ export function useDrawingInteraction({
       pointerId: event.pointerId,
       tool: drawing.tool,
     }
+    if (drawing.tool === 'trend-price-alert') dragChangeRef.current?.(drawingId)
     onSelectDrawing(drawingId)
   }
 
   const releaseCapture = (editing: EditingHandle) => {
+    if (editing.tool === 'trend-price-alert') dragChangeRef.current?.(null)
     if (editing.captureTarget.hasPointerCapture?.(editing.pointerId)) editing.captureTarget.releasePointerCapture(editing.pointerId)
   }
 
@@ -326,7 +354,7 @@ export function useDrawingInteraction({
   }, [activeTool])
 
   useEffect(() => {
-    if (activeTool !== 'trend-line' && activeTool !== 'price-note') return
+    if (activeTool !== 'trend-line' && activeTool !== 'trend-price-alert' && activeTool !== 'price-note') return
     const updateShift = (event: KeyboardEvent) => {
       if (event.key === 'Shift' && dragDraftRef.current.length) {
         setDraft(constrainDrag(activeTool, dragDraftRef.current, event.type === 'keydown'))
@@ -353,5 +381,5 @@ export function useDrawingInteraction({
     ? { id: 'draft', symbol, timeframe: timeframe ?? 'H4', tool: activeTool, points: normalizedDraft, createdAt: 0 }
     : null
 
-  return { activeTool, cancelInteraction, clipId, continueInteraction, crosshair, draft, draftDrawing, drawings, editingTextId, finishInteraction, handleContextMenu, onDeleteDrawing, onDeleteSelectedDrawing, onSelectDrawing, onUpdateDrawingText, overlayRef, precision, selectedDrawingId, setEditingTextId, startHandleEdit, startInteraction, toScreenPoints, viewport }
+  return { activeTool, cancelInteraction, clipId, continueInteraction, crosshair, draft, draftDrawing, drawings, editingTextId, finishInteraction, handleContextMenu, onDeleteDrawing, onDeleteSelectedDrawing, onSelectDrawing, onUpdateDrawingText, overlayRef, precision, selectedDrawingId, setEditingTextId, startHandleEdit, startInteraction, toScreenPoints, toTrendPath, viewport }
 }

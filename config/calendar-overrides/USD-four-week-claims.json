@@ -8,28 +8,36 @@
       "value_id": "317688",
       "source_url": "https://www.dol.gov/sites/dolgov/files/OPA/newsreleases/ui-claims/20261624.pdf",
       "set": {
-        "actual": 196.75
+        "actual": 196.75,
+        "previous": 197.75,
+        "revised_previous": 198
       }
     },
     {
       "value_id": "321998",
       "source_url": "https://www.dol.gov/sites/dolgov/files/OPA/newsreleases/ui-claims/20261680.pdf",
       "set": {
-        "actual": 194.75
+        "actual": 194.75,
+        "previous": 196.75,
+        "revised_previous": 197
       }
     },
     {
       "value_id": "321999",
       "source_url": "https://www.dol.gov/sites/dolgov/files/OPA/newsreleases/ui-claims/20261694.pdf",
       "set": {
-        "actual": 195.25
+        "actual": 195.25,
+        "previous": 194.75,
+        "revised_previous": 195.25
       }
     },
     {
       "value_id": "322000",
       "source_url": "https://oui.doleta.gov/press/2026/111926.pdf",
       "set": {
-        "actual": 197.75
+        "actual": 197.75,
+        "previous": 195.25,
+        "revised_previous": 195.75
       }
     }
   ]

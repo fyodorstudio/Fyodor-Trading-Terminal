@@ -77,7 +77,7 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
     currencyTabs.append(button); return button
   })
   legend.setAttribute('aria-label', 'MFDI values')
-  legend.title = 'Macro Factor Data Inspector · Stored actuals, latest vintages; verified official Fed upper bounds where saved. Hover a release dot for actual, forecast, previous and release time. Release dots align to their containing candle; the latest release wins within one candle. Monthly lines join released points. Each selected event has an independent scale. Overlapping heights do not imply comparable magnitudes.'
+  legend.title = 'Hover an MFDI line or release dot for actual, forecast, previous and release time. Release dots align to their containing candle. The latest release wins within one candle. Each series has an independent scale.'
   const controls = document.createElement('div'); controls.className = 'macro-controls'
   let toggleMetric: (metric: MacroMetric) => void = () => {}, selectMetric: (metric: MacroMetric) => void = () => {}
   let toggleForecast: (metric: MacroMetric) => void = () => {}
@@ -212,7 +212,7 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
   let numberLabels: Partial<Record<MacroMetric, Map<number, string>>> = {}
   let latestTime: number | undefined, hover: number | null = null, frame: number | null = null, destroyed = false
   let step = 3600
-  let releaseHover: { key: string; time: Time; reading: MacroReading } | undefined
+  let releaseHover: { key: string; time: Time; reading: MacroReading; anchor?: { x: number; y: number } } | undefined
   let forecastHover: { time: Time; reading: MacroReading } | undefined
   let requestUpdate = () => {}
   let linked = false, fittingAll = false, laneMode = false
@@ -273,8 +273,11 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
     if (!releaseHover || !indicator) { releaseTooltip.hide(); return }
     const { key, reading } = releaseHover
     const primary = key === 'rate' ? fedForecast(reading) : undefined
+    const now = Date.now()
+    const upcoming = releaseMarkers.all().find(marker => marker.key === key && !marker.actual
+      && !marker.missing && marker.releasedAt > now && marker.forecast !== undefined)
     releaseTooltip.show(key, primary ? { ...reading, forecastSource: primary.source } : reading,
-      primary?.value ?? reading.forecast, formatRelease, indicator.preferences.colorMode === 'ap-delta')
+      primary?.value ?? reading.forecast, formatRelease, indicator.preferences.colorMode === 'ap-delta', upcoming)
   }
   type Bounds = { from: number; to: number }
   const bounds = new Map<MacroAxis, Bounds>()
@@ -476,11 +479,20 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
 
   }
   const onHover = (event: MouseEventParams<Time>) => {
-    hover = event.point ? typeof event.time === 'number' ? event.time : NaN : null
-    const hit = hitDot(event)
-    releaseHover = hit ? { key: hit.key, time: hit.time, reading: hit.reading } : undefined
-    pendingHover = hit ? undefined : hitScheduled(event)
-    forecastHover = hit?.key === 'rate' ? { time: hit.time, reading: hit.reading } : undefined
+    const nextTime = event.point ? typeof event.time === 'number' ? event.time : NaN : null
+    const dot = hitDot(event)
+    const nextPending = dot ? undefined : hitScheduled(event)
+    const nextRelease: typeof releaseHover = dot ?? (nextPending ? undefined : hitLine(event))
+    // A chart paint can emit the same crosshair position again. Only a changed
+    // hover should schedule another paint.
+    if (Object.is(hover, nextTime)
+      && pendingHover?.key === nextPending?.key && pendingHover?.releasedAt === nextPending?.releasedAt
+      && releaseHover?.key === nextRelease?.key && releaseHover?.time === nextRelease?.time && releaseHover?.reading === nextRelease?.reading
+      && releaseHover?.anchor?.x === nextRelease?.anchor?.x && releaseHover?.anchor?.y === nextRelease?.anchor?.y) return
+    hover = nextTime
+    pendingHover = nextPending
+    releaseHover = nextRelease
+    forecastHover = dot?.key === 'rate' ? { time: dot.time, reading: dot.reading } : undefined
     if (frame === null) frame = window.requestAnimationFrame(() => { frame = null; updateLegend(); updateForecast(); requestUpdate() })
   }
   chart.subscribeCrosshairMove(onHover)
@@ -522,6 +534,53 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
   const hitScheduled = (event: MouseEventParams<Time>) => event.point && event.paneIndex === pane.paneIndex()
     ? pendingHits.find(hit => indicator && macroMetricVisible(indicator.preferences, hit.key) && (hit.missing || indicator.preferences.series[hit.key].forecastVisible)
       && indicator.preferences.series[hit.key].pointsVisible && Math.abs(event.point!.x - hit.x) <= hit.rx && Math.abs(event.point!.y - hit.y) <= hit.ry) : undefined
+  const hitLine = (event: MouseEventParams<Time>) => {
+    if (!indicator || !event.point || event.paneIndex !== pane.paneIndex()) return
+    const { x, y } = event.point
+    const top = laneMode ? laneControls.contentTop : 0, height = pane.getHeight()
+    if (y < top || y > height) return
+    const scale = chart.timeScale()
+    const preferred = event.hoveredInfo?.series ?? event.hoveredSeries
+    let hit: typeof releaseHover, closest = Infinity
+    for (const { key } of metricControls) {
+      const plot = plots[key]
+      if (!plot || !macroMetricVisible(indicator.preferences, key)) continue
+      const points = laneMode ? plot.segments : plot.line
+      let lo = 0, hi = points.length
+      while (lo < hi) {
+        const mid = (lo + hi) >>> 1
+        const coordinate = scale.timeToCoordinate(points[mid].time)
+        if (coordinate === null) break
+        if (coordinate <= x) lo = mid + 1
+        else hi = mid
+      }
+      const point = points[lo - 1]
+      if (!point) continue
+      const reading = plot.readings.get(point.time)
+      if (!reading) continue
+      let lineY = plotY(key, reading.value)
+      if (lineY === null) continue
+      // The lane guide spans the pane. Its latest published reading stays active
+      // past the last marker and through the scheduled forecast region.
+      if (!laneMode) {
+        const leftX = scale.timeToCoordinate(point.time)
+        if (leftX === null || leftX > x) continue
+        const next = plot.line[lo]
+        if (next) {
+          const rightX = scale.timeToCoordinate(next.time), rightY = plotY(key, next.value)
+          if (rightX === null || rightY === null || rightX <= leftX) continue
+          // Interpolate the screen position. The release details stay tied to the earlier reading.
+          if (!macroCatalog[key].carry) lineY += (rightY - lineY) * (x - leftX) / (rightX - leftX)
+        } else if (x > leftX) continue
+      }
+      const distance = Math.abs(y - lineY)
+      if (lineY < top || lineY > height || distance > 6 || distance > closest
+        || (distance === closest && preferred !== series[key])) continue
+      closest = distance
+      hit = { key, time: point.time, reading, anchor: { x, y: lineY } }
+    }
+    return hit
+  }
   const onClick = (event: MouseEventParams<Time>) => {
     const hit = hitDot(event)
     if (hit) {
@@ -628,7 +687,9 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
               context.strokeStyle = '#6b7280'
               context.beginPath(); context.moveTo(forecastX, y); context.lineTo(mediaSize.width, y); context.stroke()
             }
-          } else if (firstX !== null && lastX !== null) { context.beginPath(); context.moveTo(firstX, y); context.lineTo(lastX, y); context.stroke() }
+          } else if (firstX !== null && lastX !== null) {
+            context.beginPath(); context.moveTo(firstX, y); context.lineTo(lastX, y); context.stroke()
+          }
           if (style.pointsVisible) for (const point of plots[key]?.dots ?? []) {
             const x = chart.timeScale().timeToCoordinate(point.time)
             if (x === null || x < 0 || x > mediaSize.width) continue
@@ -752,8 +813,8 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
       else releaseTooltip.position(hit.x, hit.y, pane.getHTMLElement()?.offsetTop ?? chart.paneSize(0).height, chart.chartElement().clientWidth, chart.chartElement().clientHeight)
     }
     if (releaseHover && indicator) {
-      const { key, time, reading } = releaseHover
-      const x = chart.timeScale().timeToCoordinate(time), y = plotY(key, reading.value)
+      const { key, time, reading, anchor } = releaseHover
+      const x = anchor?.x ?? chart.timeScale().timeToCoordinate(time), y = anchor?.y ?? plotY(key, reading.value)
       const width = chart.paneSize(pane.paneIndex()).width
       if (!macroMetricVisible(indicator.preferences, key) || x === null || y === null || x < 0 || x > width || y < (laneMode ? laneControls.contentTop : 0) || y > pane.getHeight()) releaseTooltip.hide()
       else {

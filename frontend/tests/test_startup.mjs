@@ -2,6 +2,15 @@ import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { waitForServices } from '../scripts/wait-for-services.mjs'
+import { parseDesktopListeners } from '../scripts/clean-ports.mjs'
+
+assert.deepEqual(parseDesktopListeners([
+  'TCP    [::1]:5173             [::]:0          LISTENING       111',
+  'TCP    127.0.0.1:8001         0.0.0.0:0        LISTENING       222',
+  'TCP    127.0.0.1:8002         127.0.0.1:1010   ESTABLISHED     333',
+  'TCP    127.0.0.1:8003         0.0.0.0:0        LISTENING       444',
+].join('\r\n')), [{ port: 5173, pid: 111 }, { port: 8001, pid: 222 }],
+'Desktop port cleanup includes Vite on IPv6 and leaves the alarm worker to its own restart script')
 
 let clock = 0, attempts = 0
 const requests = [], logs = []

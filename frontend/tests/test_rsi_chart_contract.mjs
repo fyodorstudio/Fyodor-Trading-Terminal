@@ -1057,6 +1057,37 @@ try {
       time: point.time, paneIndex: macroPane.paneIndex(), seriesData: new Map(), hoveredInfo: { series: line }, ...extra }
     await React.act(async () => { for (const listener of [...nativeCrosshairListeners]) listener(event) }); await paint()
   }
+  const macroCanvas = () => macroPane.getHTMLElement().querySelector('td:nth-child(2) > div > canvas:last-of-type')
+  const moveMacroPointer = async (x, y) => {
+    const canvas = macroCanvas()
+    canvas.getBoundingClientRect = () => ({ left: 0, top: 0 })
+    for (const type of ['mouseenter', 'mousemove']) canvas.dispatchEvent(new dom.MouseEvent(type, { clientX: x, clientY: y, view: dom }))
+    await paint()
+  }
+  const leaveMacroPointer = async () => {
+    macroCanvas().dispatchEvent(new dom.MouseEvent('mouseleave', { view: dom }))
+    await paint()
+  }
+  macro = { ...macro, upcoming: [{ ...futurePackage, metrics: ['rate'], forecasts: { rate: 0 },
+    forecastSources: { rate: { name: 'Survey', url: 'https://example.com/survey' } } }] }
+  await render({ macro })
+  await hoverDot(rateLine, 80)
+  const carryTooltip = host.querySelector('[aria-label="MFDI release details"]')
+  assert.equal(carryTooltip.hidden, false, 'The carried line shows the active release')
+  assert.equal(carryTooltip.querySelector('time').dateTime, new Date(fedDecision.releasedAt).toISOString())
+  assert.match(carryTooltip.querySelector('[data-macro-tooltip-field="upcoming"]').textContent, /Upcoming forecast · 0.00% · Survey/)
+  const [coreLeft, coreRight] = coreLine.data()
+  const coreX = chart.timeScale().timeToCoordinate(macroBars[51].time)
+  const coreStartX = chart.timeScale().timeToCoordinate(coreLeft.time)
+  const coreEndX = chart.timeScale().timeToCoordinate(coreRight.time)
+  const coreStartY = coreLine.priceToCoordinate(coreLeft.value)
+  const coreEndY = coreLine.priceToCoordinate(coreRight.value)
+  await moveMacroPointer(coreX, coreStartY + (coreEndY - coreStartY) * (coreX - coreStartX) / (coreEndX - coreStartX))
+  assert.equal(carryTooltip.hidden, false, 'A sloped line is hoverable between release dots')
+  assert.equal(carryTooltip.querySelector('[data-macro-tooltip-field="actual"]').textContent, '0.00%', 'The earlier release stays active between points')
+  await leaveMacroPointer()
+  assert.equal(carryTooltip.hidden, true, 'Moving off the chart clears the line popover')
+  macro = { ...macro, upcoming: [] }
   for (const [value, label] of [[5, 'Beat'], [5.5, 'Miss'], [5.25, 'In line'], [9, 'Miss']]) {
     const meeting = { released_at: new Date(fedDecision.releasedAt).toISOString(), actual: null, fedwatch: null,
       consensus: [{ ...forecastEvidence, provider: 'investing', value }, { ...forecastEvidence, provider: 'trading_economics', value: 5.5 }] }
@@ -1083,9 +1114,9 @@ try {
     assert.deepEqual(macroPane.priceScale('right').getVisibleRange(), { from: 4, to: 6 })
     closeRange(chart.timeScale().getVisibleLogicalRange(), forecastDateRange)
     assert.deepEqual(rateLine.data(), originalRateData); assert.deepEqual(rateDots.data(), originalDots)
-    for (const [line, index, extra] of [[rateLine, 80, {}], [rateDots, 0, { paneIndex: 0 }], [rateDots, 0, { point: undefined }]]) {
+    for (const [line, index, extra] of [[rateDots, 0, { paneIndex: 0 }], [rateDots, 0, { point: undefined }]]) {
       forecastStrokes.length = 0; await hoverDot(line, index, extra)
-      assert.equal(tooltip.hidden, true, 'Carry, other metrics/panes and chart leave do not show forecasts')
+      assert.equal(tooltip.hidden, true, 'Other panes and chart leave hide the popover')
       assert.equal(forecastStrokes.length, 0)
     }
   }
@@ -1377,6 +1408,16 @@ try {
   const firstPositions = rowOrder.map(yFor)
   const releasePointerDot = laneDots.find(dot => dot.color === macro.preferences.series.rate.color && dot.x > 20 && dot.x < 850)
   assert.ok(releasePointerDot)
+  await moveMacroPointer(chart.timeScale().timeToCoordinate(macroBars[80].time), releasePointerDot.y)
+  const laneTooltip = host.querySelector('[aria-label="MFDI release details"]')
+  assert.equal(laneTooltip.hidden, false, 'The lane line shows A/F/P between markers')
+  assert.equal(laneTooltip.querySelector('[data-macro-tooltip-field="actual"]').textContent, '5.25%')
+  await moveMacroPointer(chart.timeScale().timeToCoordinate(macroBars[80].time), yFor('coreCpi'))
+  assert.equal(laneTooltip.hidden, false, 'The visible lane guide is hoverable after its last release dot')
+  assert.equal(laneTooltip.querySelector('[data-macro-tooltip-field="actual"]').textContent, '-0.10%')
+  await moveMacroPointer(chart.timeScale().timeToCoordinate(macroBars[35].time), yFor('coreCpi'))
+  assert.equal(laneTooltip.hidden, true, 'The guide before any release has no active reading')
+  await leaveMacroPointer()
   const releasePointer = new dom.PointerEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, clientX: releasePointerDot.x, clientY: releasePointerDot.y + macroPane.getHTMLElement().getBoundingClientRect().top })
   macroPane.getHTMLElement().dispatchEvent(releasePointer)
   assert.equal(releasePointer.defaultPrevented, false, 'The group-drag lock preserves native release-marker clicks')

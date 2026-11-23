@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { SymbolQuote } from '../market-data/contracts/SymbolQuote'
+import type { ChartDrawingPoint } from '../market-data/chart-drawings/chart-drawing-record'
 import { alertDirection, evaluatePriceAlerts, priceAlertQuote, priceAlertStorageKey, readPriceAlerts, savePriceAlerts,
-  type PriceAlertStore } from './price-alert-store'
+  type PriceAlert, type PriceAlertStore } from './price-alert-store'
+import { trendAlertPoints, type TrendSample } from './trend-alert'
 import { createPriceAlertSound } from './price-alert-sound'
 import { usePriceAlertDelivery } from './usePriceAlertDelivery'
 import type { PriceAlertSoundId } from './price-alert-tones'
 import { customAlertSoundKey, customAlertSoundMaxBytes, decodeCustomAlertSound, encodeCustomAlertSound,
   readCustomAlertSound, saveCustomAlertSound } from './custom-alert-sound'
 
-export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], live: boolean) {
+export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], live: boolean, generation = 0) {
   const [store, setStore] = useState(readPriceAlerts)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const current = useRef(store)
@@ -25,6 +27,8 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
   const playbackRequest = useRef(0)
   const loadedCustomData = useRef<string | null>(null)
   const draggingAlertId = useRef<string | null>(null)
+  const trendSamples = useRef(new Map<string, TrendSample>())
+  useLayoutEffect(() => { trendSamples.current.clear() }, [brokerId, generation])
   const sound = useRef<ReturnType<typeof createPriceAlertSound> | null>(null)
   const mounted = useRef(true)
   const deliveryFlush = useRef<() => Promise<void>>(async () => {})
@@ -160,8 +164,8 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
   }, [enableSound])
   const checkAlerts = useCallback(() => {
     const { brokerId, quotes, live } = feed.current
-    if (!live || !brokerId) return
-    const evaluated = evaluatePriceAlerts(current.current.alerts, brokerId, quotes, Date.now(), draggingAlertId.current)
+    if (!live || !brokerId) { trendSamples.current.clear(); return }
+    const evaluated = evaluatePriceAlerts(current.current.alerts, brokerId, quotes, Date.now(), draggingAlertId.current, trendSamples.current)
     if (evaluated.alerts === current.current.alerts) return
     const triggered = new Set(evaluated.triggered.map(alert => alert.id))
     const next: PriceAlertStore = { ...current.current, alerts: evaluated.alerts.map(alert => triggered.has(alert.id) ?
@@ -169,21 +173,25 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
     // Save the crossing and pending delivery together; retry never re-evaluates it.
     commit(next)
   }, [commit])
-  useEffect(checkAlerts, [brokerId, quotes, live, store, checkAlerts])
+  useEffect(checkAlerts, [brokerId, generation, quotes, live, store, checkAlerts])
   const changeDraggingAlert = useCallback((id: string | null) => {
     draggingAlertId.current = id
+    if (id) trendSamples.current.delete(id)
     if (id && current.current.playSound) void enableSound()
     if (id === null) checkAlerts()
   }, [enableSound, checkAlerts])
-  const addAlert = useCallback((symbol: string, price: number, precision: number) => {
+  const addAlert = useCallback((symbol: string, price: number, precision: number, points?: ChartDrawingPoint[]) => {
     const { brokerId, quotes, live } = feed.current
     if (!brokerId || !Number.isFinite(price) || price <= 0) return ''
     const target = Number(price.toFixed(precision))
     if (target <= 0) return ''
+    const trend = points && trendAlertPoints(points)
+    if (points && !trend) return ''
     const id = crypto.randomUUID()
     const bid = live ? priceAlertQuote(quotes.find(quote => quote.symbol === symbol)) : undefined
     commit({ ...current.current, alerts: [...current.current.alerts, {
-      id, brokerId, symbol, price: target, precision, direction: alertDirection(target, bid), status: 'armed',
+      id, brokerId, symbol, price: target, precision, ...(trend ? { trend } : {}),
+      direction: trend ? null : alertDirection(target, bid), status: 'armed',
       createdAt: Date.now(), triggeredAt: null, triggeredBid: null,
     }] })
     return id
@@ -193,16 +201,31 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
     if ((action === 'price' || action === 'move') && (price === undefined || !Number.isFinite(price) || price <= 0)) return
     const alerts = current.current.alerts.flatMap(alert => {
       if (alert.id !== id) return [alert]
+      if (alert.trend && (action === 'price' || action === 'move')) return [alert]
       if (action === 'move' && (alert.brokerId !== brokerId || alert.status === 'triggered')) return [alert]
       if (action === 'delete') return []
       if (action === 'pause') return [{ ...alert, status: 'paused' as const, soundStatus: alert.soundStatus === 'pending' ? 'muted' as const : alert.soundStatus }]
       const target = action === 'price' || action === 'move' ? Number(price!.toFixed(alert.precision)) : alert.price
       if (target <= 0) return [alert]
       const bid = live && alert.brokerId === brokerId ? priceAlertQuote(quotes.find(quote => quote.symbol === alert.symbol)) : undefined
-      return [{ ...alert, price: target, direction: alertDirection(target, bid), status: action === 'move' ? alert.status : 'armed' as const,
+      return [{ ...alert, price: target, direction: alert.trend ? null : alertDirection(target, bid), status: action === 'move' ? alert.status : 'armed' as const,
+        ...(alert.trend ? { trendArmedAt: Date.now() } : {}),
         triggeredAt: null, triggeredBid: null, soundStatus: undefined, soundDeliveryId: undefined }]
     })
+    trendSamples.current.delete(id)
     commit({ ...current.current, alerts })
+  }, [commit])
+  const moveTrendAlert = useCallback((id: string, points: ChartDrawingPoint[]) => {
+    const trend = trendAlertPoints(points)
+    if (!trend) return
+    const alert = current.current.alerts.find(item => item.id === id)
+    if (!alert?.trend || alert.brokerId !== feed.current.brokerId || alert.status === 'triggered') return
+    trendSamples.current.delete(id)
+    commit({ ...current.current, alerts: current.current.alerts.map(item => item === alert
+      ? { ...item, trend, trendArmedAt: Date.now(), price: trend[0].price } : item) })
+  }, [commit])
+  const labelAlert = useCallback((id: string, label: PriceAlert['label']) => {
+    commit({ ...current.current, alerts: current.current.alerts.map(alert => alert.id === id ? { ...alert, label } : alert) })
   }, [commit])
   const moveAlert = useCallback((id: string, price: number) => updateAlert(id, 'move', price), [updateAlert])
   const deleteAlert = useCallback((id: string) => updateAlert(id, 'delete'), [updateAlert])
@@ -231,8 +254,11 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
   const brokerAlerts = useMemo(() => store.alerts.filter(alert => alert.brokerId === brokerId), [store.alerts, brokerId])
   const selectedAlertId = useMemo(() => brokerAlerts.some(alert => alert.id === selectedId) ? selectedId : null, [brokerAlerts, selectedId])
   const liveSymbols = useMemo(() => new Set(quotes.filter(quote => priceAlertQuote(quote) !== undefined).map(quote => quote.symbol)), [quotes])
+  const trendQuoteTimes = useMemo(() => new Map(quotes.flatMap(quote =>
+    quote.tickAt !== undefined && quote.tickChartTime !== undefined && priceAlertQuote(quote) !== undefined
+      ? [[quote.symbol, quote.tickChartTime] as const] : [])), [quotes])
   return { alerts: store.alerts, brokerAlerts, addAlert, updateAlert, playSound: store.playSound, duration: store.duration, soundId: store.soundId,
-    volume: store.volume, setVolume, stopSound, previewing, setSound, enableSound, previewSound, soundBlocked, storageError, live, liveSymbols, renameAlert, moveAlert, deleteAlert, setDraggingAlertId: changeDraggingAlert,
+    volume: store.volume, setVolume, stopSound, previewing, setSound, enableSound, previewSound, soundBlocked, storageError, live, liveSymbols, trendQuoteTimes, renameAlert, moveAlert, moveTrendAlert, labelAlert, deleteAlert, setDraggingAlertId: changeDraggingAlert,
     customSoundName, customSoundError, customSoundLoading, uploadCustomSound, selectedAlertId, selectAlert, pendingSounds: delivery.pendingSounds, missedSounds: delivery.missedSounds, dismissSoundWarnings: stopSound }
 }
 

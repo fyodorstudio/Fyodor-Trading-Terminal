@@ -19,8 +19,10 @@ pnpm dev:all
 | Storage | http://127.0.0.1:8002 |
 | Alarm worker | http://127.0.0.1:8003 |
 
-`pnpm dev:all` starts the stack, restarts this checkout's alarm worker and builds/
-starts the private Android news service (ntfy 8004, read-only phone page 8005).
+`pnpm dev:all` replaces this checkout's frontend, bridge, storage, alarm worker,
+and private Android news services (ntfy 8004 and read-only phone page 8005).
+The desktop opens once bridge and storage are ready. The command reports when
+the full stack is ready and reuses current phone frontend assets.
 Open the News Flow bell for connection details. First start downloads the pinned,
 checksum-verified official Windows ntfy binary into ignored local storage.
 `pnpm dev:ui` uses existing services. `pnpm alarms:restart` restarts only alarms;

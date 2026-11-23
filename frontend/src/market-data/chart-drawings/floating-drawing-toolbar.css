@@ -37,7 +37,6 @@
 .floating-drawing-toolbar button.active { color: #ffffff; background: var(--accent); }
 .floating-drawing-toolbar button:disabled { cursor: default; opacity: 0.32; }
 .floating-drawing-toolbar .drawing-toolbar-crosshair { color: var(--accent); }
-.floating-drawing-toolbar .drawing-toolbar-level-alert { color: var(--accent); }
 
 .crosshair-glyph { position: relative; width: 17px; height: 17px; display: block; }
 .crosshair-glyph::before,

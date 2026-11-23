@@ -7,6 +7,7 @@ const publisherNames: Record<string, string> = {
   'statistik.admin.ch': 'Swiss Federal Statistical Office', 'rbnz.govt.nz': 'RBNZ', 'ec.europa.eu': 'Eurostat',
   'bnz.co.nz': 'BNZ / BusinessNZ', 'nab.com.au': 'NAB', 'stat.go.jp': 'Statistics Bureau of Japan',
   'jil.go.jp': 'Japan Institute for Labour Policy and Training',
+  'bankofengland.co.uk': 'Bank of England',
 }
 
 export function officialActualSource(event: EconomicCalendarEvent): CalendarEvidenceSource | undefined {

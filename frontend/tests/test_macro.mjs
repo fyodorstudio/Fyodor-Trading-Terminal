@@ -31,6 +31,19 @@ try {
   const { macroHistory, macroMissing, macroUpcoming, macroPlot, macroNumberLabels, macroDeltaColor, supportsMacro, macroMetrics, macroValue } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-data.ts')
   const { macroCatalog } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-catalog.ts')
   const keyForId = id => Object.keys(macroCatalog).find(key => macroCatalog[key].eventId === id)
+  const claimsKey = keyForId('840140001')
+  const claims = (days, period, actual, extra = {}) => event({ event_id: '840140001', value_id: String(days), unit: 0, multiplier: 1,
+    period_seconds: start + period * 86400, release_at: at + days * 86400000, chart_time_seconds: start + days * 86400,
+    actual, previous: null, ...extra })
+  const verified = { actual_override_source: 'https://oui.doleta.gov/press/2026/111926.pdf' }
+  const claimsHistory = macroHistory([
+    claims(1, -14, 194), claims(2, -7, 189, { ...verified, previous: 194 }),
+    claims(3, -7, 191), claims(4, 0, 200, verified), claims(5, 7, 203),
+  ], at + 5 * 86400000, 'actual', [claimsKey])[claimsKey]
+  assert.deepEqual(claimsHistory.map(row => row.previous), [null, 194, null, 191, null], 'An official correction can fill Previous from the preceding period while explicit values win')
+  assert.equal(claimsHistory[3].previousFromHistory, true)
+  assert.equal(macroDeltaColor(claimsHistory[1], '#123456', true), '#16a34a')
+  assert.equal(macroDeltaColor(claimsHistory[3], '#123456', true), '#dc2626')
   for (const [eventId, currency, country, actual] of [['392060022', 'JPY', 'JP', 1.3], ['554050001', 'NZD', 'NZ', -2.4]]) {
     const key = keyForId(eventId), row = event({ event_id: eventId, currency, country_code: country, time_mode: 3, actual })
     const published = macroHistory([row], at, 'actual', [key])[key]

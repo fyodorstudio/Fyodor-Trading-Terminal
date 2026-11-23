@@ -10,6 +10,7 @@ type ChartDrawingShapeProps = {
   width: number
   height: number
   precision?: number
+  trendPath?: string
 }
 
 function PositionLabel({ firstLine, secondLine, target, centerX, y, width }: {
@@ -97,7 +98,7 @@ function PositionDrawing({ points, width, height, precision = 5 }: Pick<ChartDra
   )
 }
 
-export function ChartDrawingShape({ drawing, points, width, height, precision = 5 }: ChartDrawingShapeProps) {
+export function ChartDrawingShape({ drawing, points, width, height, precision = 5, trendPath }: ChartDrawingShapeProps) {
   const first = points[0]
   const last = points.at(-1) ?? first
   if (!first || !last) return null
@@ -108,6 +109,14 @@ export function ChartDrawingShape({ drawing, points, width, height, precision = 
   const shapeHeight = Math.abs(last.y - first.y)
 
   switch (drawing.tool) {
+    case 'trend-price-alert': {
+      const path = trendPath ?? `${first.x},${first.y} ${last.x},${last.y}`
+      return <g className="drawing-trend-alert" data-alert-status={drawing.alertStatus}>
+        <title>{drawing.text || 'Trend Price Alert'}</title>
+        <polyline className="drawing-hit-area" points={path} />
+        <polyline className="drawing-stroke" points={path} />
+      </g>
+    }
     case 'trend-line':
       return (
         <g>

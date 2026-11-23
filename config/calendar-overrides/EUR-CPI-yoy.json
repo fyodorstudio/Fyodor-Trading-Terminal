@@ -146,6 +146,15 @@
       "set": {
         "actual": 4
       }
+    },
+    {
+      "value_id": "323841",
+      "source_url": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-18112026-ap",
+      "set": {
+        "actual": 4,
+        "forecast": null,
+        "previous": 3.8
+      }
     }
   ]
 }

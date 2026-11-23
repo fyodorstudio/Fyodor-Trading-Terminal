@@ -4,6 +4,8 @@ export type SymbolQuote = {
   synthetic?: boolean
   indexLevel?: number
   indexExpiresAt?: number
+  tickChartTime?: number
+  tickAt?: number
   bid: number
   ask: number
   dailyChange: number | null

@@ -1111,7 +1111,7 @@ try {
   // trigger, while ordinary drawing storage and the shared viewport stay intact.
   const ordinaryDrawings = localStorage.getItem('fyodor.chart-drawings.v1')
   const alertWindow = { ...logicalRange }
-  await click(container.querySelector('[aria-label="Price alert"]'))
+  await click(container.querySelector('[aria-label="Horizontal Price Alert"]'))
   assert.equal(button('Price Alerts').getAttribute('aria-pressed'), 'true')
   const soundCheckbox = container.querySelector('.price-alert-controls input[type="checkbox"]')
   await click(soundCheckbox) // Audio scheduling is verified separately with a Web Audio fixture.
@@ -1184,18 +1184,37 @@ try {
   assert.ok(![...tradeLines].some(line => line.options.title?.includes('Price alert')))
   assert.equal(localStorage.getItem('fyodor.chart-drawings.v1'), ordinaryDrawings, 'Right-clicking alerts preserves ordinary drawings')
   assert.deepEqual(logicalRange, alertWindow, 'Right-click deletion preserves the shared viewport')
-  await click(container.querySelector('[aria-label="Supply line"]'))
-  await pointer(drawingSvg(), 'pointerdown', 320, drawingSvg().getBoundingClientRect().top + 1.55 * 100 + priceShift)
+  assert.equal(container.querySelector('[aria-label="Supply line"], [aria-label="Demand line"], [aria-label="Add price alert at selected level"]'), null)
+  await click(container.querySelector('[aria-label="Trend Price Alert"]'))
+  const trendY = drawingSvg().getBoundingClientRect().top + priceShift
+  await pointer(drawingSvg(), 'pointerdown', 290, trendY + 155)
+  await pointer(drawingSvg(), 'pointermove', 355, trendY + 165)
+  await pointer(drawingSvg(), 'pointerup', 355, trendY + 165)
   await flush()
-  const supply = container.querySelector('.drawing-supply')
-  assert.match(supply.textContent, /Supply 1\.55/)
-  await click(container.querySelector('[aria-label="Add price alert at selected level"]'))
-  const supplyAlert = JSON.parse(localStorage.getItem(priceAlertKey)).alerts[0]
-  assert.equal(supplyAlert.symbol, 'EURUSD')
-  assert.equal(supplyAlert.price, 1.55, 'The optional alert uses the drawn level’s price')
-  await React.act(async () => supply.dispatchEvent(new dom.MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2 })))
-  assert.equal(container.querySelector('.drawing-supply'), null)
-  assert.equal(JSON.parse(localStorage.getItem(priceAlertKey)).alerts[0].price, 1.55, 'The copied alert is managed independently')
+  const trend = JSON.parse(localStorage.getItem(priceAlertKey)).alerts[0]
+  assert.equal(trend.symbol, 'EURUSD')
+  assert.deepEqual(trend.trend.map(point => +point.price.toFixed(2)), [1.55, 1.65])
+  assert.ok(container.querySelector(`[data-price-alert-id="${trend.id}"] .drawing-trend-alert polyline`))
+  assert.equal(container.querySelector('.price-alert-actions select').value, '')
+  await change(container.querySelector('.price-alert-actions select'), 'supply')
+  assert.equal(JSON.parse(localStorage.getItem(priceAlertKey)).alerts[0].label, 'supply')
+  await click(container.querySelector('.price-alert-row [aria-label^="Pause "]'))
+  const endpoint = container.querySelectorAll(`[data-price-alert-id="${trend.id}"] .drawing-handle-hit-area`)[1]
+  const x = Number(endpoint.getAttribute('cx')) + drawingSvg().getBoundingClientRect().left
+  const y = Number(endpoint.getAttribute('cy')) + drawingSvg().getBoundingClientRect().top
+  const beforeTrendEdit = localStorage.getItem(priceAlertKey)
+  await pointer(endpoint, 'pointerdown', x, y)
+  await pointer(drawingSvg(), 'pointermove', x + 12, y + 5)
+  assert.equal(localStorage.getItem(priceAlertKey), beforeTrendEdit, 'Moving an endpoint previews without saving')
+  await pointer(drawingSvg(), 'pointerup', x + 12, y + 5)
+  await flush()
+  const movedTrend = JSON.parse(localStorage.getItem(priceAlertKey)).alerts[0]
+  assert.equal(movedTrend.status, 'paused')
+  assert.equal(movedTrend.label, 'supply')
+  assert.deepEqual(movedTrend.trend[0], trend.trend[0])
+  assert.ok(movedTrend.trend[1].time > trend.trend[1].time)
+  assert.equal(+movedTrend.trend[1].price.toFixed(2), 1.7)
+  assert.equal(captures.size, 0)
   await click(container.querySelector('.price-alert-row [aria-label^="Delete "]'))
   assert.equal(localStorage.getItem('fyodor.chart-drawings.v1'), ordinaryDrawings)
   await click(button('Market Watch'))

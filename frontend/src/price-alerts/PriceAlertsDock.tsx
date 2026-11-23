@@ -14,11 +14,16 @@ function AlertRow({ alert, controller, onSelectSymbol, brokerId }: {
   const renameActive = useRef(false)
   const [name, setName] = useState('')
   const waitingForBroker = alert.brokerId !== brokerId
-  const waitingForQuote = !controller.live || !controller.liveSymbols.has(alert.symbol)
+  const chartTime = controller.trendQuoteTimes.get(alert.symbol)
+  const waitingForQuote = !controller.live || (alert.trend ? chartTime === undefined : !controller.liveSymbols.has(alert.symbol))
+  const segmentStatus = alert.trend && chartTime !== undefined
+    ? chartTime < alert.trend[0].time ? 'Waiting for segment' : chartTime > alert.trend[1].time ? 'Segment ended' : null
+    : null
   const status = alert.status === 'triggered' ? 'Stopped — Triggered' : alert.status === 'paused' ? 'Stopped — Paused'
-    : waitingForBroker ? 'Waiting for broker' : waitingForQuote ? 'Waiting for quote' : 'Active'
-  const statusClass = alert.status !== 'armed' ? 'stopped' : waitingForBroker || waitingForQuote ? 'waiting' : 'active'
-  const crossing = `${alert.symbol} Crossing ${alert.price.toFixed(alert.precision)}`
+    : waitingForBroker ? 'Waiting for broker' : waitingForQuote ? 'Waiting for quote' : segmentStatus ?? 'Active'
+  const statusClass = alert.status !== 'armed' ? 'stopped' : status === 'Active' ? 'active' : 'waiting'
+  const crossing = alert.trend ? `${alert.symbol} Trend ${alert.trend[0].price.toFixed(alert.precision)} → ${alert.trend[1].price.toFixed(alert.precision)}`
+    : `${alert.symbol} Crossing ${alert.price.toFixed(alert.precision)}`
   const title = alert.name || crossing
   const selected = controller.selectedAlertId === alert.id
   const startRename = () => {
@@ -72,6 +77,14 @@ function AlertRow({ alert, controller, onSelectSymbol, brokerId }: {
               : <path d="m7 4 9 6-9 6Z" />}
         </svg>
       </button>
+      <select aria-label={`Label for ${title}`} value={alert.label ?? ''} onChange={event => {
+        const label = event.target.value
+        controller.labelAlert(alert.id, label === 'supply' || label === 'demand' ? label : undefined)
+      }}>
+        <option value="">Unset</option>
+        <option value="supply">Supply</option>
+        <option value="demand">Demand</option>
+      </select>
       <button type="button" aria-label={`Delete ${title}`} title="Delete alert" onClick={() => controller.updateAlert(alert.id, 'delete')}>
         <svg aria-hidden="true" width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6">
           <path d="M3 5h14M7 5V3h6v2M5 5l1 12h8l1-12M8 8v6M12 8v6" />

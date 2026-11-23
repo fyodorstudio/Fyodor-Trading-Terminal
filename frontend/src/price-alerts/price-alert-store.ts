@@ -1,5 +1,6 @@
 import type { SymbolQuote } from '../market-data/contracts/SymbolQuote'
 import { priceAlertSounds, type PriceAlertSoundId } from './price-alert-tones'
+import { reachesTrendAlert, trendAlertPoints, trendAlertSample, type TrendAlert, type TrendSample } from './trend-alert'
 
 export type PriceAlert = {
   id: string
@@ -8,6 +9,9 @@ export type PriceAlert = {
   name?: string
   price: number
   precision: number
+  trend?: TrendAlert
+  trendArmedAt?: number
+  label?: 'supply' | 'demand'
   direction: 'above' | 'below' | null
   status: 'armed' | 'paused' | 'triggered'
   createdAt: number
@@ -27,6 +31,9 @@ function validAlert(value: unknown): value is PriceAlert {
     && typeof item.symbol === 'string' && !!item.symbol && Number.isFinite(item.price) && item.price > 0
     && (item.name === undefined || typeof item.name === 'string')
     && Number.isInteger(item.precision) && item.precision >= 0 && item.precision <= 10
+    && (item.trend === undefined || (Array.isArray(item.trend) && !!trendAlertPoints(item.trend)))
+    && (item.trendArmedAt === undefined || Number.isFinite(item.trendArmedAt))
+    && (item.label === undefined || item.label === 'supply' || item.label === 'demand')
     && ['armed', 'paused', 'triggered'].includes(item.status)
     && (item.direction === null || item.direction === 'above' || item.direction === 'below')
     && Number.isFinite(item.createdAt) && (item.triggeredAt === null || Number.isFinite(item.triggeredAt))
@@ -40,7 +47,9 @@ export function readPriceAlerts(): PriceAlertStore {
   try {
     const value = JSON.parse(window.localStorage.getItem(priceAlertStorageKey) ?? 'null')
     if (!value || !Array.isArray(value.alerts)) return empty
-    return { volume: Number.isFinite(value.volume) ? Math.max(0, Math.min(100, value.volume)) : 30, alerts: value.alerts.filter(validAlert), playSound: value.playSound !== false,
+    const alerts: PriceAlert[] = value.alerts.filter(validAlert)
+    return { volume: Number.isFinite(value.volume) ? Math.max(0, Math.min(100, value.volume)) : 30, alerts: alerts.map(alert => alert.trend
+      ? { ...alert, trend: trendAlertPoints(alert.trend) } : alert), playSound: value.playSound !== false,
       duration: [1, 3, 5, 10].includes(value.duration) ? value.duration : 3,
       soundId: value.soundId === 'custom' ? 'custom' : priceAlertSounds.find(sound => sound.id === value.soundId)?.id ?? 'thin' }
   } catch { return empty }
@@ -63,18 +72,31 @@ export function priceAlertQuote(quote: SymbolQuote | undefined, now?: number) {
 
 // Quotes are sampled, so a jump across the line counts as reaching it too.
 // Never use candle highs/lows: those may precede the alert's creation.
-export function evaluatePriceAlerts(alerts: PriceAlert[], brokerId: string, quotes: SymbolQuote[], now: number, draggingId: string | null = null) {
+export function evaluatePriceAlerts(alerts: PriceAlert[], brokerId: string, quotes: SymbolQuote[], now: number, draggingId: string | null = null,
+  trendSamples = new Map<string, TrendSample>()) {
   const bySymbol = new Map(quotes.map(quote => [quote.symbol, quote]))
+  const tracking = new Set<string>()
   let changed = false
   const triggered: PriceAlert[] = []
   const next = alerts.map(alert => {
     if (alert.brokerId !== brokerId || alert.status !== 'armed' || alert.id === draggingId) return alert
-    const bid = priceAlertQuote(bySymbol.get(alert.symbol), now)
+    const quote = bySymbol.get(alert.symbol), bid = priceAlertQuote(quote, now)
     if (bid === undefined) return alert
-    const direction = alert.direction ?? alertDirection(alert.price, bid)
-    const reached = direction === 'above' ? bid >= alert.price : bid <= alert.price
+    const direction = alert.trend ? null : alert.direction ?? alertDirection(alert.price, bid)
+    let reached: boolean
+    if (alert.trend) {
+      const sample = trendAlertSample(quote, bid, now)
+      if (!sample) return alert
+      tracking.add(alert.id)
+      const previous = trendSamples.get(alert.id)
+      if (previous && (sample.at < previous.at
+        || (sample.at === previous.at && sample.bid === previous.bid))) return alert
+      trendSamples.set(alert.id, sample)
+      reached = reachesTrendAlert(alert.trend, previous, sample, alert.trendArmedAt ?? alert.createdAt, alert.precision)
+    } else reached = direction === 'above' ? bid >= alert.price : bid <= alert.price
     if (reached) {
       changed = true
+      tracking.delete(alert.id)
       const fired: PriceAlert = { ...alert, direction, status: 'triggered', triggeredAt: now, triggeredBid: bid }
       triggered.push(fired)
       return fired
@@ -82,5 +104,6 @@ export function evaluatePriceAlerts(alerts: PriceAlert[], brokerId: string, quot
     if (direction !== alert.direction) { changed = true; return { ...alert, direction } }
     return alert
   })
+  for (const id of trendSamples.keys()) if (!tracking.has(id)) trendSamples.delete(id)
   return { alerts: changed ? next : alerts, triggered }
 }

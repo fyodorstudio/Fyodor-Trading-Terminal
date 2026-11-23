@@ -35,12 +35,14 @@ def read_market_watch(mt5: Any) -> list[dict[str, object]]:
         ask = float(getattr(symbol, "ask", 0.0) or 0.0)
         session_open = float(getattr(symbol, "session_open", 0.0) or 0.0)
         daily_change = ((bid - session_open) / session_open * 100) if session_open else 0.0
+        tick_time_ms = getattr(symbol, "time_msc", 0) or (getattr(symbol, "time", 0) or 0) * 1000
         rows.append(
             {
                 "symbol": str(symbol.name),
                 "description": str(getattr(symbol, "description", "") or symbol.name),
                 "bid": bid,
                 "ask": ask,
+                "tick_time_ms": int(tick_time_ms) if tick_time_ms > 0 else None,
                 "daily_change": daily_change,
                 "precision": int(getattr(symbol, "digits", 5) or 5),
             },

@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { applyColorTheme, readColorTheme, type ColorTheme } from '../../appearance/color-theme/color-theme-preference'
 import { readTimeDisplayPreference, saveTimeDisplayPreference, timeDisplayLabel, type TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
 import { useInspector } from '../../inspector'
 import { nextEventIconMode, readEventIconMode, saveEventIconMode } from '../../appearance/event-icons-visibility'
 import { readDrawingToolbarVisible, saveDrawingToolbarVisible } from '../../market-data/chart-drawings/drawing-toolbar-visibility'
-import type { ChartDrawingPoint } from '../../market-data/chart-drawings/chart-drawing-record'
-import type { DrawingToolId } from '../../market-data/chart-drawings/drawing-tool'
+import type { ChartDrawingPoint, ChartDrawingRecord } from '../../market-data/chart-drawings/chart-drawing-record'
+import { isPriceAlertTool, type DrawingToolId } from '../../market-data/chart-drawings/drawing-tool'
 import { useChartDrawings } from '../../market-data/chart-drawings/use-chart-drawings'
 import { readChartAppearance, saveChartAppearance, type ChartAppearance } from '../../market-data/chart-settings/chart-appearance-preference'
 import type { ChartTimeframe } from '../../market-data/contracts/ChartTimeframe'
@@ -71,13 +71,13 @@ export function useTerminalWorkspace() {
 
   const bridge = useBridgeConnection()
   const mt5Connected = bridge.connected
-  const marketData = useMt5MarketData(mt5Connected, bridge.generation, selectedSymbol, timeframe, bridge.brokerId)
+  const marketData = useMt5MarketData(mt5Connected, bridge.generation, selectedSymbol, timeframe, bridge.brokerId, bridge.brokerOffsetSeconds)
   const activeSymbol = marketData.activeSymbol
   const bars = marketData.bars
   const brokerId = bridge.brokerId
   const quote = marketData.symbols.find((item) => item.symbol === activeSymbol) ?? null
   const macroState = useMacroIndicator(activeSymbol, brokerId)
-  const priceAlerts = usePriceAlerts(brokerId, marketData.symbols, mt5Connected && marketData.marketWatchStatus === 'live')
+  const priceAlerts = usePriceAlerts(brokerId, marketData.symbols, mt5Connected && marketData.marketWatchStatus === 'live', bridge.generation)
   const addPriceAlert = priceAlerts.addAlert
   const enablePriceAlertSound = priceAlerts.enableSound
   const priceAlertSoundEnabled = priceAlerts.playSound
@@ -93,22 +93,47 @@ export function useTerminalWorkspace() {
     setTradePlans(current => ({ ...current, [activeSymbol]: plan }))
   }, [activeSymbol])
   const {
-    drawings,
+    drawings: savedDrawings,
     pairDrawingCount,
     addDrawing,
-    updateDrawingPoint,
-    updateDrawingPoints,
+    updateDrawingPoint: updateSavedPoint,
+    updateDrawingPoints: updateSavedPoints,
     updateDrawingText,
     updatePositionWidth,
     deleteDrawing,
     clearPairDrawings,
   } = useChartDrawings(activeSymbol, timeframe)
 
+  const [trendPreview, setTrendPreview] = useState<{ id: string; points: ChartDrawingPoint[] } | null>(null)
+  const trendDrawings = useMemo(() => priceAlerts.brokerAlerts.flatMap((alert): ChartDrawingRecord[] => {
+    if (alert.symbol !== activeSymbol || !alert.trend) return []
+    const text = [alert.name || 'Trend Price Alert', alert.label === 'supply' ? 'Supply' : alert.label === 'demand' ? 'Demand' : ''].filter(Boolean).join(' · ')
+    return [{ id: alert.id, tool: 'trend-price-alert', symbol: activeSymbol, timeframe,
+      points: trendPreview?.id === alert.id && alert.status !== 'triggered' ? trendPreview.points : [...alert.trend],
+      createdAt: alert.createdAt, text, alertStatus: alert.status }]
+  }), [activeSymbol, priceAlerts.brokerAlerts, timeframe, trendPreview])
+  const drawings = useMemo(() => trendDrawings.length ? [...savedDrawings, ...trendDrawings] : savedDrawings, [savedDrawings, trendDrawings])
+  const { moveTrendAlert, setDraggingAlertId, deleteAlert } = priceAlerts
+  const changeTrendDrag = useCallback((id: string | null) => {
+    if (id === null) setTrendPreview(null)
+    setDraggingAlertId(id)
+  }, [setDraggingAlertId])
+  const updateDrawingPoints = useCallback((id: string, points: ChartDrawingPoint[], persist: boolean) => {
+    if (!trendDrawings.some(drawing => drawing.id === id)) { updateSavedPoints(id, points, persist); return }
+    if (persist) moveTrendAlert(id, points)
+    else setTrendPreview({ id, points })
+  }, [moveTrendAlert, trendDrawings, updateSavedPoints])
+  const updateDrawingPoint = useCallback((id: string, index: number, point: ChartDrawingPoint, persist: boolean) => {
+    const trend = trendDrawings.find(drawing => drawing.id === id)
+    if (trend) updateDrawingPoints(id, trend.points.map((value, at) => at === index ? point : value), persist)
+    else updateSavedPoint(id, index, point, persist)
+  }, [trendDrawings, updateDrawingPoints, updateSavedPoint])
   const handleDeleteDrawing = useCallback((drawingId: string) => {
-    deleteDrawing(drawingId)
+    if (trendDrawings.some(drawing => drawing.id === drawingId)) deleteAlert(drawingId)
+    else deleteDrawing(drawingId)
     if (selectedDrawingId === drawingId) setSelectedDrawingId(null)
     appendActivity('Drawing', 'Drawing deleted', `${activeSymbol} ${timeframe}`)
-  }, [activeSymbol, appendActivity, deleteDrawing, selectedDrawingId, timeframe])
+  }, [activeSymbol, appendActivity, deleteDrawing, deleteAlert, selectedDrawingId, timeframe, trendDrawings])
 
   const selectSymbol = useCallback((symbol: string) => {
     if (symbol === selectedSymbol) return
@@ -147,10 +172,11 @@ export function useTerminalWorkspace() {
 
   const createDrawing = useCallback(
     (tool: DrawingToolId, points: ChartDrawingPoint[]) => {
-      if (tool === 'price-alert') {
+      if (isPriceAlertTool(tool)) {
         setLeftDockTab('price-alerts'); openMarketWatch()
         if (!brokerId || !points[0]) return ''
-        const id = addPriceAlert(activeSymbol, points[0].price, quote?.precision ?? 5)
+        const id = addPriceAlert(activeSymbol, points[0].price, quote?.precision ?? 5, tool === 'trend-price-alert' ? points : undefined)
+        if (!id && tool === 'trend-price-alert') appendActivity('Drawing', 'Trend price alert was not created', 'Place two positive prices at different times.', { severity: 'warning' })
         if (id) appendActivity('Drawing', 'Price alert created', `${activeSymbol} · ${points[0].price.toFixed(quote?.precision ?? 5)}`)
         return id
       }
@@ -162,7 +188,7 @@ export function useTerminalWorkspace() {
   )
 
   const chooseDrawingTool = (tool: DrawingToolId | null) => {
-    if (tool === 'price-alert') {
+    if (isPriceAlertTool(tool)) {
       setLeftDockTab('price-alerts'); openMarketWatch()
       if (priceAlertSoundEnabled) void enablePriceAlertSound()
     }
@@ -306,7 +332,7 @@ export function useTerminalWorkspace() {
   return { ...marketStructureState, ...atrState, ...volumeState, ...rsiState, ...macroState, timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
     drawingToolbarVisible, eventIconMode, cycleEventIcons, bottomDockWindow, dockSize, settingsOpen, setSettingsOpen, marketWatch, appendActivity,
     bridge, marketData, activeSymbol, bars, brokerId, inspector, quote, drawings, pairDrawingCount, updateDrawingPoint,
-    updateDrawingPoints, updateDrawingText, updatePositionWidth, handleDeleteDrawing, selectSymbol, selectTimeframe,
+    updateDrawingPoints, updateDrawingText, updatePositionWidth, handleDeleteDrawing, changeTrendDrag, selectSymbol, selectTimeframe,
     recordChartData, changeTheme, changeChartAppearance, changeTimeDisplay, createDrawing, chooseDrawingTool,
     selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode, toggleDrawingToolbar,
     renderChartOverlay, sourceState, sourceLabel,

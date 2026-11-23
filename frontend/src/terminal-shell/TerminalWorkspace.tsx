@@ -38,7 +38,6 @@ import { WildcardsProvider } from '../wildcards/WildcardsProvider'
 import { useWildcards } from '../wildcards/useWildcards'
 import { WildcardChartLayer } from '../wildcards/WildcardChartLayer'
 import { timeframeToSeconds } from '../market-data/chart-drawings/position-drawing-geometry'
-import { isSupplyDemandTool } from '../market-data/chart-drawings/drawing-tool'
 import type { IChartApi, ISeriesApi, Time } from 'lightweight-charts'
 
 export function TerminalWorkspace() {
@@ -55,14 +54,13 @@ function TerminalWorkspaceContent() {
     timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
     drawingToolbarVisible, eventIconMode, cycleEventIcons, bottomDockWindow, dockSize, settingsOpen, setSettingsOpen, marketWatch, appendActivity,
     bridge, marketData, activeSymbol, bars, brokerId, inspector, quote, drawings, pairDrawingCount,
-    updateDrawingPoint, updateDrawingPoints, updateDrawingText, updatePositionWidth, handleDeleteDrawing,
+    updateDrawingPoint, updateDrawingPoints, updateDrawingText, updatePositionWidth, handleDeleteDrawing, changeTrendDrag,
     selectSymbol, selectTimeframe, recordChartData, changeTheme, changeChartAppearance, changeTimeDisplay,
     createDrawing, chooseDrawingTool, selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode,
     toggleDrawingToolbar, renderChartOverlay, sourceState, sourceLabel,
     recentEventsOpen, toggleRecentEvents, closeRecentEvents, alertFocus, viewReleaseInAlert,
     rankingOpen, toggleRanking, closeRanking, newsOpen, toggleNews, closeNews, openNews, detailOpen, toggleDetail, closeDetail, openDetail, viewLedgerEvent, viewMacroRelease, returnToLedger,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab } = useTerminalWorkspace()
-  const selectedLevel = selectedDrawingId && drawings.find(drawing => drawing.id === selectedDrawingId && isSupplyDemandTool(drawing.tool))
   const hasDailyCloseHistory = quote?.synthetic === true && timeframe === 'D1' && bars.some(bar => bar.closeOnly)
   const [heatmapStarted, setHeatmapStarted] = useState(false)
   if ((bottomDockWindow === 'heatmap' || rankingOpen) && !heatmapStarted) setHeatmapStarted(true)
@@ -208,6 +206,7 @@ function TerminalWorkspaceContent() {
                   onCreateDrawing={createDrawing}
                   onUpdateDrawingPoint={updateDrawingPoint}
                   onUpdateDrawingPoints={updateDrawingPoints}
+                  onDrawingDragChange={changeTrendDrag}
                   onUpdatePositionWidth={updatePositionWidth}
                   onUpdateDrawingText={updateDrawingText}
                   onDeleteDrawing={handleDeleteDrawing}
@@ -236,10 +235,6 @@ function TerminalWorkspaceContent() {
                 wildcardDisabled={!wildcards.snapshot || !bars.length || !brokerClockProfile(brokerId)}
                 onAddWildcard={() => { selectCrosshair(); wildcards.setPlacing(value => !value) }}
                 onClearPair={deletePairDrawings}
-                onAlertAtLevel={selectedLevel && selectedLevel.points[0] ? () => {
-                  if (priceAlerts.playSound) void priceAlerts.enableSound()
-                  createDrawing('price-alert', selectedLevel.points)
-                } : undefined}
                 priceAlertDisabled={!brokerId || !quote || !priceAlerts.live}
               />
               )}

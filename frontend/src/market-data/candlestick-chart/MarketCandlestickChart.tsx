@@ -67,6 +67,7 @@ type MarketCandlestickChartProps = {
   drawings: ChartDrawingRecord[]
   selectedDrawingId: string | null
   onSelectDrawing: (drawingId: string | null) => void
+  onDrawingDragChange?: (drawingId: string | null) => void
   onCreateDrawing: (tool: DrawingToolId, points: ChartDrawingPoint[]) => string
   onUpdateDrawingPoint: (drawingId: string, pointIndex: number, point: ChartDrawingPoint, persist: boolean) => void
   onUpdateDrawingPoints?: (drawingId: string, points: ChartDrawingPoint[], persist: boolean) => void
@@ -114,6 +115,7 @@ function MarketCandlestickChartComponent({
   drawings,
   selectedDrawingId,
   onSelectDrawing,
+  onDrawingDragChange,
   onCreateDrawing,
   onUpdateDrawingPoint,
   onUpdateDrawingPoints,
@@ -697,6 +699,7 @@ function MarketCandlestickChartComponent({
           symbol={symbol}
           precision={precision}
           onSelectDrawing={onSelectDrawing}
+          onDrawingDragChange={onDrawingDragChange}
           onCreateDrawing={onCreateDrawing}
           onUpdateDrawingPoint={onUpdateDrawingPoint}
           onUpdateDrawingPoints={onUpdateDrawingPoints}

@@ -1,7 +1,7 @@
 import type { OhlcBar } from '../contracts/OhlcBar'
 import type { SymbolQuote } from '../contracts/SymbolQuote'
 
-const quoteFields = ['symbol', 'description', 'synthetic', 'indexLevel', 'indexExpiresAt',
+const quoteFields = ['symbol', 'description', 'synthetic', 'indexLevel', 'indexExpiresAt', 'tickChartTime', 'tickAt',
   'bid', 'ask', 'dailyChange', 'precision', 'dailyHigh', 'dailyLow'] as const
 export function retainSymbolQuotes(current: SymbolQuote[], incoming: SymbolQuote[]) {
   const bySymbol = new Map(current.map(quote => [quote.symbol, quote]))

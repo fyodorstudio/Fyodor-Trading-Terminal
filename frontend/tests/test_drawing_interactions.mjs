@@ -53,7 +53,7 @@ try {
   const { readChartDrawings } = await server.ssrLoadModule('./src/market-data/chart-drawings/chart-drawing-storage.ts')
   const { drawingTools: allTools, isHorizontalDrawingTool } = await server.ssrLoadModule('./src/market-data/chart-drawings/drawing-tool.ts')
   // Price alerts have their own broker-scoped store and lifecycle tests.
-  const drawingTools = allTools.filter(tool => tool.id !== 'price-alert')
+  const drawingTools = allTools.filter(tool => !tool.id.endsWith('price-alert'))
   const { drawingTimeToLogical, drawingLogicalToTime } = await server.ssrLoadModule('./src/market-data/chart-drawings/drawing-coordinates.ts')
 
   const gapBars = [1000, 1060, 200000].map(time => ({ time }))

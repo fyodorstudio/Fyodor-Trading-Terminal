@@ -5,6 +5,7 @@ export type DrawingToolId =
   | 'supply-line'
   | 'demand-line'
   | 'price-alert'
+  | 'trend-price-alert'
   | 'parallel-channel'
   | 'path'
   | 'arrow'
@@ -28,9 +29,8 @@ export const drawingTools: DrawingToolDefinition[] = [
   { id: 'trend-line', label: 'Trend line', icon: '╱', gesture: 'drag' },
   { id: 'rectangle', label: 'Rectangle', icon: '▭', gesture: 'drag' },
   { id: 'horizontal-line', label: 'Horizontal line', icon: '—', gesture: 'point' },
-  { id: 'supply-line', label: 'Supply line', icon: '⇣', gesture: 'point' },
-  { id: 'demand-line', label: 'Demand line', icon: '⇡', gesture: 'point' },
-  { id: 'price-alert', label: 'Price alert', icon: '⏰', gesture: 'point' },
+  { id: 'price-alert', label: 'Horizontal Price Alert', icon: '⏰', gesture: 'point' },
+  { id: 'trend-price-alert', label: 'Trend Price Alert', icon: '╱', gesture: 'drag' },
   { id: 'parallel-channel', label: 'Parallel channel', icon: '≋', gesture: 'drag' },
   { id: 'path', label: 'Path', icon: '⌁', gesture: 'path' },
   { id: 'arrow', label: 'Arrow', icon: '↗', gesture: 'drag' },
@@ -43,6 +43,10 @@ export const drawingTools: DrawingToolDefinition[] = [
   { id: 'fib-retracement', label: 'Fib retracement', icon: 'F', gesture: 'drag' },
   { id: 'date-price-range', label: 'Date and price range', icon: '↔', gesture: 'drag' },
 ]
+
+export function isPriceAlertTool(tool: DrawingToolId | null) {
+  return tool === 'price-alert' || tool === 'trend-price-alert'
+}
 
 export function isSupplyDemandTool(tool: DrawingToolId) {
   return tool === 'supply-line' || tool === 'demand-line'

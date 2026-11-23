@@ -16,4 +16,5 @@ export type ChartDrawingRecord = {
   points: ChartDrawingPoint[]
   createdAt: number
   text?: string
+  alertStatus?: 'armed' | 'paused' | 'triggered'
 }

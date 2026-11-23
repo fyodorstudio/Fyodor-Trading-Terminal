@@ -6,7 +6,7 @@ import { InlineTextEditor } from './interaction/InlineTextEditor'
 import './chart-drawing-overlay.css'
 
 export function ChartDrawingOverlay(props: ChartDrawingOverlayProps) {
-  const { activeTool, cancelInteraction, clipId, continueInteraction, crosshair, draft, draftDrawing, drawings, editingTextId, finishInteraction, handleContextMenu, onDeleteDrawing, onDeleteSelectedDrawing, onSelectDrawing, onUpdateDrawingText, overlayRef, precision, selectedDrawingId, setEditingTextId, startHandleEdit, startInteraction, toScreenPoints, viewport } = useDrawingInteraction(props)
+  const { activeTool, cancelInteraction, clipId, continueInteraction, crosshair, draft, draftDrawing, drawings, editingTextId, finishInteraction, handleContextMenu, onDeleteDrawing, onDeleteSelectedDrawing, onSelectDrawing, onUpdateDrawingText, overlayRef, precision, selectedDrawingId, setEditingTextId, startHandleEdit, startInteraction, toScreenPoints, toTrendPath, viewport } = useDrawingInteraction(props)
   return (
     <svg
       ref={overlayRef}
@@ -39,6 +39,7 @@ export function ChartDrawingOverlay(props: ChartDrawingOverlayProps) {
             key={drawing.id}
             className={`drawing-object${selected ? ' selected' : ''}`}
             data-drawing-id={drawing.id}
+            data-price-alert-id={drawing.tool === 'trend-price-alert' ? drawing.id : undefined}
             onPointerDown={(event) => {
               if (activeTool || event.button !== 0) return
               event.stopPropagation()
@@ -63,8 +64,8 @@ export function ChartDrawingOverlay(props: ChartDrawingOverlayProps) {
               }
             }}
           >
-            <ChartDrawingShape drawing={drawing} points={screenPoints} width={viewport.width} height={viewport.height} precision={precision} />
-            {selected && (
+            <ChartDrawingShape drawing={drawing} points={screenPoints} trendPath={toTrendPath(drawing, screenPoints)} width={viewport.width} height={viewport.height} precision={precision} />
+            {selected && drawing.alertStatus !== 'triggered' && (
               <ChartDrawingSelectionHandles
                 drawing={drawing}
                 screenPoints={screenPoints}

@@ -15,6 +15,7 @@ export type ChartDrawingOverlayProps = {
   symbol?: string
   precision?: number
   onSelectDrawing: (drawingId: string | null) => void
+  onDrawingDragChange?: (drawingId: string | null) => void
   onCreateDrawing: (tool: DrawingToolId, points: ChartDrawingPoint[]) => string
   onUpdateDrawingPoint: (drawingId: string, pointIndex: number, point: ChartDrawingPoint, persist: boolean) => void
   onUpdateDrawingPoints?: (drawingId: string, points: ChartDrawingPoint[], persist: boolean) => void

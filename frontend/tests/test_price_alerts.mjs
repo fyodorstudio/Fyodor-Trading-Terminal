@@ -39,6 +39,39 @@ try {
   const { PriceAlertsDock } = await server.ssrLoadModule('./src/price-alerts/PriceAlertsDock.tsx')
   const { evaluatePriceAlerts, readPriceAlerts, priceAlertStorageKey } = await server.ssrLoadModule('./src/price-alerts/price-alert-store.ts')
   const { priceAlertSounds } = await server.ssrLoadModule('./src/price-alerts/price-alert-tones.ts')
+  const { trendAlertPoints, trendAlertPrice } = await server.ssrLoadModule('./src/price-alerts/trend-alert.ts')
+  const base = 1_700_000_000_000, chartOrigin = 1_700_007_200
+  const point = (seconds, price) => ({ time: chartOrigin + seconds, price })
+  const trend = trendAlertPoints([point(10, 2), point(0, 1)])
+  assert.deepEqual(trend, [point(0, 1), point(10, 2)], 'Reverse drags normalize to the same segment')
+  assert.equal(trendAlertPrice(trend, chartOrigin + 5), 1.5)
+  assert.equal(trendAlertPoints([point(0, 1), point(0, 2)]), undefined, 'A vertical segment has no unique alert price')
+  const active = { id: 'trend', brokerId: 'Broker A', symbol: 'EURUSD', price: 1, trend, direction: null,
+    label: 'supply', precision: 5, status: 'armed', createdAt: base - 2000, triggeredAt: null, triggeredBid: null }
+  function evaluateTrend(rows, overrides = {}) {
+    const samples = new Map()
+    let alerts = [{ ...active, ...overrides }]
+    const fired = []
+    for (const [seconds, bid, latency = 0] of rows) {
+      const tickAt = base + seconds * 1000
+      const quotes = bid == null ? [] : [{ ...quote('EURUSD', bid), tickAt, tickChartTime: chartOrigin + seconds }]
+      const result = evaluatePriceAlerts(alerts, 'Broker A', quotes, tickAt + latency, null, samples)
+      alerts = result.alerts
+      fired.push(...result.triggered)
+    }
+    return fired
+  }
+  assert.equal(evaluateTrend([[5, 1.5]]).length, 1, 'An exact first fresh touch fires')
+  assert.equal(evaluateTrend([[3, 1.5], [7, 1.5], [8, 1.3]]).length, 1, 'A rising line crosses even when Bid stays constant; alerts fire once')
+  assert.equal(evaluateTrend([[3, 1.1], [7, 1.8]]).length, 1, 'Every alert label can cross from below')
+  assert.equal(evaluateTrend([[3, 1.8], [7, 1.1]], { trend: [point(0, 2), point(10, 1)] }).length, 1, 'Descending line')
+  assert.equal(evaluateTrend([[8, 1.9], [12, 1.7]]).length, 1, 'A crossing between samples can occur just before the segment ends')
+  assert.equal(evaluateTrend([[8, 2.2], [12, 1.9]]).length, 0, 'A crossing after the segment ends does not fire')
+  assert.equal(evaluateTrend([[-2, .5], [2, 1.05]]).length, 0, 'A crossing before the segment starts does not fire')
+  assert.equal(evaluateTrend([[3, 1.9], [4, null], [7, 1.1]]).length, 0, 'Missing quotes reset the crossing baseline')
+  assert.equal(evaluateTrend([[5, 1.5, 16_000]]).length, 0, 'Stale touches do not fire')
+  assert.equal(evaluateTrend([[3, 1.9], [7, 1.1]], { trendArmedAt: base + 6_000 }).length, 0, 'Rearming excludes crossings before the arm time')
+  assert.equal(evaluateTrend([[3, 1.1], [2, 1.8]]).length, 0, 'Out-of-order quotes do not fire')
   const saved = () => JSON.parse(dom.localStorage.getItem(priceAlertStorageKey))
   function Harness({ broker = 'Broker A', quotes = [quote('EURUSD', 1.1)], live = true, symbol = 'EURUSD' }) {
     const controller = usePriceAlerts(broker, quotes, live)
@@ -75,6 +108,7 @@ try {
   const upRow = [...host.querySelectorAll('.price-alert-row')].find(row => row.querySelector('.price-alert-title').textContent === 'EURUSD Crossing 1.20000')
   assert.equal(upRow.querySelector('.price-alert-state').textContent, 'Active')
   assert.equal(upRow.querySelector('.price-alert-actions').querySelectorAll('button').length, 2, 'Only lifecycle and trash icons remain')
+  assert.equal(upRow.querySelector('.price-alert-actions select').value, '', 'Existing horizontal alerts start unlabeled')
   assert.equal(upRow.querySelector('.price-alert-details'), null, 'Rows have no expandable details')
   assert.equal(upRow.querySelector('input[type="number"]'), null, 'Price editing uses the chart line')
   assert.ok([...upRow.querySelectorAll('.price-alert-actions button')].every(node => node.querySelector('svg') && !node.textContent.trim()), 'Actions use icons with accessible labels')
@@ -249,6 +283,28 @@ try {
   await render({ quotes: [quote('EURUSD', 1.4)] }, 'selected-sound-reload')
   assert.equal(api.alerts.find(item => item.id === down).status, 'triggered')
   assert.equal(scheduledTones[triggerStart].pitch, 523, 'Automatic triggers use the saved preset too')
+  dom.localStorage.setItem(priceAlertStorageKey, JSON.stringify({ ...saved(), alerts: [] }))
+  await render({ quotes: [] }, 'trend-sound')
+  await command(() => api.enableSound())
+  const liveAt = Date.now() + 500
+  const sampled = (offset, bid) => [{ ...quote('EURUSD', bid), tickAt: liveAt + offset, tickChartTime: (liveAt + offset) / 1000 }]
+  let trendId
+  await command(() => { trendId = api.addAlert('EURUSD', 1, 5, [
+    { time: liveAt / 1000, price: 1 }, { time: (liveAt + 4000) / 1000, price: 1.4 },
+  ]) })
+  assert.ok(trendId)
+  await command(() => api.labelAlert(trendId, 'demand'))
+  const trendSoundStart = scheduledTones.length
+  await render({ quotes: sampled(0, .9), symbol: 'GBPUSD' }, 'trend-sound')
+  assert.equal(saved().alerts[0].status, 'armed')
+  await render({ quotes: sampled(2000, 1.3), symbol: 'GBPUSD' }, 'trend-sound')
+  assert.equal(saved().alerts[0].status, 'triggered', 'Trend crossings are evaluated even on another symbol')
+  assert.equal(saved().alerts[0].soundStatus, 'played')
+  assert.equal(saved().alerts[0].label, 'demand')
+  assert.equal(scheduledTones[trendSoundStart].pitch, 523, 'The selected sound plays for the trend crossing')
+  const afterTrend = scheduledTones.length
+  await render({ quotes: sampled(3000, 1.4) }, 'trend-reload')
+  assert.equal(scheduledTones.length, afterTrend, 'Reload does not replay a trend alert')
   dom.localStorage.setItem(priceAlertStorageKey, JSON.stringify({ ...saved(), alerts: [] }))
   await command(() => dom.dispatchEvent(new dom.StorageEvent('storage', { key: priceAlertStorageKey })))
   assert.equal(api.alerts.length, 0, 'Other-tab edits synchronize')

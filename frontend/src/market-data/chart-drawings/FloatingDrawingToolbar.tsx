@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import { drawingTools, type DrawingToolId } from './drawing-tool'
+import { drawingTools, isPriceAlertTool, type DrawingToolId } from './drawing-tool'
 import {
   readFloatingToolbarPosition,
   saveFloatingToolbarPosition,
@@ -18,12 +18,11 @@ type FloatingDrawingToolbarProps = {
   wildcardDisabled?: boolean
   onAddWildcard?: () => void
   priceAlertDisabled?: boolean
-  onAlertAtLevel?: () => void
 }
 
-function PriceAlertIcon() {
+function PriceAlertIcon({ trend }: { trend: boolean }) {
   return <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6">
-    <circle cx="10" cy="11" r="6" /><path d="M10 7v4l3 2M3 5l3-3M14 2l3 3M5 16l-1 2M15 16l1 2" />
+    <circle cx="10" cy="10" r="6" /><path d={trend ? 'M6.5 12.5l7-5M3 4l3-3M14 1l3 3' : 'M6.5 10h7M3 4l3-3M14 1l3 3'} />
   </svg>
 }
 
@@ -35,7 +34,6 @@ export function FloatingDrawingToolbar({
   onToolChange,
   onClearPair,
   priceAlertDisabled = false,
-  onAlertAtLevel,
   wildcardActive = false,
   wildcardDisabled = false,
   onAddWildcard,
@@ -161,23 +159,16 @@ export function FloatingDrawingToolbar({
           onClick={() => onToolChange(activeTool === tool.id ? null : tool.id)}
           aria-pressed={activeTool === tool.id}
           aria-label={tool.label}
-          disabled={tool.id === 'price-alert' && priceAlertDisabled}
+          disabled={isPriceAlertTool(tool.id) && priceAlertDisabled}
           title={`${tool.label}${activeTool === tool.id ? ' · click again to return to chart navigation' : ''}`}
         >
-          {tool.id === 'price-alert'
-            ? <PriceAlertIcon />
+          {isPriceAlertTool(tool.id)
+            ? <PriceAlertIcon trend={tool.id === 'trend-price-alert'} />
             : tool.id === 'rectangle'
             ? <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20"><rect x="2" y="4" width="16" height="12" rx="1" fill="none" stroke="currentColor" strokeWidth="1.8" /></svg>
             : <span aria-hidden="true">{tool.icon}</span>}
         </button>
       ))}
-
-      {onAlertAtLevel && (
-        <button type="button" className="drawing-toolbar-level-alert" onClick={onAlertAtLevel} disabled={priceAlertDisabled}
-          aria-label="Add price alert at selected level" title="Create a price alert at the selected line’s current price">
-          <PriceAlertIcon />
-        </button>
-      )}
 
       <span className="drawing-toolbar-separator" aria-hidden="true" />
       <button

@@ -19,7 +19,7 @@ export function createMacroTooltip(container: HTMLElement) {
   return {
     element,
     hide() { element.hidden = true; connector.style.display = 'none' },
-    show(key: string, reading: MacroReading, forecast: number | null | undefined, format: (time: number) => string, showDelta = false) {
+    show(key: string, reading: MacroReading, forecast: number | null | undefined, format: (time: number) => string, showDelta = false, upcoming?: MacroPendingDetails) {
       element.replaceChildren()
       const definition = macroCatalog[key], title = document.createElement('strong')
       const stage = reading.stage ?? (euroInflation.has(definition.eventId)
@@ -31,6 +31,7 @@ export function createMacroTooltip(container: HTMLElement) {
         const th = document.createElement('th'); th.scope = 'col'; th.textContent = field
         const td = document.createElement('td'); td.dataset.macroTooltipField = field.toLowerCase()
         td.textContent = typeof value === 'number' && Number.isFinite(value) ? macroValue(key, value, reading) : '—'
+        if (field === 'Previous' && reading.previousFromHistory) th.textContent = 'Previous actual'
         if (!showDelta && field === 'Actual' && (reading.impact === 'positive' || reading.impact === 'negative')) td.style.color = `var(--${reading.impact})`
         head.append(th); values.append(td)
       }
@@ -54,6 +55,13 @@ export function createMacroTooltip(container: HTMLElement) {
       forecastDetails.textContent = `${surprise === null ? '' : `Forecast · ${reading.forecastSource?.name ?? 'MT5'} · `}Surprise · ${formatDelta(key, reading, surprise)}`
       forecastDetails.title = reading.forecastSource?.url ?? ''
       element.append(forecastDetails)
+      if (upcoming?.forecast !== undefined) {
+        const details = document.createElement('small')
+        details.dataset.macroTooltipField = 'upcoming'
+        details.textContent = `Upcoming forecast · ${macroValue(key, upcoming.forecast, upcoming.format ?? reading)} · ${upcoming.forecastSource?.name ?? 'MT5'} · ${format(upcoming.releasedAt)}`
+        details.title = upcoming.forecastSource?.url ?? ''
+        element.append(details)
+      }
     },
     showScheduled(items: MacroPendingDetails[], format: (time: number) => string) {
       element.replaceChildren()

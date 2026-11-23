@@ -5,6 +5,16 @@ once per armed crossing. The bridge calculates each index level from its seven
 constituent Bid quotes using the chart's fixed reference. The frontend checks
 both ends of the quote timestamp range before evaluating an alert. It saves
 the triggered state and a unique sound-delivery token together, before playback.
+
+The drawing toolbar has Horizontal Price Alert and Trend Price Alert. A trend
+alert tracks the segment between two distinct times. The same price projection
+drives both the chart and evaluation against timestamped quotes, including
+crossings between samples. The left-panel Supply and Demand selector labels
+either kind of alert. Unset is the default.
+
+Trend alerts use the live Market Watch samples. A touch that reverses between
+samples may be missed. A stale or interrupted quote stream starts a new
+crossing baseline when fresh data returns.
 `usePriceAlertDelivery.ts` owns delivery recovery independently of quote evaluation:
 
 - Pending audio survives page reloads. A successful start is saved as played;

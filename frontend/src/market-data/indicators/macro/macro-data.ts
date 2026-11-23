@@ -11,7 +11,7 @@ import type { CalendarEvidenceSource, EconomicCalendarEvent } from '../../../eco
 import { officialActualSource } from '../../../economic-calendar/presentation/calendar-evidence'
 
 export type MacroReading = { time: number; releasedAt: number; value: number; id: string; currency?: string; brokerValue?: number; unit?: number; multiplier?: number; digits?: number;
-  revision?: number; forecast?: number | null; previous?: number | null; impact?: string; actualSource?: string;
+  revision?: number; forecast?: number | null; previous?: number | null; previousFromHistory?: boolean; impact?: string; actualSource?: string;
   forecastSource?: CalendarEvidenceSource; actualEvidence?: CalendarEvidenceSource; stage?: EconomicCalendarEvent['release_stage'] }
 export type MacroHistory = Record<MacroMetric, MacroReading[]>
 export type MacroScheduled = { time: number; releasedAt: number; metrics: MacroMetric[]; forecasts?: Partial<Record<MacroMetric, number>>;
@@ -82,17 +82,30 @@ export function macroHistory(events: StoredCalendarEvent[], now: number, field: 
         ? !!event.actual_override_source : newerReading(event, previous)))
         readings.set(event.chart_time_seconds, event)
     }
-    history[key] = [...readings.values()].filter(event => event[field] !== null && Number.isFinite(event[field]))
-      .map(event => {
-        const actualEvidence = officialActualSource(event), forecastSource = event.calendar_sources?.forecast
-        return { time: event.chart_time_seconds!, releasedAt: event.release_at!, value: event[field]!, id: event.value_id, currency: event.currency, unit: event.unit, multiplier: event.multiplier, digits: event.digits,
-          revision: event.revision, forecast: Number.isFinite(event.forecast) ? event.forecast : null, previous: Number.isFinite(event.previous) ? event.previous : null,
-          impact: actualEvidence || forecastSource ? 'none' : event.impact,
-          ...(event.actual_override_source ? { actualSource: event.actual_override_source } : {}),
-          ...(actualEvidence ? { actualEvidence } : {}), ...(forecastSource ? { forecastSource } : {}),
-          ...(event.release_stage ? { stage: event.release_stage } : {}) }
-      })
-      .sort((a, b) => a.time - b.time)
+    const published = [...readings.values()].filter(event => event[field] !== null && Number.isFinite(event[field]))
+      .sort((a, b) => a.chart_time_seconds! - b.chart_time_seconds!)
+    history[key] = published.map((event, index) => {
+      const actualEvidence = officialActualSource(event), forecastSource = event.calendar_sources?.forecast
+      let previous = Number.isFinite(event.previous) ? event.previous : null
+      let previousFromHistory = false
+      if (field === 'actual' && previous === null && actualEvidence && event.period_seconds > 0) {
+        for (let i = index - 1; i >= 0; i--) {
+          const prior = published[i]
+          if (prior.period_seconds <= 0 || prior.period_seconds >= event.period_seconds
+            || prior.unit !== event.unit || prior.multiplier !== event.multiplier) continue
+          previous = prior.actual
+          previousFromHistory = true
+          break
+        }
+      }
+      return { time: event.chart_time_seconds!, releasedAt: event.release_at!, value: event[field]!, id: event.value_id, currency: event.currency, unit: event.unit, multiplier: event.multiplier, digits: event.digits,
+        revision: event.revision, forecast: Number.isFinite(event.forecast) ? event.forecast : null, previous,
+        ...(previousFromHistory ? { previousFromHistory } : {}),
+        impact: actualEvidence || forecastSource ? 'none' : event.impact,
+        ...(event.actual_override_source ? { actualSource: event.actual_override_source } : {}),
+        ...(actualEvidence ? { actualEvidence } : {}), ...(forecastSource ? { forecastSource } : {}),
+        ...(event.release_stage ? { stage: event.release_stage } : {}) }
+    })
   }
   return history
 }
