@@ -1,5 +1,6 @@
 import { memo } from 'react'
 import type { SymbolQuote } from '../../market-data/contracts/SymbolQuote'
+import type { ChartTimeframe } from '../../market-data/contracts/ChartTimeframe'
 import { MarketWatchPanel } from '../../market-data/market-watch/MarketWatchPanel'
 import type { FeedStatus } from '../../market-data/mt5-feed/use-mt5-market-data'
 import type { MarketWatchDock } from './useMarketWatchDock'
@@ -13,7 +14,7 @@ type LeftDockPanelProps = {
   selectedSymbol: string
   marketWatchStatus: FeedStatus
   marketWatchError: string | null
-  onSelectSymbol: (symbol: string) => void
+  onSelectSymbol: (symbol: string, timeframe?: ChartTimeframe) => void
   brokerId?: string | null
   generation?: number
   activeTab: 'market-watch' | 'price-alerts'

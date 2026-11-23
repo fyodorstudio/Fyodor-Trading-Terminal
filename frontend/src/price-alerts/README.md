@@ -7,14 +7,18 @@ both ends of the quote timestamp range before evaluating an alert. It saves
 the triggered state and a unique sound-delivery token together, before playback.
 
 The drawing toolbar has Horizontal Price Alert and Trend Price Alert. A trend
-alert tracks the segment between two distinct times. The same price projection
-drives both the chart and evaluation against timestamped quotes, including
-crossings between samples. The left-panel Supply and Demand selector labels
-either kind of alert. Unset is the default.
+alert tracks the segment between two distinct times and saves the candle spacing
+of its drawing timeframe. The line is straight on that timeframe. Other
+timeframes show the same trigger prices on their own time axes. Clicking an
+alert opens its drawing timeframe. Editing a legacy trend alert gives it the
+current chart's candle spacing. The Supply and Demand selector labels either
+kind of alert and starts unset.
 
 Trend alerts use the live Market Watch samples. A touch that reverses between
 samples may be missed. A stale or interrupted quote stream starts a new
-crossing baseline when fresh data returns.
+crossing baseline when fresh data returns. If a quote arrives ahead of the
+reference candles, it waits within the freshness window for confirmed candle
+times. The bridge can load those candles even when another chart is open.
 `usePriceAlertDelivery.ts` owns delivery recovery independently of quote evaluation:
 
 - Pending audio survives page reloads. A successful start is saved as played;

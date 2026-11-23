@@ -8,7 +8,7 @@ import { Window } from 'happy-dom'
 const dom = new Window({ url: 'http://localhost:5173' })
 const globals = { window: dom, document: dom.document, HTMLElement: dom.HTMLElement, Node: dom.Node,
   navigator: dom.navigator, IS_REACT_ACT_ENVIRONMENT: true }
-const previous = new Map([...Object.keys(globals), 'AudioContext'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
+const previous = new Map([...Object.keys(globals), 'AudioContext', 'fetch'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
 for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value })
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), server: { middlewareMode: true, hmr: false } })
 const { createRoot } = await import('react-dom/client')
@@ -40,6 +40,8 @@ try {
   const { evaluatePriceAlerts, readPriceAlerts, priceAlertStorageKey } = await server.ssrLoadModule('./src/price-alerts/price-alert-store.ts')
   const { priceAlertSounds } = await server.ssrLoadModule('./src/price-alerts/price-alert-tones.ts')
   const { trendAlertPoints, trendAlertPrice } = await server.ssrLoadModule('./src/price-alerts/trend-alert.ts')
+  const { createTrendAlertScale, extendTrendAlertScale } = await server.ssrLoadModule('./src/price-alerts/trend-alert-scale.ts')
+  const { drawingTimeToLogical } = await server.ssrLoadModule('./src/market-data/chart-drawings/drawing-coordinates.ts')
   const base = 1_700_000_000_000, chartOrigin = 1_700_007_200
   const point = (seconds, price) => ({ time: chartOrigin + seconds, price })
   const trend = trendAlertPoints([point(10, 2), point(0, 1)])
@@ -72,6 +74,24 @@ try {
   assert.equal(evaluateTrend([[5, 1.5, 16_000]]).length, 0, 'Stale touches do not fire')
   assert.equal(evaluateTrend([[3, 1.9], [7, 1.1]], { trendArmedAt: base + 6_000 }).length, 0, 'Rearming excludes crossings before the arm time')
   assert.equal(evaluateTrend([[3, 1.1], [2, 1.8]]).length, 0, 'Out-of-order quotes do not fire')
+  const spacedBars = [0, 3600, 14400, 18000].map(seconds => point(seconds, 1))
+  const spacedTrend = [point(0, 1), point(21600, 5)]
+  const spacedScale = createTrendAlertScale('H1', spacedBars, chartOrigin)
+  for (const seconds of [0, 3600, 7200, 14400, 18000, 19800, 21600]) {
+    const time = chartOrigin + seconds
+    assert.ok(Math.abs(trendAlertPrice(spacedTrend, time, spacedScale) - (1 + drawingTimeToLogical(time, spacedBars, 3600))) < 1e-9,
+      'The threshold matches a single straight line in chart coordinates, even inside gaps and in future space')
+  }
+  assert.equal(evaluateTrend([[14400, 3]], { trend: spacedTrend, trendScale: spacedScale }).length, 1, 'Bid at the straight chart line plays the alert')
+  assert.equal(evaluateTrend([[14400, trendAlertPrice(spacedTrend, chartOrigin + 14400)]], { trend: spacedTrend, trendScale: spacedScale }).length, 0,
+    'The old elapsed-time level cannot trigger at the wrong chart price')
+  assert.equal(evaluateTrend([[14395, 3.001], [14400, 2.999]], { trend: spacedTrend, trendScale: spacedScale }).length, 1,
+    'Crossings across adjacent candle coordinates still fire between samples')
+  assert.equal(evaluateTrend([[3595, 1.9988], [3605, 2.00065]], { trend: spacedTrend, trendScale: spacedScale }).length, 1,
+    'A crossing can reverse at a spacing change even when both samples are on the same side')
+  const beforeGap = createTrendAlertScale('H1', spacedBars.slice(0, 2), chartOrigin)
+  assert.equal(extendTrendAlertScale(beforeGap, spacedBars.slice(2)), beforeGap, 'An unverified hole is never assumed to be market closure')
+  assert.deepEqual(extendTrendAlertScale(beforeGap, spacedBars.slice(1)), spacedScale, 'Overlapping candles confirm newly formed session gaps')
   const saved = () => JSON.parse(dom.localStorage.getItem(priceAlertStorageKey))
   function Harness({ broker = 'Broker A', quotes = [quote('EURUSD', 1.1)], live = true, symbol = 'EURUSD' }) {
     const controller = usePriceAlerts(broker, quotes, live)
@@ -305,6 +325,29 @@ try {
   const afterTrend = scheduledTones.length
   await render({ quotes: sampled(3000, 1.4) }, 'trend-reload')
   assert.equal(scheduledTones.length, afterTrend, 'Reload does not replay a trend alert')
+  dom.localStorage.setItem(priceAlertStorageKey, JSON.stringify({ ...saved(), alerts: [] }))
+  const requests = []
+  globalThis.fetch = (url, { signal }) => new Promise(resolve => requests.push({ url, signal, resolve }))
+  await render({ quotes: [], symbol: 'GBPUSD' }, 'straight-trend')
+  await command(() => api.enableSound())
+  const reopening = (liveAt + 2000) / 1000
+  const lastClosed = reopening - 3 * 3600
+  const closingScale = createTrendAlertScale('H1', [{ time: lastClosed }], lastClosed)
+  await command(() => api.addAlert('EURUSD', 1, 5, [{ time: lastClosed, price: 1 }, { time: reopening + 3600, price: 1.4 }], closingScale))
+  await render({ quotes: sampled(2000, 1.2), symbol: 'GBPUSD' }, 'straight-trend')
+  assert.equal(saved().alerts[0].status, 'armed', 'No trigger on guessed candle spacing after a gap')
+  assert.match(requests[0].url, /symbol=EURUSD&timeframe=H1.*trend_alert=true/, 'The reference candles are fetched while viewing another symbol')
+  assert.match(host.textContent, /Waiting for candles/)
+  await render({ quotes: sampled(3000, 1.25), symbol: 'GBPUSD' }, 'straight-trend')
+  assert.equal(requests.length, 1, 'An in-flight request is shared across later quote samples')
+  await command(() => requests[0].resolve({ ok: false, status: 503, json: async () => ({}) }))
+  await command(() => new Promise(resolve => setTimeout(resolve, 1100)))
+  assert.equal(requests.length, 2, 'A transient candle request retries without another quote')
+  await command(() => requests[1].resolve({ ok: true, json: async () => ({ symbol: 'EURUSD', timeframe: 'H1', start_pos: 0,
+    next_start_pos: 2, has_older: false, source_generation: 0, bars: [{ time: lastClosed }, { time: reopening }] }) }))
+  assert.equal(saved().alerts[0].triggeredBid, 1.2, 'The reopening touch is evaluated when its candle arrives, even after newer quotes')
+  assert.equal(saved().alerts[0].soundStatus, 'played')
+  assert.deepEqual(saved().alerts[0].trendScale.intervals, [[lastClosed, reopening]], 'The confirmed reference timeline survives reloads')
   dom.localStorage.setItem(priceAlertStorageKey, JSON.stringify({ ...saved(), alerts: [] }))
   await command(() => dom.dispatchEvent(new dom.StorageEvent('storage', { key: priceAlertStorageKey })))
   assert.equal(api.alerts.length, 0, 'Other-tab edits synchronize')

@@ -110,11 +110,15 @@ export function ChartDrawingShape({ drawing, points, width, height, precision = 
 
   switch (drawing.tool) {
     case 'trend-price-alert': {
-      const path = trendPath ?? `${first.x},${first.y} ${last.x},${last.y}`
       return <g className="drawing-trend-alert" data-alert-status={drawing.alertStatus}>
         <title>{drawing.text || 'Trend Price Alert'}</title>
-        <polyline className="drawing-hit-area" points={path} />
-        <polyline className="drawing-stroke" points={path} />
+        {trendPath ? <>
+          <polyline className="drawing-hit-area" points={trendPath} />
+          <polyline className="drawing-stroke" points={trendPath} />
+        </> : <>
+          <line className="drawing-hit-area" x1={first.x} y1={first.y} x2={last.x} y2={last.y} />
+          <line className="drawing-stroke" x1={first.x} y1={first.y} x2={last.x} y2={last.y} />
+        </>}
       </g>
     }
     case 'trend-line':

@@ -1,6 +1,7 @@
 import type { SymbolQuote } from '../market-data/contracts/SymbolQuote'
 import { priceAlertSounds, type PriceAlertSoundId } from './price-alert-tones'
-import { reachesTrendAlert, trendAlertPoints, trendAlertSample, type TrendAlert, type TrendSample } from './trend-alert'
+import { maxTrendQuoteGapMs, reachesTrendAlert, trendAlertPoints, trendAlertSample, type TrendAlert, type TrendSample } from './trend-alert'
+import { trendScaleCovers, validTrendAlertScale, type TrendAlertScale } from './trend-alert-scale'
 
 export type PriceAlert = {
   id: string
@@ -10,6 +11,7 @@ export type PriceAlert = {
   price: number
   precision: number
   trend?: TrendAlert
+  trendScale?: TrendAlertScale
   trendArmedAt?: number
   label?: 'supply' | 'demand'
   direction: 'above' | 'below' | null
@@ -32,6 +34,7 @@ function validAlert(value: unknown): value is PriceAlert {
     && (item.name === undefined || typeof item.name === 'string')
     && Number.isInteger(item.precision) && item.precision >= 0 && item.precision <= 10
     && (item.trend === undefined || (Array.isArray(item.trend) && !!trendAlertPoints(item.trend)))
+    && (item.trendScale === undefined || (!!item.trend && validTrendAlertScale(item.trendScale)))
     && (item.trendArmedAt === undefined || Number.isFinite(item.trendArmedAt))
     && (item.label === undefined || item.label === 'supply' || item.label === 'demand')
     && ['armed', 'paused', 'triggered'].includes(item.status)
@@ -73,7 +76,7 @@ export function priceAlertQuote(quote: SymbolQuote | undefined, now?: number) {
 // Quotes are sampled, so a jump across the line counts as reaching it too.
 // Never use candle highs/lows: those may precede the alert's creation.
 export function evaluatePriceAlerts(alerts: PriceAlert[], brokerId: string, quotes: SymbolQuote[], now: number, draggingId: string | null = null,
-  trendSamples = new Map<string, TrendSample>()) {
+  trendSamples = new Map<string, TrendSample>(), waitingSamples = new Map<string, TrendSample[]>()) {
   const bySymbol = new Map(quotes.map(quote => [quote.symbol, quote]))
   const tracking = new Set<string>()
   let changed = false
@@ -82,22 +85,34 @@ export function evaluatePriceAlerts(alerts: PriceAlert[], brokerId: string, quot
     if (alert.brokerId !== brokerId || alert.status !== 'armed' || alert.id === draggingId) return alert
     const quote = bySymbol.get(alert.symbol), bid = priceAlertQuote(quote, now)
     if (bid === undefined) return alert
-    const direction = alert.trend ? null : alert.direction ?? alertDirection(alert.price, bid)
-    let reached: boolean
-    if (alert.trend) {
+    const trend = alert.trend
+    const direction = trend ? null : alert.direction ?? alertDirection(alert.price, bid)
+    let reached: boolean, triggeredBid = bid
+    if (trend) {
       const sample = trendAlertSample(quote, bid, now)
       if (!sample) return alert
       tracking.add(alert.id)
-      const previous = trendSamples.get(alert.id)
-      if (previous && (sample.at < previous.at
-        || (sample.at === previous.at && sample.bid === previous.bid))) return alert
-      trendSamples.set(alert.id, sample)
-      reached = reachesTrendAlert(alert.trend, previous, sample, alert.trendArmedAt ?? alert.createdAt, alert.precision)
+      let previous = trendSamples.get(alert.id)
+      const buffered = waitingSamples.get(alert.id)?.filter(item => item.at >= now - maxTrendQuoteGapMs) ?? []
+      const last = buffered.at(-1) ?? previous
+      if (!last || sample.at > last.at || (sample.at === last.at && sample.bid !== last.bid)) buffered.push(sample)
+      const scale = alert.trendScale
+      const wait = scale ? buffered.findIndex(item => !trendScaleCovers(scale, Math.min(item.chartTime, trend[1].time))) : -1
+      const ready = wait === -1 ? buffered : buffered.splice(0, wait)
+      if (wait === -1) waitingSamples.delete(alert.id)
+      else waitingSamples.set(alert.id, buffered)
+      reached = false
+      for (const item of ready) {
+        reached = reachesTrendAlert(trend, previous, item, alert.trendArmedAt ?? alert.createdAt, alert.precision, scale)
+        trendSamples.set(alert.id, item)
+        if (reached) { triggeredBid = item.bid; break }
+        previous = item
+      }
     } else reached = direction === 'above' ? bid >= alert.price : bid <= alert.price
     if (reached) {
       changed = true
       tracking.delete(alert.id)
-      const fired: PriceAlert = { ...alert, direction, status: 'triggered', triggeredAt: now, triggeredBid: bid }
+      const fired: PriceAlert = { ...alert, direction, status: 'triggered', triggeredAt: now, triggeredBid }
       triggered.push(fired)
       return fired
     }
@@ -105,5 +120,6 @@ export function evaluatePriceAlerts(alerts: PriceAlert[], brokerId: string, quot
     return alert
   })
   for (const id of trendSamples.keys()) if (!tracking.has(id)) trendSamples.delete(id)
+  for (const id of waitingSamples.keys()) if (!tracking.has(id)) waitingSamples.delete(id)
   return { alerts: changed ? next : alerts, triggered }
 }

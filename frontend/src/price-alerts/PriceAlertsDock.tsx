@@ -1,5 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
+import type { ChartTimeframe } from '../market-data/contracts/ChartTimeframe'
 import type { PriceAlert } from './price-alert-store'
+import { trendScaleCovers } from './trend-alert-scale'
 import type { PriceAlertsController } from './usePriceAlerts'
 import { priceAlertSounds, type PriceAlertSoundId } from './price-alert-tones'
 import './price-alerts.css'
@@ -8,7 +10,7 @@ const triggerClock = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jakarta'
   day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
 
 function AlertRow({ alert, controller, onSelectSymbol, brokerId }: {
-  alert: PriceAlert; controller: PriceAlertsController; onSelectSymbol: (symbol: string) => void; brokerId: string | null
+  alert: PriceAlert; controller: PriceAlertsController; onSelectSymbol: (symbol: string, timeframe?: ChartTimeframe) => void; brokerId: string | null
 }) {
   const [editing, setEditing] = useState(false)
   const renameActive = useRef(false)
@@ -19,8 +21,9 @@ function AlertRow({ alert, controller, onSelectSymbol, brokerId }: {
   const segmentStatus = alert.trend && chartTime !== undefined
     ? chartTime < alert.trend[0].time ? 'Waiting for segment' : chartTime > alert.trend[1].time ? 'Segment ended' : null
     : null
+  const waitingForCandles = alert.trendScale && chartTime !== undefined && !trendScaleCovers(alert.trendScale, chartTime)
   const status = alert.status === 'triggered' ? 'Stopped — Triggered' : alert.status === 'paused' ? 'Stopped — Paused'
-    : waitingForBroker ? 'Waiting for broker' : waitingForQuote ? 'Waiting for quote' : segmentStatus ?? 'Active'
+    : waitingForBroker ? 'Waiting for broker' : waitingForQuote ? 'Waiting for quote' : segmentStatus ?? (waitingForCandles ? 'Waiting for candles' : 'Active')
   const statusClass = alert.status !== 'armed' ? 'stopped' : status === 'Active' ? 'active' : 'waiting'
   const crossing = alert.trend ? `${alert.symbol} Trend ${alert.trend[0].price.toFixed(alert.precision)} → ${alert.trend[1].price.toFixed(alert.precision)}`
     : `${alert.symbol} Crossing ${alert.price.toFixed(alert.precision)}`
@@ -50,9 +53,9 @@ function AlertRow({ alert, controller, onSelectSymbol, brokerId }: {
     </form> : <button className="price-alert-summary" type="button" aria-disabled={waitingForBroker}
       aria-pressed={selected}
       aria-label={`Open ${alert.symbol} chart · ${title} · ${status}`}
-      title={waitingForBroker ? `Waiting for ${alert.brokerId}` : 'Click to open chart · Double-click or press F2 to rename'}
+      title={waitingForBroker ? `Waiting for ${alert.brokerId}` : `Click to open ${alert.trendScale ? `${alert.trendScale.timeframe} ` : ''}chart · Double-click or press F2 to rename`}
       onDoubleClick={event => { event.preventDefault(); event.stopPropagation(); startRename() }}
-      onClick={() => { if (!waitingForBroker) { controller.selectAlert(alert.id); onSelectSymbol(alert.symbol) } }} onKeyDown={event => {
+      onClick={() => { if (!waitingForBroker) { controller.selectAlert(alert.id); onSelectSymbol(alert.symbol, alert.trendScale?.timeframe) } }} onKeyDown={event => {
         if (event.key === 'F2') { event.preventDefault(); startRename() }
       }}>
       <span className="price-alert-title">{title}</span>
@@ -95,7 +98,7 @@ function AlertRow({ alert, controller, onSelectSymbol, brokerId }: {
 }
 
 export function PriceAlertsDock({ controller, onSelectSymbol, onCreate, brokerId }: {
-  controller: PriceAlertsController; onSelectSymbol: (symbol: string) => void; onCreate: () => void; brokerId: string | null
+  controller: PriceAlertsController; onSelectSymbol: (symbol: string, timeframe?: ChartTimeframe) => void; onCreate: () => void; brokerId: string | null
 }) {
   const soundFileInput = useRef<HTMLInputElement>(null)
   const groups = useMemo(() => {

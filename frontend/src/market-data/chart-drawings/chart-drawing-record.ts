@@ -1,6 +1,7 @@
 import type { UTCTimestamp } from 'lightweight-charts'
 import type { ChartTimeframe } from '../contracts/ChartTimeframe'
 import type { DrawingToolId } from './drawing-tool'
+import type { TrendAlertScale } from '../../price-alerts/trend-alert-scale'
 
 export type ChartDrawingPoint = {
   time: UTCTimestamp
@@ -17,4 +18,5 @@ export type ChartDrawingRecord = {
   createdAt: number
   text?: string
   alertStatus?: 'armed' | 'paused' | 'triggered'
+  trendScale?: TrendAlertScale
 }

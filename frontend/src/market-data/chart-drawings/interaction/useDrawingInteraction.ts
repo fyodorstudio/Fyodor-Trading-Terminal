@@ -3,7 +3,7 @@ import { type DrawingHandleKind } from '../ChartDrawingSelectionHandles'
 import type { ChartDrawingPoint, ChartDrawingRecord } from '../chart-drawing-record'
 import type { ChartDrawingScreenPoint } from '../chart-drawing-screen-point'
 import { drawingTools, isHorizontalDrawingTool, type DrawingToolId } from '../drawing-tool'
-import { normalizeDrawingPoints } from '../position-drawing-geometry'
+import { normalizeDrawingPoints, timeframeToSeconds } from '../position-drawing-geometry'
 import { defaultChannelOffset, editParallelChannel } from '../parallel-channel-geometry'
 import { useDrawingViewport } from '../useDrawingViewport'
 import { drawingCoordinates, emptyDrawingTimeline } from '../drawing-coordinates'
@@ -120,17 +120,30 @@ export function useDrawingInteraction({
     if (start === null || end === null || !visible) return
     const from = Math.max(start, visible.from - 1), to = Math.min(end, visible.to + 1)
     if (from >= to) return
-    const times = [from]
-    // The chart compresses session gaps. Sample the same price function at
-    // the visible candle boundaries so the rendered segment follows it there.
-    for (let index = Math.max(0, Math.floor(from) + 1); index < Math.min(to, bars.length); index++) times.push(index)
-    times.push(to)
-    return times.flatMap(logical => {
-      const time = coordinates.logicalToTime(logical)
-      if (time === null) return []
-      const x = coordinates.timeToX(time), y = seriesApi.priceToCoordinate(trendAlertPrice(trend, time))
-      return x === null || y === null ? [] : [`${x},${y}`]
-    }).join(' ')
+    const firstTime = coordinates.logicalToTime(from), lastTime = coordinates.logicalToTime(to)
+    if (firstTime === null || lastTime === null) return
+    const times = new Set([firstTime, lastTime])
+    const addTime = (time: number) => {
+      if (time > firstTime && time < lastTime) times.add(time as ChartDrawingPoint['time'])
+    }
+    // Changes in either timeline can bend the projected line. On the alert's
+    // own timeframe these cancel when both timelines have the same candles.
+    const step = timeframeToSeconds(timeframe)
+    for (let index = Math.max(1, Math.floor(from) + 1); index <= Math.min(Math.ceil(to), bars.length - 1); index++) {
+      if (bars[index].time - bars[index - 1].time === step) continue
+      addTime(bars[index - 1].time); addTime(bars[index].time)
+    }
+    for (const [before, after] of drawing.trendScale?.intervals ?? []) {
+      addTime(before); addTime(after)
+    }
+    const [a, b] = endpoints
+    const projected = [...times].sort((a, b) => a - b).flatMap(time => {
+      const x = coordinates.timeToX(time), y = seriesApi.priceToCoordinate(trendAlertPrice(trend, time, drawing.trendScale))
+      return x === null || y === null ? [] : [{ x, y }]
+    })
+    if (a.x !== b.x && projected.some(({ x, y }) => Math.abs(y - (a.y + (b.y - a.y) * (x - a.x) / (b.x - a.x))) > 0.01)) {
+      return projected.map(({ x, y }) => `${x},${y}`).join(' ')
+    }
   }
 
   const resetDraft = () => {
@@ -299,7 +312,8 @@ export function useDrawingInteraction({
     event.stopPropagation()
     const drawing = drawings.find((candidate) => candidate.id === drawingId)
     const point = eventToDataPoint(event)
-    if (!drawing || !point || drawing.alertStatus === 'triggered') return
+    if (!drawing || !point || drawing.alertStatus === 'triggered'
+      || (drawing.trendScale && drawing.trendScale.timeframe !== timeframe)) return
     const captureTarget = overlayRef.current?.setPointerCapture ? overlayRef.current : event.currentTarget
     captureTarget.setPointerCapture?.(event.pointerId)
 

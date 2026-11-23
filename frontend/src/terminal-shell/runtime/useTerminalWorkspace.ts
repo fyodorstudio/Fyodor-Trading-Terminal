@@ -20,6 +20,7 @@ import { getPipMultiplier, type PlannedTradeState, type RegisteredTradeArrow, ty
 import { tradeMetrics } from '../../entry-trade/dock/plan-math'
 import { useRegisteredArrows } from '../../entry-trade/storage/use-registered-arrows'
 import { usePriceAlerts } from '../../price-alerts/usePriceAlerts'
+import { createTrendAlertScale, type TrendAlertScale } from '../../price-alerts/trend-alert-scale'
 import { alertDateForRelease, type AlertFocus } from '../../alert/model/alert-focus'
 import { useVolumePreferences } from '../../market-data/indicators/volume/useVolumePreferences'
 import { useRsiPreferences } from '../../market-data/indicators/rsi/useRsiPreferences'
@@ -77,7 +78,9 @@ export function useTerminalWorkspace() {
   const brokerId = bridge.brokerId
   const quote = marketData.symbols.find((item) => item.symbol === activeSymbol) ?? null
   const macroState = useMacroIndicator(activeSymbol, brokerId)
-  const priceAlerts = usePriceAlerts(brokerId, marketData.symbols, mt5Connected && marketData.marketWatchStatus === 'live', bridge.generation)
+  const alertChart = useMemo(() => marketData.chartStatus === 'live' ? { symbol: activeSymbol, timeframe, bars } : undefined,
+    [marketData.chartStatus, activeSymbol, timeframe, bars])
+  const priceAlerts = usePriceAlerts(brokerId, marketData.symbols, mt5Connected && marketData.marketWatchStatus === 'live', bridge.generation, alertChart)
   const addPriceAlert = priceAlerts.addAlert
   const enablePriceAlertSound = priceAlerts.enableSound
   const priceAlertSoundEnabled = priceAlerts.playSound
@@ -104,12 +107,13 @@ export function useTerminalWorkspace() {
     clearPairDrawings,
   } = useChartDrawings(activeSymbol, timeframe)
 
-  const [trendPreview, setTrendPreview] = useState<{ id: string; points: ChartDrawingPoint[] } | null>(null)
+  const [trendPreview, setTrendPreview] = useState<{ id: string; points: ChartDrawingPoint[]; scale: TrendAlertScale } | null>(null)
   const trendDrawings = useMemo(() => priceAlerts.brokerAlerts.flatMap((alert): ChartDrawingRecord[] => {
     if (alert.symbol !== activeSymbol || !alert.trend) return []
     const text = [alert.name || 'Trend Price Alert', alert.label === 'supply' ? 'Supply' : alert.label === 'demand' ? 'Demand' : ''].filter(Boolean).join(' · ')
-    return [{ id: alert.id, tool: 'trend-price-alert', symbol: activeSymbol, timeframe,
-      points: trendPreview?.id === alert.id && alert.status !== 'triggered' ? trendPreview.points : [...alert.trend],
+    const preview = trendPreview?.id === alert.id && alert.status !== 'triggered' ? trendPreview : null
+    return [{ id: alert.id, tool: 'trend-price-alert', symbol: activeSymbol, timeframe: alert.trendScale?.timeframe ?? timeframe,
+      points: preview?.points ?? [...alert.trend], trendScale: preview?.scale ?? alert.trendScale,
       createdAt: alert.createdAt, text, alertStatus: alert.status }]
   }), [activeSymbol, priceAlerts.brokerAlerts, timeframe, trendPreview])
   const drawings = useMemo(() => trendDrawings.length ? [...savedDrawings, ...trendDrawings] : savedDrawings, [savedDrawings, trendDrawings])
@@ -119,10 +123,14 @@ export function useTerminalWorkspace() {
     setDraggingAlertId(id)
   }, [setDraggingAlertId])
   const updateDrawingPoints = useCallback((id: string, points: ChartDrawingPoint[], persist: boolean) => {
-    if (!trendDrawings.some(drawing => drawing.id === id)) { updateSavedPoints(id, points, persist); return }
-    if (persist) moveTrendAlert(id, points)
-    else setTrendPreview({ id, points })
-  }, [moveTrendAlert, trendDrawings, updateSavedPoints])
+    const drawing = trendDrawings.find(item => item.id === id)
+    if (!drawing) { updateSavedPoints(id, points, persist); return }
+    if (!alertChart || timeframe !== drawing.timeframe || points.length !== 2) return
+    const scale = createTrendAlertScale(timeframe, alertChart.bars, Math.min(points[0].time, points[1].time))
+    if (!scale) return
+    if (persist) moveTrendAlert(id, points, scale)
+    else setTrendPreview({ id, points, scale })
+  }, [alertChart, moveTrendAlert, timeframe, trendDrawings, updateSavedPoints])
   const updateDrawingPoint = useCallback((id: string, index: number, point: ChartDrawingPoint, persist: boolean) => {
     const trend = trendDrawings.find(drawing => drawing.id === id)
     if (trend) updateDrawingPoints(id, trend.points.map((value, at) => at === index ? point : value), persist)
@@ -135,19 +143,20 @@ export function useTerminalWorkspace() {
     appendActivity('Drawing', 'Drawing deleted', `${activeSymbol} ${timeframe}`)
   }, [activeSymbol, appendActivity, deleteDrawing, deleteAlert, selectedDrawingId, timeframe, trendDrawings])
 
-  const selectSymbol = useCallback((symbol: string) => {
-    if (symbol === selectedSymbol) return
-    setSelectedSymbol(symbol)
-    setSelectedDrawingId(null)
-    appendActivity('Market Watch', 'Symbol selected', symbol)
-  }, [selectedSymbol, appendActivity])
-
   const selectTimeframe = useCallback((nextTimeframe: ChartTimeframe) => {
     if (nextTimeframe === timeframe) return
     setTimeframe(nextTimeframe)
     setSelectedDrawingId(null)
     appendActivity('Chart', 'Timeframe selected', `${activeSymbol} ${nextTimeframe}`)
   }, [timeframe, activeSymbol, appendActivity])
+
+  const selectSymbol = useCallback((symbol: string, alertTimeframe?: ChartTimeframe) => {
+    if (alertTimeframe) selectTimeframe(alertTimeframe)
+    if (symbol === selectedSymbol) return
+    setSelectedSymbol(symbol)
+    setSelectedDrawingId(null)
+    appendActivity('Market Watch', 'Symbol selected', symbol)
+  }, [selectedSymbol, appendActivity, selectTimeframe])
 
   const recordChartData = useCallback(
     (barCount: number) => appendActivity('Chart', 'Candle data applied', `${activeSymbol} ${timeframe} · ${barCount} bars`),
@@ -175,7 +184,13 @@ export function useTerminalWorkspace() {
       if (isPriceAlertTool(tool)) {
         setLeftDockTab('price-alerts'); openMarketWatch()
         if (!brokerId || !points[0]) return ''
-        const id = addPriceAlert(activeSymbol, points[0].price, quote?.precision ?? 5, tool === 'trend-price-alert' ? points : undefined)
+        const trend = tool === 'trend-price-alert' ? points : undefined
+        const scale = trend && alertChart && createTrendAlertScale(timeframe, alertChart.bars, Math.min(...trend.map(point => point.time)))
+        if (trend && !scale) {
+          appendActivity('Drawing', 'Trend price alert was not created', 'Wait for live chart candles before drawing the alert.', { severity: 'warning' })
+          return ''
+        }
+        const id = addPriceAlert(activeSymbol, points[0].price, quote?.precision ?? 5, trend, scale)
         if (!id && tool === 'trend-price-alert') appendActivity('Drawing', 'Trend price alert was not created', 'Place two positive prices at different times.', { severity: 'warning' })
         if (id) appendActivity('Drawing', 'Price alert created', `${activeSymbol} · ${points[0].price.toFixed(quote?.precision ?? 5)}`)
         return id
@@ -184,7 +199,7 @@ export function useTerminalWorkspace() {
       appendActivity('Drawing', 'Drawing created', `${activeSymbol} ${timeframe} · ${tool}`)
       return drawingId
     },
-    [activeSymbol, addDrawing, appendActivity, timeframe, addPriceAlert, brokerId, quote?.precision, openMarketWatch],
+    [activeSymbol, addDrawing, alertChart, appendActivity, timeframe, addPriceAlert, brokerId, quote?.precision, openMarketWatch],
   )
 
   const chooseDrawingTool = (tool: DrawingToolId | null) => {

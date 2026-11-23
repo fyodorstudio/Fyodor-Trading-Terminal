@@ -4,13 +4,15 @@ import type { ChartDrawingPoint } from '../market-data/chart-drawings/chart-draw
 import { alertDirection, evaluatePriceAlerts, priceAlertQuote, priceAlertStorageKey, readPriceAlerts, savePriceAlerts,
   type PriceAlert, type PriceAlertStore } from './price-alert-store'
 import { trendAlertPoints, type TrendSample } from './trend-alert'
+import { extendTrendAlertScale, type TrendAlertScale } from './trend-alert-scale'
+import { useTrendAlertCandles, type TrendAlertChart } from './useTrendAlertCandles'
 import { createPriceAlertSound } from './price-alert-sound'
 import { usePriceAlertDelivery } from './usePriceAlertDelivery'
 import type { PriceAlertSoundId } from './price-alert-tones'
 import { customAlertSoundKey, customAlertSoundMaxBytes, decodeCustomAlertSound, encodeCustomAlertSound,
   readCustomAlertSound, saveCustomAlertSound } from './custom-alert-sound'
 
-export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], live: boolean, generation = 0) {
+export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], live: boolean, generation = 0, chart?: TrendAlertChart) {
   const [store, setStore] = useState(readPriceAlerts)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const current = useRef(store)
@@ -28,7 +30,8 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
   const loadedCustomData = useRef<string | null>(null)
   const draggingAlertId = useRef<string | null>(null)
   const trendSamples = useRef(new Map<string, TrendSample>())
-  useLayoutEffect(() => { trendSamples.current.clear() }, [brokerId, generation])
+  const waitingSamples = useRef(new Map<string, TrendSample[]>())
+  useLayoutEffect(() => { trendSamples.current.clear(); waitingSamples.current.clear() }, [brokerId, generation])
   const sound = useRef<ReturnType<typeof createPriceAlertSound> | null>(null)
   const mounted = useRef(true)
   const deliveryFlush = useRef<() => Promise<void>>(async () => {})
@@ -45,6 +48,22 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
     setStorageError(!savePriceAlerts(next))
     setStore(next)
   }, [])
+  const onCandles = useCallback(({ symbol, timeframe, bars }: TrendAlertChart) => {
+    const { brokerId, live } = feed.current
+    if (!live || !brokerId) return
+    let changed = false
+    const alerts = current.current.alerts.map(alert => {
+      const scale = alert.trendScale
+      if (alert.brokerId !== brokerId || alert.symbol !== symbol || alert.status === 'triggered' || !alert.trend
+        || scale?.timeframe !== timeframe || scale.confirmedThrough >= alert.trend[1].time) return alert
+      const trendScale = extendTrendAlertScale(scale, bars)
+      if (trendScale === scale) return alert
+      changed = true
+      return { ...alert, trendScale }
+    })
+    if (changed) commit({ ...current.current, alerts })
+  }, [commit])
+  useTrendAlertCandles(store.alerts, quotes, brokerId, live, generation, chart, onCandles)
   const prepareCustomSound = useCallback(async (engine: ReturnType<typeof createPriceAlertSound>) => {
     if (!mounted.current || sound.current !== engine) return false
     if (current.current.soundId !== 'custom') return true
@@ -164,8 +183,9 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
   }, [enableSound])
   const checkAlerts = useCallback(() => {
     const { brokerId, quotes, live } = feed.current
-    if (!live || !brokerId) { trendSamples.current.clear(); return }
-    const evaluated = evaluatePriceAlerts(current.current.alerts, brokerId, quotes, Date.now(), draggingAlertId.current, trendSamples.current)
+    if (!live || !brokerId) { trendSamples.current.clear(); waitingSamples.current.clear(); return }
+    const evaluated = evaluatePriceAlerts(current.current.alerts, brokerId, quotes, Date.now(), draggingAlertId.current,
+      trendSamples.current, waitingSamples.current)
     if (evaluated.alerts === current.current.alerts) return
     const triggered = new Set(evaluated.triggered.map(alert => alert.id))
     const next: PriceAlertStore = { ...current.current, alerts: evaluated.alerts.map(alert => triggered.has(alert.id) ?
@@ -176,11 +196,11 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
   useEffect(checkAlerts, [brokerId, generation, quotes, live, store, checkAlerts])
   const changeDraggingAlert = useCallback((id: string | null) => {
     draggingAlertId.current = id
-    if (id) trendSamples.current.delete(id)
+    if (id) { trendSamples.current.delete(id); waitingSamples.current.delete(id) }
     if (id && current.current.playSound) void enableSound()
     if (id === null) checkAlerts()
   }, [enableSound, checkAlerts])
-  const addAlert = useCallback((symbol: string, price: number, precision: number, points?: ChartDrawingPoint[]) => {
+  const addAlert = useCallback((symbol: string, price: number, precision: number, points?: ChartDrawingPoint[], trendScale?: TrendAlertScale) => {
     const { brokerId, quotes, live } = feed.current
     if (!brokerId || !Number.isFinite(price) || price <= 0) return ''
     const target = Number(price.toFixed(precision))
@@ -190,7 +210,7 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
     const id = crypto.randomUUID()
     const bid = live ? priceAlertQuote(quotes.find(quote => quote.symbol === symbol)) : undefined
     commit({ ...current.current, alerts: [...current.current.alerts, {
-      id, brokerId, symbol, price: target, precision, ...(trend ? { trend } : {}),
+      id, brokerId, symbol, price: target, precision, ...(trend ? { trend, trendScale } : {}),
       direction: trend ? null : alertDirection(target, bid), status: 'armed',
       createdAt: Date.now(), triggeredAt: null, triggeredBid: null,
     }] })
@@ -213,16 +233,19 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
         triggeredAt: null, triggeredBid: null, soundStatus: undefined, soundDeliveryId: undefined }]
     })
     trendSamples.current.delete(id)
+    waitingSamples.current.delete(id)
     commit({ ...current.current, alerts })
   }, [commit])
-  const moveTrendAlert = useCallback((id: string, points: ChartDrawingPoint[]) => {
+  const moveTrendAlert = useCallback((id: string, points: ChartDrawingPoint[], trendScale: TrendAlertScale) => {
     const trend = trendAlertPoints(points)
     if (!trend) return
     const alert = current.current.alerts.find(item => item.id === id)
-    if (!alert?.trend || alert.brokerId !== feed.current.brokerId || alert.status === 'triggered') return
+    if (!alert?.trend || alert.brokerId !== feed.current.brokerId || alert.status === 'triggered'
+      || (alert.trendScale && trendScale.timeframe !== alert.trendScale.timeframe)) return
     trendSamples.current.delete(id)
+    waitingSamples.current.delete(id)
     commit({ ...current.current, alerts: current.current.alerts.map(item => item === alert
-      ? { ...item, trend, trendArmedAt: Date.now(), price: trend[0].price } : item) })
+      ? { ...item, trend, trendScale, trendArmedAt: Date.now(), price: trend[0].price } : item) })
   }, [commit])
   const labelAlert = useCallback((id: string, label: PriceAlert['label']) => {
     commit({ ...current.current, alerts: current.current.alerts.map(alert => alert.id === id ? { ...alert, label } : alert) })

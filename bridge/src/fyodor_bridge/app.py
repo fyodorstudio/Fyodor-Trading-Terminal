@@ -104,6 +104,7 @@ def get_ohlc(
     start_pos: int = Query(default=0, ge=0, le=10_000_000),
     count: int = Query(default=800, ge=2, le=5000),
     before: int | None = Query(default=None, ge=1, le=253402300799),
+    trend_alert: bool = False,
 ) -> dict[str, object]:
     if timeframe not in TIMEFRAME_NAMES:
         raise HTTPException(status_code=422, detail={"code": "invalid-timeframe", "message": timeframe})
@@ -114,7 +115,7 @@ def get_ohlc(
     older = start_pos > 0 or before is not None
     try:
         page = mt5_worker.submit(
-            "ohlc-history" if older else "ohlc-live",
+            f"ohlc-trend:{symbol}:{timeframe}" if trend_alert else "ohlc-history" if older else "ohlc-live",
             "ohlc",
             {
                 "symbol": symbol,
@@ -123,7 +124,7 @@ def get_ohlc(
                 "count": count,
                 "before": before,
             },
-            priority=8 if older else 1,
+            priority=6 if trend_alert else 8 if older else 1,
         )
     except Exception as error:
         heartbeat.fail(component, token, str(error))
