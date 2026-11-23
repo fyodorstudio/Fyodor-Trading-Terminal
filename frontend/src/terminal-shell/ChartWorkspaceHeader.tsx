@@ -19,6 +19,7 @@ type ChartWorkspaceHeaderProps = {
   marketWatch?: MarketWatchDock
   symbol: string
   quote: SymbolQuote | null
+  hasDailyCloseHistory?: boolean
   timeframe: ChartTimeframe
   onSelectTimeframe: (timeframe: ChartTimeframe) => void
   onRefocus?: () => void
@@ -88,6 +89,7 @@ export function ChartWorkspaceHeader({
   marketWatch,
   symbol,
   quote,
+  hasDailyCloseHistory = false,
   timeframe,
   onSelectTimeframe,
   onRefocus,
@@ -142,8 +144,11 @@ export function ChartWorkspaceHeader({
           <p className="market-subtitle">
             {quote?.description ?? 'Waiting for MT5 broker data'}
           </p>
-          <p className="market-daily-range" title="Current price relative to the current Pepperstone D1 candle’s high and low">
-            {rangeLabel ?? 'Today: daily range unavailable'}
+          <p className="market-daily-range" title={quote?.synthetic
+              ? 'Equal-weight index against seven currencies. Based at 100 on 6 Jan 2025. Candle highs and lows use synchronized one-minute opens and closes.'
+              : 'Current price relative to the current Pepperstone D1 candle’s high and low'}>
+            {quote?.synthetic ? (hasDailyCloseHistory ? 'M1-sampled candles · Line shows daily closes' : 'M1-sampled candles')
+              : rangeLabel ?? 'Today: daily range unavailable'}
           </p>
         </div>
         {marketWatch && (
@@ -209,7 +214,7 @@ export function ChartWorkspaceHeader({
             <IndicatorSettingsIcon />
           </button>
         </div>}
-        {onToggleVolume && <div className="rsi-header-controls" role="group" aria-label="Volume indicator">
+        {onToggleVolume && !quote?.synthetic && <div className="rsi-header-controls" role="group" aria-label="Volume indicator">
           <button type="button" aria-pressed={volumeEnabled} onClick={onToggleVolume}
             aria-label={volumeEnabled ? 'Hide Volume' : 'Show Volume'} title={volumeEnabled ? 'Hide Volume' : 'Show Volume'}>Volume</button>
           <button type="button" onClick={onOpenVolumeSettings} aria-label="Volume settings" title="Volume settings" aria-haspopup="dialog">

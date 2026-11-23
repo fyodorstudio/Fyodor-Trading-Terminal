@@ -202,12 +202,14 @@ const MarketWatchRow = memo(function MarketWatchRow({ quote, selected, onSelect,
     </button>
     <button className={`market-watch-row${selected ? ' selected' : ''}`} type="button"
     aria-pressed={selected} onClick={() => onSelect(quote.symbol)}>
-    <span className="market-watch-identity"><strong>{quote.symbol}</strong></span>
+    <span className="market-watch-identity"><strong>{quote.symbol}</strong>{quote.synthetic && <small>Synthetic</small>}</span>
     <span className={quote.dailyChange == null ? undefined : positive ? 'positive' : 'negative'}
-      title={quote.dailyChange == null ? 'Daily open/high/low unavailable for the selected day' : 'Maximum move from the daily open'}>
+      title={quote.synthetic ? 'Open the chart for synthetic index performance'
+        : quote.dailyChange == null ? 'Daily open/high/low unavailable for the selected day' : 'Maximum move from the daily open'}>
       {quote.dailyChange == null ? '—' : `${positive ? '+' : ''}${quote.dailyChange.toFixed(2)}%`}</span>
     </button>
   </div>
-}, (before, after) => before.quote.symbol === after.quote.symbol && Object.is(before.quote.dailyChange, after.quote.dailyChange)
+}, (before, after) => before.quote.symbol === after.quote.symbol && before.quote.synthetic === after.quote.synthetic
+  && Object.is(before.quote.dailyChange, after.quote.dailyChange)
   && before.selected === after.selected && before.favourite === after.favourite
   && before.onSelect === after.onSelect && before.onToggleFavourite === after.onToggleFavourite)

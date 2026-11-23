@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { UTCTimestamp } from 'lightweight-charts'
 import { BridgeRequestError, bridgeRequest } from '../../system-connectivity/bridge-status/bridge-client'
 import { useActivityActions } from '../../system-observability/activity-log/use-activity-log'
@@ -12,9 +12,10 @@ type MarketWatchResponse = {
   symbols: Array<{
     symbol: string
     description: string
+    synthetic?: boolean
     bid: number
     ask: number
-    daily_change: number
+    daily_change: number | null
     precision: number
   }>
   observed_at: number
@@ -30,11 +31,13 @@ type OhlcResponse = {
     high: number
     low: number
     close: number
-    tick_volume: number
+    tick_volume?: number
+    close_only?: boolean
   }>
   start_pos: number
   next_start_pos: number
   has_older: boolean
+  next_before?: number | null
   observed_at: number
   duration_ms: number
   source_generation: number
@@ -45,12 +48,14 @@ type ChartHistoryState = {
   loading: boolean
   complete: boolean
 }
+const noSymbols: SymbolQuote[] = []
 
 export type FeedStatus = 'waiting' | 'loading' | 'live' | 'stale' | 'unavailable'
 
 export type Mt5MarketData = {
   activeSymbol: string
   symbols: SymbolQuote[]
+  brokerSymbols: SymbolQuote[]
   bars: OhlcBar[]
   marketWatchStatus: FeedStatus
   chartStatus: FeedStatus
@@ -68,7 +73,8 @@ function toBars(response: OhlcResponse): OhlcBar[] {
     high: bar.high,
     low: bar.low,
     close: bar.close,
-    tickVolume: Number.isFinite(bar.tick_volume) && bar.tick_volume >= 0 ? bar.tick_volume : undefined,
+    tickVolume: bar.tick_volume != null && Number.isFinite(bar.tick_volume) && bar.tick_volume >= 0 ? bar.tick_volume : undefined,
+    closeOnly: bar.close_only,
   }))
 }
 
@@ -124,6 +130,7 @@ export function useMt5MarketData(
         const nextSymbols = response.symbols.map((symbol) => ({
           symbol: symbol.symbol,
           description: symbol.description,
+          synthetic: symbol.synthetic,
           bid: symbol.bid,
           ask: symbol.ask,
           dailyChange: null,
@@ -135,7 +142,7 @@ export function useMt5MarketData(
         setMarketWatchStatus('live')
         setMarketWatchError(null)
         if (!marketWasLive.current) {
-          appendActivity('Market Watch', 'Broker symbols loaded', `${nextSymbols.length} visible symbols`, { severity: 'success' })
+          appendActivity('Market Watch', 'Broker symbols loaded', `${nextSymbols.filter(symbol => !symbol.synthetic).length} visible symbols`, { severity: 'success' })
         }
         marketWasLive.current = true
       } catch (error) {
@@ -161,11 +168,12 @@ export function useMt5MarketData(
   }, [appendActivity, connected, sourceGeneration, updateQuotes])
 
   const symbolsAreCurrent = connected && marketGeneration === sourceGeneration
-  const currentSymbols = symbolsAreCurrent ? symbols : []
-  const activeSymbol = currentSymbols.some((symbol) => symbol.symbol === selectedSymbol)
-    ? selectedSymbol
-    : currentSymbols[0]?.symbol ?? selectedSymbol
-  const requestedChartKey = `${sourceGeneration}:${activeSymbol}:${timeframe}`
+  const currentSymbols = symbolsAreCurrent ? symbols : noSymbols
+  const brokerSymbols = useMemo(() => currentSymbols.filter(symbol => !symbol.synthetic), [currentSymbols])
+  const activeQuote = currentSymbols.find(symbol => symbol.symbol === selectedSymbol) ?? currentSymbols[0]
+  const activeSymbol = activeQuote?.symbol ?? selectedSymbol
+  const synthetic = activeQuote?.synthetic === true
+  const requestedChartKey = `${sourceGeneration}:${activeSymbol}:${timeframe}${synthetic ? ':synthetic' : ''}`
 
   useEffect(() => {
     if (!connected || !activeSymbol) return
@@ -176,6 +184,7 @@ export function useMt5MarketData(
     let olderLoading = false
     let hasOlder = false
     let nextHistoryStart = 0
+    let nextBefore: number | null = null
     chartWasLive.current = false
     lastFullFetchAtRef.current = 0
 
@@ -185,38 +194,43 @@ export function useMt5MarketData(
       setHistoryState({ key: requestedChartKey, loading: true, complete: false })
       olderController = new AbortController()
       const requestedStart = nextHistoryStart
+      const pagination = synthetic ? `before=${nextBefore}&count=800` : `start_pos=${requestedStart}&count=5000`
       try {
         const response = await bridgeRequest<OhlcResponse>(
-          `/ohlc?symbol=${encodeURIComponent(activeSymbol)}&timeframe=${timeframe}&start_pos=${requestedStart}&count=5000`,
+          `/ohlc?symbol=${encodeURIComponent(activeSymbol)}&timeframe=${timeframe}&${pagination}`,
           olderController.signal,
         )
+        if (disposed || chartDataKeyRef.current !== requestedChartKey) return
         if (
-          disposed
-          || response.symbol !== activeSymbol
+          response.symbol !== activeSymbol
           || response.timeframe !== timeframe
           || response.start_pos !== requestedStart
-          || chartDataKeyRef.current !== requestedChartKey
-        ) return
+          || (synthetic && response.source_generation !== sourceGeneration)
+        ) {
+          setHistoryState({ key: requestedChartKey, loading: false, complete: false })
+          return
+        }
         const receivedBars = toBars(response)
         const nextBars = mergeBars(receivedBars, barsRef.current)
         barsRef.current = nextBars
         setBars(nextBars)
         nextHistoryStart = response.next_start_pos
-        hasOlder = response.has_older
-        setHistoryState({ key: requestedChartKey, loading: false, complete: !response.has_older })
+        nextBefore = response.next_before ?? null
+        hasOlder = response.has_older && (!synthetic || nextBefore != null)
+        setHistoryState({ key: requestedChartKey, loading: false, complete: !hasOlder })
         appendActivity(
           'Chart',
-          response.has_older ? 'Older MT5 history loaded' : 'Beginning of MT5 history reached',
+          hasOlder ? 'Older chart history loaded' : 'Beginning of available chart history reached',
           `${activeSymbol} ${timeframe} · ${nextBars.length} bars`,
           { severity: 'success' },
         )
       } catch (error) {
         if (disposed || (error instanceof DOMException && error.name === 'AbortError')) return
-        if (error instanceof BridgeRequestError && error.code === 'superseded') return
         setHistoryState({ key: requestedChartKey, loading: false, complete: false })
+        if (error instanceof BridgeRequestError && error.code === 'superseded') return
         appendActivity(
           'Chart',
-          'Older MT5 history unavailable',
+          'Older chart history unavailable',
           error instanceof Error ? error.message : 'History request failed',
           { severity: 'warning' },
         )
@@ -231,14 +245,15 @@ export function useMt5MarketData(
       controller = new AbortController()
       setChartAttemptKey(requestedChartKey)
       const firstLoad = chartDataKeyRef.current !== requestedChartKey
-      const reconciliation = !firstLoad && Date.now() - lastFullFetchAtRef.current >= 60_000
+      const reconciliation = !firstLoad && Date.now() - lastFullFetchAtRef.current >= (synthetic ? 300_000 : 60_000)
       const requestedBarCount = firstLoad ? 800 : reconciliation ? 800 : 3
       try {
         const response = await bridgeRequest<OhlcResponse>(
           `/ohlc?symbol=${encodeURIComponent(activeSymbol)}&timeframe=${timeframe}&start_pos=0&count=${requestedBarCount}`,
           controller.signal,
         )
-        if (disposed || response.symbol !== activeSymbol || response.timeframe !== timeframe || response.start_pos !== 0) return
+        if (disposed || response.symbol !== activeSymbol || response.timeframe !== timeframe || response.start_pos !== 0
+          || (synthetic && response.source_generation !== sourceGeneration)) return
         const receivedBars = toBars(response)
         const nextBars = firstLoad ? receivedBars : replaceRecentBars(barsRef.current, receivedBars)
         if (nextBars !== barsRef.current) {
@@ -247,8 +262,9 @@ export function useMt5MarketData(
         }
         if (firstLoad) {
           nextHistoryStart = response.next_start_pos
-          hasOlder = response.has_older
-          setHistoryState({ key: requestedChartKey, loading: false, complete: !response.has_older })
+          nextBefore = response.next_before ?? null
+          hasOlder = response.has_older && (!synthetic || nextBefore != null)
+          setHistoryState({ key: requestedChartKey, loading: false, complete: !hasOlder })
         }
         if (firstLoad || reconciliation) lastFullFetchAtRef.current = Date.now()
         setChartDataKey(requestedChartKey)
@@ -256,7 +272,7 @@ export function useMt5MarketData(
         setChartStatus('live')
         setChartError(null)
         if (!chartWasLive.current) {
-          appendActivity('Chart', 'MT5 candle history loaded', `${activeSymbol} ${timeframe} · ${nextBars.length} bars`, { severity: 'success' })
+          appendActivity('Chart', synthetic ? 'Synthetic index history loaded' : 'MT5 candle history loaded', `${activeSymbol} ${timeframe} · ${nextBars.length} bars`, { severity: 'success' })
         }
         chartWasLive.current = true
       } catch (error) {
@@ -270,7 +286,7 @@ export function useMt5MarketData(
         }
         chartWasLive.current = false
       } finally {
-        if (!disposed) timer = window.setTimeout(poll, 2_000)
+        if (!disposed) timer = window.setTimeout(poll, synthetic ? 10_000 : 2_000)
       }
     }
 
@@ -282,7 +298,7 @@ export function useMt5MarketData(
       olderController?.abort()
       if (timer) window.clearTimeout(timer)
     }
-  }, [activeSymbol, appendActivity, connected, requestedChartKey, timeframe])
+  }, [activeSymbol, appendActivity, connected, requestedChartKey, sourceGeneration, synthetic, timeframe])
 
   const chartIsCurrent = connected && chartDataKey === requestedChartKey
   const marketFailureIsCurrent = marketAttemptGeneration === sourceGeneration && marketWatchStatus === 'unavailable'
@@ -292,6 +308,7 @@ export function useMt5MarketData(
   return {
     activeSymbol,
     symbols: currentSymbols,
+    brokerSymbols,
     bars: chartIsCurrent ? bars : [],
     marketWatchStatus: !connected ? 'waiting' : symbolsAreCurrent ? marketWatchStatus : marketFailureIsCurrent ? 'unavailable' : 'loading',
     chartStatus: !connected ? 'waiting' : chartIsCurrent ? chartStatus : chartFailureIsCurrent ? 'unavailable' : 'loading',

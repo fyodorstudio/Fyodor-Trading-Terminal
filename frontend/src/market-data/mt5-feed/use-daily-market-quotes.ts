@@ -46,8 +46,9 @@ export function useDailyMarketQuotes(connected: boolean, generation: number, bro
   }, [brokerId, generation, key])
   const updateQuotes = useCallback((raw: SymbolQuote[]) => publish(raw), [publish])
   const symbols = connected && result.key === key ? result.quotes : noQuotes
-  const names = symbols.map(quote => quote.symbol).join('\0')
-  const selected = symbols.some(quote => quote.symbol === selectedSymbol) ? selectedSymbol : symbols[0]?.symbol ?? ''
+  const brokerNames = symbols.filter(quote => !quote.synthetic).map(quote => quote.symbol)
+  const names = brokerNames.join('\0')
+  const selected = brokerNames.includes(selectedSymbol) ? selectedSymbol : brokerNames[0] ?? ''
   useEffect(() => {
     if (!connected || brokerId !== 'Pepperstone-Demo' || !names) return
     let disposed = false, timer: number | undefined

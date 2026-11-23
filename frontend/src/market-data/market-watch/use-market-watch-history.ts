@@ -4,7 +4,9 @@ import { maximumDailyChange, type DailySnapshot } from './daily-change'
 
 export function useMarketWatchHistory(symbols: SymbolQuote[], date: string | null, brokerId: string | null | undefined,
   generation: number, selected: string) {
-  const names = symbols.map(quote => quote.symbol).join('\0')
+  const brokerNames = symbols.filter(quote => !quote.synthetic).map(quote => quote.symbol)
+  const names = brokerNames.join('\0')
+  const requested = brokerNames.includes(selected) ? selected : brokerNames[0] ?? ''
   const key = `${brokerId}:${generation}:${date}:${names}`
   const [result, setResult] = useState<{ key: string; snapshot: DailySnapshot | null; message: string | null }>(
     { key: '', snapshot: null, message: null })
@@ -22,7 +24,7 @@ export function useMarketWatchHistory(symbols: SymbolQuote[], date: string | nul
       try {
         const response = await fetch('/storage-api/market-watch/daily', { method: 'POST', signal: requestController.signal,
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ source_id: brokerId, generation, symbols: names.split('\0'), selected, date, retry: forceRetry }) })
+          body: JSON.stringify({ source_id: brokerId, generation, symbols: names.split('\0'), selected: requested, date, retry: forceRetry }) })
         if (!response.ok) throw new Error('Historical daily candles unavailable.')
         const snapshot = await response.json() as DailySnapshot
         if (snapshot.source_id !== brokerId || snapshot.generation !== generation
@@ -43,7 +45,7 @@ export function useMarketWatchHistory(symbols: SymbolQuote[], date: string | nul
     }
     void poll()
     return () => { disposed = true; controller?.abort(); window.clearTimeout(timeout); if (timer) window.clearTimeout(timer) }
-  }, [date, brokerId, generation, names, key, selected, attempt])
+  }, [date, brokerId, generation, names, key, requested, attempt])
   const snapshot = result.key === key ? result.snapshot : null
   const quotes = useMemo(() => date ? symbols.map(quote => {
     const record = snapshot?.symbols[quote.symbol]

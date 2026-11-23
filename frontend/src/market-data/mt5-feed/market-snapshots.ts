@@ -1,7 +1,7 @@
 import type { OhlcBar } from '../contracts/OhlcBar'
 import type { SymbolQuote } from '../contracts/SymbolQuote'
 
-const quoteFields = ['symbol', 'description', 'bid', 'ask', 'dailyChange', 'precision', 'dailyHigh', 'dailyLow'] as const
+const quoteFields = ['symbol', 'description', 'synthetic', 'bid', 'ask', 'dailyChange', 'precision', 'dailyHigh', 'dailyLow'] as const
 export function retainSymbolQuotes(current: SymbolQuote[], incoming: SymbolQuote[]) {
   const bySymbol = new Map(current.map(quote => [quote.symbol, quote]))
   const next = incoming.map(quote => {
@@ -20,7 +20,8 @@ function snapshotId(bars: readonly OhlcBar[]) {
   const id = ++nextId; snapshotIds.set(bars, id); return id
 }
 function sameBar(a: OhlcBar | undefined, b: OhlcBar) {
-  return !!a && a.time === b.time && a.open === b.open && a.high === b.high && a.low === b.low && a.close === b.close && a.tickVolume === b.tickVolume
+  return !!a && a.time === b.time && a.open === b.open && a.high === b.high && a.low === b.low && a.close === b.close
+    && a.tickVolume === b.tickVolume && a.closeOnly === b.closeOnly
 }
 
 /** Sorted MT5 windows replace the recent tail. An unchanged three-bar reply
@@ -37,6 +38,7 @@ export function replaceRecentBars(current: OhlcBar[], incoming: OhlcBar[]) {
   const tail = incoming.map((bar, i) => {
     const old = current[start + i]
     if (sameBar(old, bar)) return old!
+    if (bar.closeOnly && old?.time === bar.time && !old.closeOnly) return old
     from = Math.min(from, start + i)
     return bar
   })

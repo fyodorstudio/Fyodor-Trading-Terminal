@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useDisplayClock } from '../../appearance/time-display/useDisplayClock'
 import {
   CandlestickSeries,
@@ -48,6 +48,7 @@ type MarketCandlestickChartProps = {
   appearance: ChartAppearance
   timeDisplay: TimeDisplayPreference
   timeframe?: ChartTimeframe
+  hasDailyCloseHistory?: boolean
   volume?: VolumePreferences
   onChangeVolumeAxis?: (target: VolumePreferences['axisTarget']) => void
   onToggleVolumeLayer?: (layer: VolumeLayer) => void
@@ -94,6 +95,7 @@ function MarketCandlestickChartComponent({
   appearance,
   timeDisplay,
   timeframe,
+  hasDailyCloseHistory = false,
   volume,
   onChangeVolumeAxis,
   onToggleVolumeLayer,
@@ -135,6 +137,8 @@ function MarketCandlestickChartComponent({
   const initialTimeDisplayRef = useRef(timeDisplay)
   const chartRef = useRef<IChartApi | null>(null)
   const seriesRef = useRef<ISeriesApi<'Candlestick', Time> | null>(null)
+  const dailyCloseSeriesRef = useRef<ISeriesApi<'Line', Time> | null>(null)
+  const candles = useMemo(() => hasDailyCloseHistory ? bars.filter(bar => !bar.closeOnly) : bars, [bars, hasDailyCloseHistory])
   const volumePaneRef = useRef<ReturnType<typeof createVolumePane> | null>(null)
   const rsiPaneRef = useRef<ReturnType<typeof createRsiPane> | null>(null)
   const atrPaneRef = useRef<ReturnType<typeof createAtrPane> | null>(null)
@@ -271,6 +275,7 @@ function MarketCandlestickChartComponent({
       priceSpaceRef.current = null
       chart.timeScale().unsubscribeVisibleLogicalRangeChange(handleLogicalRangeChange)
       seriesRef.current = null
+      dailyCloseSeriesRef.current = null
       futureTimelineRef.current = null
       chartRef.current = null
       requestedLogicalRangeRef.current = null
@@ -359,6 +364,17 @@ function MarketCandlestickChartComponent({
     // Ignore programmatic range notifications during replacement/restoration.
     applyingDataRef.current = true
     try {
+      if (hasDailyCloseHistory) {
+        dailyCloseSeriesRef.current ??= chart.addSeries(LineSeries, {
+          color: '#788aa5', lineWidth: 2, lastValueVisible: false, priceLineVisible: false,
+        })
+        dailyCloseSeriesRef.current.applyOptions({ priceFormat: { type: 'price', precision, minMove: 10 ** -precision } })
+        dailyCloseSeriesRef.current.setData(bars.map((bar, index) => bar.closeOnly || bars[index - 1]?.closeOnly
+          ? { time: bar.time, value: bar.close } : { time: bar.time }))
+      } else if (dailyCloseSeriesRef.current) {
+        chart.removeSeries(dailyCloseSeriesRef.current)
+        dailyCloseSeriesRef.current = null
+      }
       if (!bars.length) {
         priceSpaceRef.current?.sync(bars, true, precision)
         volumePaneRef.current?.clearData()
@@ -372,6 +388,7 @@ function MarketCandlestickChartComponent({
         return
       }
       let replaced = false
+      const priceData = hasDailyCloseHistory ? bars.map(bar => bar.closeOnly ? { time: bar.time } : bar) : bars
       if (isNewKey) {
         macroPaneRef.current?.clearData()
         volumePaneRef.current?.clearData()
@@ -379,16 +396,16 @@ function MarketCandlestickChartComponent({
         atrPaneRef.current?.clearData()
         replaced = true
         lastHistoryAttemptRef.current = null
-        series.setData(bars)
+        series.setData(priceData)
         chart.priceScale('right').applyOptions({ autoScale: true })
         onDataApplied(bars.length)
       } else if (prevBars.length && bars[0]?.time === prevBars[0]?.time &&
         (bars.length === prevBars.length || bars.length === prevBars.length + 1) &&
         (changedRecentBarStart(bars, prevBars) ?? -1) >= bars.length - 1) {
-        series.update(bars[bars.length - 1])
+        series.update(priceData[priceData.length - 1])
       } else {
         replaced = true
-        series.setData(bars)
+        series.setData(priceData)
       }
       priceSpaceRef.current?.sync(bars, isNewKey, precision)
       const futureReplaced = futureTimelineRef.current?.sync(bars, step, isNewKey, replaced)
@@ -425,7 +442,7 @@ function MarketCandlestickChartComponent({
         setLogicalRange(followingRange)
       }
     } finally { applyingDataRef.current = false }
-  }, [bars, fitContentKey, symbol, onDataApplied, precision, timeframe, clock.brokerId, readLogicalRange, setLogicalRange])
+  }, [bars, hasDailyCloseHistory, fitContentKey, symbol, onDataApplied, precision, timeframe, clock.brokerId, readLogicalRange, setLogicalRange])
 
   useLayoutEffect(() => {
     const chart = chartRef.current
@@ -437,8 +454,8 @@ function MarketCandlestickChartComponent({
       return
     }
     marketStructureRef.current ??= createMarketStructureOverlay(chart, series)
-    marketStructureRef.current.sync(bars, marketStructure)
-  }, [bars, marketStructure])
+    marketStructureRef.current.sync(candles, marketStructure)
+  }, [candles, marketStructure])
 
   // Apply indicator data after price data/viewport restoration. Scope changes
   // clear the old indicator above before replacing candles to avoid mixing two
@@ -473,11 +490,11 @@ function MarketCandlestickChartComponent({
         atrPaneRef.current?.destroy(); atrPaneRef.current = null
       } else {
         atrPaneRef.current ??= createAtrPane(chart)
-        atrPaneRef.current.sync(bars, `${clock.brokerId}:${fitContentKey}`, atr, futureTimelineRef.current?.endTime(), precision)
+        atrPaneRef.current.sync(candles, `${clock.brokerId}:${fitContentKey}`, atr, futureTimelineRef.current?.endTime(), precision)
       }
       if (range) setLogicalRange(range)
     } finally { applyingDataRef.current = false }
-  }, [atr, bars, fitContentKey, clock.brokerId, precision, readLogicalRange, setLogicalRange])
+  }, [atr, candles, fitContentKey, clock.brokerId, precision, readLogicalRange, setLogicalRange])
 
   useLayoutEffect(() => {
     const chart = chartRef.current

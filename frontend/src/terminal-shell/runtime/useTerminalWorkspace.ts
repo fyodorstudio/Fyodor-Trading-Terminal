@@ -75,8 +75,9 @@ export function useTerminalWorkspace() {
   const activeSymbol = marketData.activeSymbol
   const bars = marketData.bars
   const brokerId = bridge.brokerId
+  const quote = marketData.symbols.find((item) => item.symbol === activeSymbol) ?? null
   const macroState = useMacroIndicator(activeSymbol, brokerId)
-  const priceAlerts = usePriceAlerts(brokerId, marketData.symbols, mt5Connected && marketData.marketWatchStatus === 'live')
+  const priceAlerts = usePriceAlerts(brokerId, marketData.brokerSymbols, mt5Connected && marketData.marketWatchStatus === 'live')
   const addPriceAlert = priceAlerts.addAlert
   const enablePriceAlertSound = priceAlerts.enableSound
   const priceAlertSoundEnabled = priceAlerts.playSound
@@ -84,7 +85,6 @@ export function useTerminalWorkspace() {
   const inspector = useInspector({ symbol: activeSymbol, bars, timeframe, timeDisplay,
     clockOffsetMs: 0, brokerId, eventIconsVisible: inspectorIconsVisible,
     brokerOffsetSeconds: bridge.brokerOffsetSeconds, focusActive: bottomDockWindow === 'inspector' })
-  const quote = marketData.symbols.find((item) => item.symbol === activeSymbol) ?? null
   const latestBarTime = bars.at(-1)?.time ?? 0
   const registeredArrows = useRegisteredArrows(activeSymbol, bottomDockWindow === 'entry-trade')
   const [tradePlans, setTradePlans] = useState<Record<string, PlannedTradeState>>({})
@@ -149,7 +149,7 @@ export function useTerminalWorkspace() {
     (tool: DrawingToolId, points: ChartDrawingPoint[]) => {
       if (tool === 'price-alert') {
         setLeftDockTab('price-alerts'); openMarketWatch()
-        if (!brokerId || !points[0]) return ''
+        if (!brokerId || quote?.synthetic || !points[0]) return ''
         const id = addPriceAlert(activeSymbol, points[0].price, quote?.precision ?? 5)
         if (id) appendActivity('Drawing', 'Price alert created', `${activeSymbol} · ${points[0].price.toFixed(quote?.precision ?? 5)}`)
         return id
@@ -158,12 +158,13 @@ export function useTerminalWorkspace() {
       appendActivity('Drawing', 'Drawing created', `${activeSymbol} ${timeframe} · ${tool}`)
       return drawingId
     },
-    [activeSymbol, addDrawing, appendActivity, timeframe, addPriceAlert, brokerId, quote?.precision, openMarketWatch],
+    [activeSymbol, addDrawing, appendActivity, timeframe, addPriceAlert, brokerId, quote?.precision, quote?.synthetic, openMarketWatch],
   )
 
   const chooseDrawingTool = (tool: DrawingToolId | null) => {
     if (tool === 'price-alert') {
       setLeftDockTab('price-alerts'); openMarketWatch()
+      if (quote?.synthetic) return
       if (priceAlertSoundEnabled) void enablePriceAlertSound()
     }
     setActiveDrawingTool(tool)

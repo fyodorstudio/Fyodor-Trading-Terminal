@@ -3,6 +3,7 @@ from __future__ import annotations
 from queue import Empty
 from typing import Any
 
+from .currency_indices import SERVER, SYMBOLS, CurrencyIndexHistory, index_quotes
 from .market_data import read_market_watch, read_ohlc
 
 
@@ -44,6 +45,7 @@ def run_mt5_adapter(
             return
 
         account_info = mt5.account_info()
+        index_history = CurrencyIndexHistory()
         response_queue.put(
             {
                 "kind": "ready",
@@ -68,14 +70,17 @@ def run_mt5_adapter(
             try:
                 if operation == "market-watch":
                     result = read_market_watch(mt5)
+                    account = mt5.account_info()
+                    if account and account.server == SERVER:
+                        result = [row for row in result if row["symbol"] not in SYMBOLS] + index_quotes()
                 elif operation == "ohlc":
-                    result = read_ohlc(
-                        mt5,
-                        str(arguments["symbol"]),
-                        str(arguments["timeframe"]),
-                        int(arguments["start_pos"]),
-                        int(arguments["count"]),
-                    )
+                    symbol = str(arguments["symbol"])
+                    timeframe = str(arguments["timeframe"])
+                    count = int(arguments["count"])
+                    if symbol in SYMBOLS and account_info and account_info.server == SERVER:
+                        result = index_history.read(mt5, symbol, timeframe, count, arguments.get("before"))
+                    else:
+                        result = read_ohlc(mt5, symbol, timeframe, int(arguments["start_pos"]), count)
                 else:
                     raise RuntimeError(f"Unsupported MT5 adapter operation: {operation}")
             except Exception as error:

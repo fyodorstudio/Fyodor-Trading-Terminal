@@ -13,6 +13,7 @@ const keys = [...Object.keys(globals), 'fetch', '__viewportChart']
 const previous = new Map(keys.map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
 for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value })
 let id = 0, fitted = 0, autoscaled = 0, range = null, plotted = [], future = []
+let dailyCloses = [], watch = []
 let futureSets = 0, futureUpdates = 0
 const timers = new Map(), listeners = new Set(), requests = []
 dom.setTimeout = fn => { timers.set(++id, fn); return id }; dom.clearTimeout = id => timers.delete(id)
@@ -29,7 +30,10 @@ const scale = {
 const series = { applyOptions() {}, attachPrimitive() {}, detachPrimitive() {}, setData(bars) { plotted = bars; emit(bars.length ? { from: 0, to: bars.length } : null) }, update(bar) { plotted = [...plotted.slice(0, -1), bar] } }
 const futureSeries = { setData(rows) { futureSets++; future = rows }, update(row) { futureUpdates++; future = [...future, row] },
   applyOptions() {}, attachPrimitive() {}, detachPrimitive() {}, createPriceLine() {}, removePriceLine() {} }
-globalThis.__viewportChart = { addSeries: definition => definition.type === 'line' ? futureSeries : series,
+const dailyLine = { setData(rows) { dailyCloses = rows }, applyOptions() {} }
+globalThis.__viewportChart = { addSeries: (definition, options) => definition.type === 'line'
+  ? (options.lineVisible === false ? futureSeries : dailyLine) : series,
+  removeSeries(item) { if (item === dailyLine) dailyCloses = [] },
   chartElement: () => document.querySelector('.market-chart-canvas'), panes: () => [{ getHTMLElement: () => null }],
   options: () => ({ leftPriceScale: { visible: false } }), timeScale: () => scale, priceScale: () => ({ width: () => 0, getVisibleRange: () => null, options: () => ({ autoScale: true }), applyOptions: () => autoscaled++ }), applyOptions() {}, remove() {} }
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), server: { middlewareMode: true, hmr: false },
@@ -38,7 +42,7 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
     load(id) { if (id === '\0viewport-canvas') return `export const CandlestickSeries={type:'candle'}, LineSeries={type:'line'}, ColorType={Solid:'solid'}, CrosshairMode={Normal:0}, TickMarkType={}; export const createChart=()=>globalThis.__viewportChart;` },
   }] })
 globalThis.fetch = (url, options = {}) => {
-  if (String(url).includes('/market-watch')) return Promise.resolve({ ok: true, json: async () => ({ symbols: [] }) })
+  if (String(url).includes('/market-watch')) return Promise.resolve({ ok: true, json: async () => ({ symbols: watch }) })
   return new Promise(resolve => requests.push({ url: String(url), signal: options.signal, resolve }))
 }
 const { createRoot } = await import('react-dom/client')
@@ -52,11 +56,12 @@ const bars = times => times.map(time => ({ time, open: 1, high: 2, low: .5, clos
 const base = 1700000000
 const make = (...hours) => bars(hours.map(h => base + h * 3600))
 const pending = () => requests.filter(r => !r.done && !r.signal.aborted)
-async function reply(request, rows, hasOlder = false, ok = true) {
+async function reply(request, rows, hasOlder = false, ok = true, nextBefore = null) {
   assert.ok(request); request.done = true
   const params = new URL(request.url, 'http://localhost').searchParams
   await React.act(async () => request.resolve({ ok, status: ok ? 200 : 503, json: async () => ({ symbol: params.get('symbol'), timeframe: params.get('timeframe'),
-    bars: rows, start_pos: Number(params.get('start_pos')), next_start_pos: Number(params.get('start_pos')) + rows.length, has_older: hasOlder, source_generation: 1 }) }))
+    bars: rows, start_pos: Number(params.get('start_pos')), next_start_pos: nextBefore ? 0 : Number(params.get('start_pos')) + rows.length,
+    has_older: hasOlder, next_before: nextBefore, source_generation: 1 }) }))
 }
 try {
   const { captureDateWindow, projectDateWindow } = await server.ssrLoadModule('./src/market-data/candlestick-chart/chart-viewport.ts')
@@ -73,6 +78,7 @@ try {
   function Harness({ symbol, timeframe }) {
     const feed = useMt5MarketData(true, 1, symbol, timeframe)
     return React.createElement(MarketCandlestickChart, { bars: feed.bars, fitContentKey: `${symbol}:${timeframe}`, precision: 5, theme: 'light', appearance,
+      hasDailyCloseHistory: feed.bars.some(bar => bar.closeOnly),
       timeDisplay: display, timeframe, activeDrawingTool: null, drawings: [], selectedDrawingId: null, onSelectDrawing: noop, onCreateDrawing: noop,
       onUpdateDrawingPoint: noop, onUpdatePositionWidth: noop, onExitDrawingMode: noop, onDataApplied: noop,
       hasOlderData: !feed.chartHistoryComplete, isLoadingOlderData: feed.chartHistoryLoading, onRequestOlderData: feed.requestOlderBars })
@@ -220,6 +226,28 @@ try {
   await reply(pending()[0], historyFor(frameSteps.D1).slice(-206, -6), false)
   assert.deepEqual(captureDateWindow(range, plotted, frameSteps.D1), backfillWindow, 'Older pages retain both selected date bounds')
   assert.equal(pending().length, 0, 'Timeframe backfill stops when the resized date window is covered')
+  await React.act(async () => root.render(null))
+
+  watch = [{ symbol: 'GBPX', description: 'Synthetic GBP index', bid: 0, ask: 0, precision: 3, synthetic: true },
+    { symbol: 'USDX', description: 'Broker USD index', bid: 100, ask: 101, precision: 3 }]
+  const dates = historyFor(frameSteps.D1).slice(-12)
+  const initial = dates.slice(-8).map((bar, index) => index < 4 ? { ...bar, close_only: true } : bar)
+  await render('GBPX', 'D1')
+  await reply(pending()[0], initial, true, true, initial[0].time)
+  assert.deepEqual(plotted.slice(0, 4), initial.slice(0, 4).map(({ time }) => ({ time })))
+  assert.deepEqual(dailyCloses.filter(point => point.value !== undefined),
+    initial.slice(0, 5).map(({ time, close }) => ({ time, value: close })))
+  await pan({ from: 0, to: 6 })
+  const request = new URL(pending()[0].url, 'http://localhost').searchParams
+  assert.equal(request.get('before'), String(initial[0].time), 'Synthetic history pages by broker timestamp')
+  assert.equal(request.get('start_pos'), null)
+  await reply(pending()[0], dates.slice(0, 4).map(bar => ({ ...bar, close_only: true })))
+  assert.equal(plotted.length, dates.length)
+  assert.equal(dailyCloses[0].time, dates[0].time)
+  await render('USDX', 'D1')
+  await reply(pending()[0], dates)
+  assert.equal(dailyCloses.length, 0)
+  assert.ok(plotted.every(bar => Number.isFinite(bar.open)), 'Broker indices continue to draw native candles')
   await React.act(async () => root.render(null))
   console.log('✓ Shared dates, zoom and future space; serial MT5 backfill, stop/retry, missing history, stale replies, timeframe/broker scope and cleanup')
 } finally {

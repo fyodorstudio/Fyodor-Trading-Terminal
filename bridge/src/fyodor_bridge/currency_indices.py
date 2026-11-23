@@ -1,0 +1,141 @@
+"""Pepperstone FX baskets on the same broker wall-clock timeline as MT5 candles."""
+from collections import OrderedDict
+from datetime import datetime, timezone
+from itertools import combinations
+from math import exp, isfinite, log
+
+
+SERVER = "Pepperstone-Demo"
+CURRENCIES = ("EUR", "GBP", "AUD", "NZD", "USD", "CAD", "CHF", "JPY")
+SYMBOLS = {currency + "X": currency for currency in ("GBP", "CHF", "CAD", "AUD", "NZD")}
+STEPS = {"M1": 60, "M5": 300, "M15": 900, "M30": 1800, "H1": 3600, "H4": 14400, "D1": 86400}
+ANCHOR = int(datetime(2025, 1, 6, tzinfo=timezone.utc).timestamp())
+
+
+def index_quotes():
+    return [
+        dict(symbol=symbol, description=f"Synthetic {currency} index", synthetic=True,
+             bid=0, ask=0, daily_change=None, precision=3)
+        for symbol, currency in SYMBOLS.items()
+    ]
+
+
+def basket_members(currency):
+    return [(base + quote, 1 if base == currency else -1)
+            for base, quote in combinations(CURRENCIES, 2) if currency in (base, quote)]
+
+
+def read_prices(mt5, pair, frame, count, before):
+    if before is None:
+        rates = mt5.copy_rates_from_pos(pair, frame, 0, count)
+    else:
+        rates = mt5.copy_rates_from(pair, frame, datetime.fromtimestamp(before - 1, timezone.utc), count)
+    if rates is None:
+        code, message = mt5.last_error()
+        if code == -4:  # MT5 RES_E_NOT_FOUND
+            return {}
+        raise RuntimeError(f"Unable to read {pair} for the synthetic index: {message}")
+    return {int(rate["time"]): (float(rate["open"]), float(rate["close"])) for rate in rates}
+
+
+def synchronized_prices(legs, reference):
+    common = set.intersection(*(set(leg) for leg in legs))
+    for at in sorted(common):
+        observations = [leg[at] for leg in legs]
+        if not all(isfinite(value) and value > 0 for prices in observations for value in prices):
+            continue
+        levels = []
+        for prices in zip(*observations):
+            log_return = sum(weight * (log(price) - baseline)
+                             for price, (weight, baseline) in zip(prices, reference))
+            levels.append(100 * exp(log_return))
+        yield at, levels
+
+
+def sampled_candles(legs, reference, step):
+    candles = {}
+    # The oldest returned minute can be in the middle of a candle when one leg
+    # has less history or the native read reaches its limit.
+    if not all(legs):
+        return candles
+    overlap_start = max(min(leg) for leg in legs)
+    for at, (opening, close) in synchronized_prices(legs, reference):
+        bucket = at - at % step
+        if bucket < overlap_start:
+            continue
+        candle = candles.get(bucket)
+        if candle is None:
+            candles[bucket] = dict(time=bucket, open=opening, high=max(opening, close),
+                                   low=min(opening, close), close=close)
+        else:
+            candle["high"] = max(candle["high"], opening, close)
+            candle["low"] = min(candle["low"], opening, close)
+            candle["close"] = close
+    return candles
+
+
+class CurrencyIndexHistory:
+    def __init__(self):
+        self.account = None
+        self.references = {}
+        self.pages = OrderedDict()
+
+    def read(self, mt5, symbol, timeframe, count, before):
+        account = mt5.account_info()
+        if account is None or account.server != SERVER:
+            raise RuntimeError("Synthetic currency indices require Pepperstone-Demo")
+        identity = (account.server, account.login)
+        if self.account != identity:
+            self.account = identity
+            self.references.clear()
+            self.pages.clear()
+        cache_key = (symbol, timeframe, count, before)
+        if before is not None and cache_key in self.pages:
+            self.pages.move_to_end(cache_key)
+            return self.pages[cache_key]
+
+        members = basket_members(SYMBOLS[symbol])
+        reference = self.references.get(symbol)
+        if reference is None:
+            opening_prices = [read_prices(mt5, pair, mt5.TIMEFRAME_D1, 1, ANCHOR + 1).get(ANCHOR)
+                              for pair, _ in members]
+            if any(prices is None or not isfinite(prices[0]) or prices[0] <= 0 for prices in opening_prices):
+                raise RuntimeError(f"{symbol} requires 6 Jan 2025 D1 history for all seven FX pairs")
+            reference = [(direction / 7, log(prices[0]))
+                         for (_, direction), prices in zip(members, opening_prices)]
+            self.references[symbol] = reference
+
+        step = STEPS[timeframe]
+        minute_count = min(21_600, (count + 2) * (step // 60))
+        minutes = [read_prices(mt5, pair, mt5.TIMEFRAME_M1, minute_count, before) for pair, _ in members]
+        candles = sampled_candles(minutes, reference, step)
+        if timeframe == "D1":
+            daily = [read_prices(mt5, pair, mt5.TIMEFRAME_D1, count + 1, before) for pair, _ in members]
+            closing = list(synchronized_prices(daily, reference))
+            if before is None:
+                closing = closing[:-1]
+            for at, (_, close) in closing:
+                candles.setdefault(at, dict(time=at, open=close, high=close, low=close,
+                                            close=close, close_only=True))
+
+        current = mt5.account_info()
+        if current is None or (current.server, current.login) != identity:
+            self.references.clear()
+            self.pages.clear()
+            raise RuntimeError("MT5 account changed during the synthetic index read")
+        if not candles and before is None:
+            raise RuntimeError(f"No synchronized {timeframe} history for {symbol}. Check the seven FX pairs in MT5.")
+        bars = [candles[at] for at in sorted(candles)]
+        selected = bars[-count:]
+        # When the read hit its minute limit there may be older pages even if
+        # weekends or sparse synchronization reduced the number of candles.
+        has_older = len(bars) > count or (
+            timeframe != "D1" and bool(selected) and all(len(leg) == minute_count for leg in minutes)
+        )
+        page = dict(bars=selected, start_pos=0, next_start_pos=0, has_older=has_older,
+                    next_before=selected[0]["time"] if selected and has_older else None)
+        if before is not None and selected:
+            self.pages[cache_key] = page
+            if len(self.pages) > 24:
+                self.pages.popitem(last=False)
+        return page

@@ -63,6 +63,7 @@ function TerminalWorkspaceContent() {
     rankingOpen, toggleRanking, closeRanking, newsOpen, toggleNews, closeNews, openNews, detailOpen, toggleDetail, closeDetail, openDetail, viewLedgerEvent, viewMacroRelease, returnToLedger,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab } = useTerminalWorkspace()
   const selectedLevel = selectedDrawingId && drawings.find(drawing => drawing.id === selectedDrawingId && isSupplyDemandTool(drawing.tool))
+  const hasDailyCloseHistory = quote?.synthetic === true && timeframe === 'D1' && bars.some(bar => bar.closeOnly)
   const [heatmapStarted, setHeatmapStarted] = useState(false)
   if ((bottomDockWindow === 'heatmap' || rankingOpen) && !heatmapStarted) setHeatmapStarted(true)
   const brokerOffsetSeconds = bridge.brokerOffsetSeconds
@@ -132,6 +133,7 @@ function TerminalWorkspaceContent() {
             marketWatch={marketWatch}
             symbol={activeSymbol}
             quote={quote}
+            hasDailyCloseHistory={hasDailyCloseHistory}
             timeframe={timeframe}
             onSelectTimeframe={selectTimeframe}
             onRefocus={() => setRefocusRequest(request => request + 1)}
@@ -184,7 +186,8 @@ function TerminalWorkspaceContent() {
                   appearance={chartAppearance}
                   timeDisplay={timeDisplay}
                   timeframe={timeframe}
-                  volume={volume}
+                  hasDailyCloseHistory={hasDailyCloseHistory}
+                  volume={quote?.synthetic ? undefined : volume}
                   marketStructure={marketStructure}
                   atr={atr}
                   onChangeVolumeAxis={changeVolumeAxis}
@@ -237,12 +240,13 @@ function TerminalWorkspaceContent() {
                   if (priceAlerts.playSound) void priceAlerts.enableSound()
                   createDrawing('price-alert', selectedLevel.points)
                 } : undefined}
-                priceAlertDisabled={!brokerId || !quote || !priceAlerts.live}
+                priceAlertDisabled={!brokerId || !quote || quote.synthetic || !priceAlerts.live}
               />
               )}
               <div className="chart-watermark" aria-hidden="true">
                 <strong>{activeSymbol}</strong>
-                <span>{`${timeframe} · ${marketData.chartStatus === 'live' ? 'MT5 broker data' : 'Awaiting MT5 data'}`}</span>
+                <span>{timeframe} · {quote?.synthetic ? 'Synthetic index'
+                  : marketData.chartStatus === 'live' ? 'MT5 broker data' : 'Awaiting MT5 data'}</span>
               </div>
             </div>
             {recentEventsOpen && <RecentEventsPanel brokerId={brokerId} symbol={activeSymbol} onClose={closeRecentEvents} />}
@@ -262,7 +266,7 @@ function TerminalWorkspaceContent() {
           hidden={!bottomDockWindow}
         >
           {heatmapStarted && <div className="heatmap-slot" hidden={bottomDockWindow !== 'heatmap'}>
-            <HeatmapDock symbols={marketData.symbols} broker={brokerId} generation={bridge.generation} active={bottomDockWindow === 'heatmap' || rankingOpen} dockActive={bottomDockWindow === 'heatmap'} rankingTarget={rankingTarget} onCloseRanking={closeRanking} onOpenNews={showHeatmapNews} onOpenRow={openHeatmapInstrument} connected={bridge.connected} />
+            <HeatmapDock symbols={marketData.brokerSymbols} broker={brokerId} generation={bridge.generation} active={bottomDockWindow === 'heatmap' || rankingOpen} dockActive={bottomDockWindow === 'heatmap'} rankingTarget={rankingTarget} onCloseRanking={closeRanking} onOpenNews={showHeatmapNews} onOpenRow={openHeatmapInstrument} connected={bridge.connected} />
           </div>}
           {bottomDockWindow === 'wildcards' && <WildcardsDock />}
           {bottomDockWindow === 'ledger' && <LedgerDock supported={ledgerSupported} broker={brokerId} onOpenDetail={openLedgerDetail} onViewEvent={viewLedgerEvent} />}
@@ -285,7 +289,7 @@ function TerminalWorkspaceContent() {
       <LiveTerminalStatusBar
         sourceState={sourceState}
         sourceLabel={sourceLabel}
-        sourceSymbolCount={marketData.symbols.length}
+        sourceSymbolCount={marketData.brokerSymbols.length}
         selectedSymbol={activeSymbol}
         timeframe={timeframe}
         barCount={bars.length}

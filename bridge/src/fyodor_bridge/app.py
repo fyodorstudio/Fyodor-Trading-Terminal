@@ -103,24 +103,27 @@ def get_ohlc(
     timeframe: str = Query(pattern="^(M1|M5|M15|M30|H1|H4|D1)$"),
     start_pos: int = Query(default=0, ge=0, le=10_000_000),
     count: int = Query(default=800, ge=2, le=5000),
+    before: int | None = Query(default=None, ge=1, le=253402300799),
 ) -> dict[str, object]:
     if timeframe not in TIMEFRAME_NAMES:
         raise HTTPException(status_code=422, detail={"code": "invalid-timeframe", "message": timeframe})
     component = "ohlc"
     operation_name = f"Reading {symbol} {timeframe}"
     token = heartbeat.begin(component, operation_name)
-    before = perf_counter()
+    started = perf_counter()
+    older = start_pos > 0 or before is not None
     try:
         page = mt5_worker.submit(
-            "ohlc-history" if start_pos > 0 else "ohlc-live",
+            "ohlc-history" if older else "ohlc-live",
             "ohlc",
             {
                 "symbol": symbol,
                 "timeframe": timeframe,
                 "start_pos": start_pos,
                 "count": count,
+                "before": before,
             },
-            priority=8 if start_pos > 0 else 1,
+            priority=8 if older else 1,
         )
     except Exception as error:
         heartbeat.fail(component, token, str(error))
@@ -134,8 +137,9 @@ def get_ohlc(
         "start_pos": page["start_pos"],
         "next_start_pos": page["next_start_pos"],
         "has_older": page["has_older"],
+        "next_before": page.get("next_before"),
         "observed_at": utc_milliseconds(),
-        "duration_ms": max(duration, round((perf_counter() - before) * 1000)),
+        "duration_ms": max(duration, round((perf_counter() - started) * 1000)),
         "source_generation": mt5_worker.snapshot()["generation"],
     }
 

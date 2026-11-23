@@ -54,7 +54,7 @@ function classifyFallback(rawSymbol: string): MarketCategory {
   if (symbol.endsWith('-F')) return 'forwards'
   if (/^[A-Z0-9]+\.[A-Z]{2}(?:-24)?$/.test(symbol)) return 'stocks'
   const base = symbol.split(/[._#-]/)[0]
-  if (/^(USDX|EURX|JPYX)$/.test(base)) return 'currency-indices'
+  if (/^(USDX|EURX|JPYX|GBPX|CHFX|CADX|AUDX|NZDX)$/.test(base)) return 'currency-indices'
   if (/^(XAU|XAG|XPT|XPD)[A-Z]{3}$/.test(base) || /^(GOLD|SILVER|COPPER|ALUMINIUM|NICKEL|ZINC|LEAD)$/.test(base)) return 'metals'
   if (/^(BTC|ETH|SOL|XRP|LTC|DOGE|ADA)(USD|EUR|GBP|AUD)$/.test(base)) return 'crypto'
   if (/^(US500|US400|US2000|SPX|US30|DJI|USTEC|NAS100|GER40|DAX|UK100|FTSE|JP225|JPN225|AUS200|CA60|SWI20|EUSTX50|FRA40|HK50|CN50|CHINAH|HSTECH|SPA35|SCI25|NETH25|TWN|VIX|STOXX)$/.test(base)) return 'indices'

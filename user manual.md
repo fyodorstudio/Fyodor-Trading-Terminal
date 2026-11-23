@@ -3,6 +3,15 @@
 ## Charts
 
 Select a symbol in Market Watch and choose a timeframe in the chart header.
+
+With Pepperstone-Demo connected, **Currency indices** includes synthetic
+**GBPX**, **CHFX**, **CADX**, **AUDX**, and **NZDX** alongside the broker's
+**USDX**, **EURX**, and **JPYX**. Each synthetic index tracks its currency
+against the other seven majors with equal geometric weights. Its base is 100
+at the broker session open on 6 January 2025. Candles use synchronized
+one-minute opens and closes. A line shows historical D1 closes where the chart
+has only daily data. Synthetic charts have no traded volume or broker quote
+for price alerts.
 Pan or zoom to browse history. **Refocus** returns to the latest candles.
 Timeframe changes retain the selected dates and price bounds in either direction.
 Pairs remember their own price bounds; a new pair inherits proportional vertical
