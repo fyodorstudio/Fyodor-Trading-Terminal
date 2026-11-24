@@ -1,14 +1,18 @@
+export type TickDeltaView = 'bars' | 'line'
+
 export type VolumePreferences = {
   enabled: boolean; mode: 'raw' | 'relative' | 'tick-delta'; axisTarget: 'volume' | 'relative'
   barsVisible: boolean; relativeLineVisible: boolean; relativeLineColor: string
   lookback: number; minimumSamples: number; averageVisible: boolean; averageLength: number
   upColor: string; downColor: string; averageColor: string
+  tickDeltaView: TickDeltaView
 }
 export type VolumeLayer = 'barsVisible' | 'relativeLineVisible' | 'averageVisible'
 export const defaultVolumePreferences: VolumePreferences = {
   enabled: false, mode: 'raw', axisTarget: 'volume', lookback: 20, minimumSamples: 5,
   barsVisible: true, relativeLineVisible: true, relativeLineColor: '#2962ff',
   averageVisible: false, averageLength: 20, upColor: '#089981', downColor: '#f23645', averageColor: '#b18a00',
+  tickDeltaView: 'bars',
 }
 const storageKey = 'fyodor.indicators.volume.v1'
 export function readVolumePreferences(): VolumePreferences {
@@ -26,6 +30,7 @@ export function readVolumePreferences(): VolumePreferences {
       barsVisible: flag('barsVisible'), relativeLineVisible: flag('relativeLineVisible'), relativeLineColor: color('relativeLineColor'),
       minimumSamples: Math.min(integer('minimumSamples', 1, 60), lookback),
       averageVisible: p.averageVisible === true, averageLength: integer('averageLength', 1, 200),
+      tickDeltaView: p.tickDeltaView === 'line' ? 'line' : d.tickDeltaView,
       upColor: color('upColor'), downColor: color('downColor'), averageColor: color('averageColor') }
   } catch { return d }
 }

@@ -6,7 +6,8 @@ import { bridgeRequest } from '../../../system-connectivity/bridge-status/bridge
 import { timeframeToSeconds } from '../../chart-drawings/position-drawing-geometry'
 import type { ChartTimeframe } from '../../contracts/ChartTimeframe'
 import type { OhlcBar } from '../../contracts/OhlcBar'
-import type { TickDeltaPoint } from './tick-delta-pane'
+import type { TickDeltaPaneView, TickDeltaPoint } from './tick-delta-pane'
+import type { TickDeltaView } from './volume-preferences'
 import { useTickDeltaHistory, type TickCounts } from './use-tick-delta-history'
 import './candle-activity.css'
 
@@ -45,18 +46,24 @@ export type CandleActivityProps = {
   bars: OhlcBar[]
   symbol: string; timeframe: ChartTimeframe; synthetic: boolean; canRank: boolean; connected: boolean; generation: number
   upColor: string; downColor: string
+  tickDeltaView: TickDeltaView; onTickDeltaViewChange: (view: TickDeltaView) => void
 }
 
 export function CandleActivityControls({ chart, bars, symbol, timeframe, synthetic, canRank,
-  connected, upColor, downColor, onPlot }: CandleActivityProps & {
+  connected, upColor, downColor, tickDeltaView, onTickDeltaViewChange, onPlot }: CandleActivityProps & {
   chart: IChartApi
-  onPlot: (rows: ReadonlyMap<number, TickDeltaPoint>, upColor: string, downColor: string, showHistogram: boolean) => void
+  onPlot: (rows: ReadonlyMap<number, TickDeltaPoint>, upColor: string, downColor: string, view: TickDeltaPaneView) => void
 }) {
   const clock = useDisplayClock()
   const [showRanking, setShowRanking] = useState(false)
   const [hover, setHover] = useState<number | null>(null)
   const [viewport, setViewport] = useState<{ from: number; to: number } | null>(null)
   const ranking = canRank && showRanking
+  const paneView = ranking ? 'currency' : tickDeltaView
+  const selectTickView = (view: TickDeltaView) => {
+    onTickDeltaViewChange(view)
+    setShowRanking(false)
+  }
   useEffect(() => {
     const scale = chart.timeScale()
     const readViewport = (range: LogicalRange | null) => {
@@ -101,18 +108,20 @@ export function CandleActivityControls({ chart, bars, symbol, timeframe, synthet
     if (liveTicks) points.set(last, liveTicks)
     return points
   }, [history, first, last, liveTicks])
-  useLayoutEffect(() => onPlot(visiblePoints, upColor, downColor, !ranking), [onPlot, visiblePoints, upColor, downColor, ranking])
+  useLayoutEffect(() => onPlot(visiblePoints, upColor, downColor, paneView), [onPlot, visiblePoints, upColor, downColor, paneView])
 
   const current = ranking ? rank : start === last ? live : fallback
   const ticks = !ranking && start !== undefined ? start === last ? liveTicks : history.get(start) ?? recovered : undefined
   const ranks = ranking ? rank.current?.data?.rows : undefined
+  const delta = ticks && ticks.up - ticks.down
   const activitySource = synthetic ? 'Synthetic basket Bid moves' : 'Bid/ask midpoint moves'
   return <section className="candle-activity-pane" aria-label="Candle volume">
     <div className="candle-activity-toolbar">
-      {canRank ? <div className="volume-controls" role="group" aria-label="Volume view">
-        <button type="button" aria-pressed={!ranking} onClick={() => setShowRanking(false)}>Tick Delta</button>
-        <button type="button" aria-pressed={ranking} onClick={() => setShowRanking(true)}>Currency Activity</button>
-      </div> : <strong title={activitySource}>Tick Delta</strong>}
+      <div className="volume-controls" role="group" aria-label="Volume view">
+        <button type="button" aria-pressed={paneView === 'bars'} onClick={() => selectTickView('bars')}>Uptick / Downtick Bars</button>
+        <button type="button" aria-pressed={paneView === 'line'} onClick={() => selectTickView('line')}>Delta Line</button>
+        {canRank && <button type="button" aria-pressed={ranking} onClick={() => setShowRanking(true)}>Currency Activity</button>}
+      </div>
       <span className="candle-activity-time" title={ranking ? 'Selected candle' : activitySource}>
         {start === undefined ? 'No candles available' : clock.chart(start * 1000)}
       </span>
@@ -120,12 +129,14 @@ export function CandleActivityControls({ chart, bars, symbol, timeframe, synthet
     {!connected ? <p role="status">Waiting for MT5.</p> : start !== undefined && !ticks && !ranks && !current.current
       ? <p role="status">Reading candle data…</p> : null}
     {current.current?.error && <div className="volume-controls"><span role="status">{current.current.error}</span><button type="button" onClick={current.retry}>Retry</button></div>}
-    {ticks && <dl className="candle-tick-counts" aria-label="Tick Delta">
-      <div><dt>Upticks</dt><dd style={{ color: upColor }}>{count.format(ticks.up)}</dd></div>
-      <div><dt>Downticks</dt><dd style={{ color: downColor }}>{count.format(ticks.down)}</dd></div>
-      <div><dt>Unchanged</dt><dd>{count.format(ticks.flat)}</dd></div>
-      <div><dt>Tick Delta</dt><dd>{ticks.up > ticks.down ? '+' : ''}{count.format(ticks.up - ticks.down)}</dd></div>
-      {ticks.unknown > 0 && <div><dt>Unclassified</dt><dd>{count.format(ticks.unknown)}</dd></div>}
+    {ticks && delta !== undefined && <dl className="candle-tick-counts" aria-label="Tick Delta">
+      {paneView === 'bars' && <>
+        <div><dt>Upticks</dt><dd style={{ color: upColor }}>{count.format(ticks.up)}</dd></div>
+        <div><dt>Downticks</dt><dd style={{ color: downColor }}>{count.format(ticks.down)}</dd></div>
+        <div><dt>Unchanged</dt><dd>{count.format(ticks.flat)}</dd></div>
+      </>}
+      <div><dt>Tick Delta</dt><dd>{delta > 0 ? '+' : ''}{count.format(delta)}</dd></div>
+      {paneView === 'bars' && ticks.unknown > 0 && <div><dt>Unclassified</dt><dd>{count.format(ticks.unknown)}</dd></div>}
     </dl>}
     {ranks && <div className="candle-currency-ranking">
       <table><caption title="Each pair’s updates count toward both currencies">Broker ticks across seven pairs</caption>

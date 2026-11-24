@@ -98,5 +98,8 @@ try {
   assert.equal(readVolumePreferences().axisTarget, 'relative', 'The right-axis target survives reloads')
   dom.localStorage.setItem('fyodor.indicators.volume.v1', JSON.stringify({ axisTarget: 'left' }))
   assert.equal(readVolumePreferences().axisTarget, 'volume', 'Unknown axis targets use the default')
+  assert.equal(readVolumePreferences().tickDeltaView, 'bars', 'Existing saved volume settings default to tick bars')
+  saveVolumePreferences({ ...p, tickDeltaView: 'line' })
+  assert.equal(readVolumePreferences().tickDeltaView, 'line', 'The delta line view survives reloads')
   console.log('✓ Volume: automatic sessions/overlaps/header parity, session-relative ratios, prior-only baselines, DST/historical clocks, missing/zero data, mutable tail, correction/prepend, 100,000-bar live work = 1')
 } finally { await server.close(); await dom.happyDOM.close(); globalThis.window = oldWindow }

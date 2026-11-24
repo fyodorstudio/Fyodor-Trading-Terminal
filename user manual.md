@@ -270,6 +270,10 @@ use the Bid/Ask midpoint. Synthetic indices use the basket's
 Bid inputs and group updates that share a millisecond. These counts describe quote
 movement. Trade sizes and aggressor sides are separate data.
 
+Switch between **Uptick / Downtick Bars** and **Delta Line** in the pane. The
+line plots each candle's upticks minus downticks with a dashed zero reference.
+Its hover readout shows just the signed delta.
+
 On Pepperstone-Demo, **Currency Activity** ranks all eight major currencies by the
 sum of broker ticks in each currency's seven FX pairs over the selected candle.
 A pair's count contributes to both currencies. A currency with missing pair data

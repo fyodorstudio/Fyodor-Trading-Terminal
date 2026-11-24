@@ -49,7 +49,7 @@ function TerminalWorkspaceContent() {
   const [refocusRequest, setRefocusRequest] = useState(0)
   const [rankingTarget, setRankingTarget] = useState<HTMLDivElement | null>(null)
   const { marketStructure, changeMarketStructure, toggleMarketStructure, marketStructureSettingsOpen, setMarketStructureSettingsOpen,
-    atr, changeAtr, toggleAtr, atrSettingsOpen, setAtrSettingsOpen, volume, changeVolume, toggleVolume, volumeSettingsOpen, setVolumeSettingsOpen, rsi, changeRsi, toggleRsi, rsiSettingsOpen, setRsiSettingsOpen,
+    atr, changeAtr, toggleAtr, atrSettingsOpen, setAtrSettingsOpen, volume, changeVolume, changeTickDeltaView, toggleVolume, volumeSettingsOpen, setVolumeSettingsOpen, rsi, changeRsi, toggleRsi, rsiSettingsOpen, setRsiSettingsOpen,
     macro, toggleMacro, macroPreferences, changeMacro, macroSettingsOpen, setMacroSettingsOpen,
     timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
     drawingToolbarVisible, eventIconMode, cycleEventIcons, bottomDockWindow, dockSize, settingsOpen, setSettingsOpen, marketWatch, appendActivity,
@@ -185,6 +185,7 @@ function TerminalWorkspaceContent() {
                   hasDailyCloseHistory={hasDailyCloseHistory}
                   volume={quote?.synthetic || volume.mode === 'tick-delta' ? undefined : volume}
                   tickDelta={tickActivityOpen ? {
+                    tickDeltaView: volume.tickDeltaView, onTickDeltaViewChange: changeTickDeltaView,
                     symbol: activeSymbol, timeframe, synthetic: quote?.synthetic === true, canRank: brokerId === 'Pepperstone-Demo',
                     connected: bridge.connected, generation: bridge.generation, upColor: volume.upColor, downColor: volume.downColor,
                   } : undefined}

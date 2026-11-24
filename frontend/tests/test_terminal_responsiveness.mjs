@@ -96,15 +96,17 @@ const addIndicatorPane = () => {
   const pane = { setStretchFactor() {}, paneIndex: () => panes.indexOf(pane), moveTo: index => { const old = panes.indexOf(pane); panes.splice(old, 1); panes.splice(index, 0, pane) }, getHeight: () => 140,
     attachPrimitive: primitive => primitives.add(primitive), detachPrimitive: primitive => primitives.delete(primitive),
     getHTMLElement: () => ({ offsetTop: 428 }), priceScale: () => ({ width: () => 0, applyOptions() {} }),
-    addSeries: definition => {
+    addSeries: (definition, initialOptions) => {
       if (definition?.type === 'histogram') volumePane = true
+      const options = { ...initialOptions }, priceLines = []
       let rows = []
-      const line = { applyOptions() {}, setData: next => { count(volumePane ? 'volumeSetData' : 'rsiSetData'); rows = [...next] },
+      const line = { options: () => options, priceLines, applyOptions: next => Object.assign(options, next),
+        setData: next => { count(volumePane ? 'volumeSetData' : 'rsiSetData'); rows = [...next] },
         update: row => { count(volumePane ? 'volumeUpdate' : 'rsiUpdate'); if (rows.at(-1)?.time === row.time) rows[rows.length - 1] = row; else rows.push(row) },
         data: () => rows, priceToCoordinate: value => 140 - value,
         seriesOrder: () => [...paneSeries].indexOf(line), setSeriesOrder() {},
         attachPrimitive: primitive => primitives.add(primitive), detachPrimitive: primitive => primitives.delete(primitive),
-        createPriceLine: () => ({ applyOptions() {} }) }
+        createPriceLine: options => { priceLines.push(options); return { applyOptions() {} } } }
       indicatorSeries.add(line); paneSeries.add(line); return line
     } }
   pane.fixtureSeries = paneSeries
@@ -203,7 +205,8 @@ globalThis.fetch = (url, options = {}) => {
     json: async () => ({ up: 62, down: 38, flat: 7, unknown: 0, synthetic: false }) })
   if (u.startsWith('/api/v1/candle-tick-history?')) {
     const starts = new URL(u, 'http://localhost').searchParams.getAll('start').map(Number)
-    return Promise.resolve({ ok: true, json: async () => ({ rows: starts.map(time => ({ time, up: 11, down: 7, flat: 3, unknown: 0 })) }) })
+    return Promise.resolve({ ok: true, json: async () => ({ rows: starts.map(time =>
+      ({ time, up: time === bars.at(-4)?.time ? 2 : time === bars.at(-3)?.time ? 7 : 11, down: 7, flat: 3, unknown: 0 })) }) })
   }
   if (u.startsWith('/api/v1/currency-activity?')) return Promise.resolve({ ok: true,
     json: async () => ({ rows: [{ currency: 'GBP', updates: 125, missing: [] }, { currency: 'JPY', updates: null, missing: ['GBPJPY'] }] }) })
@@ -625,7 +628,9 @@ try {
   assert.match(candleVolume().textContent, /Upticks62Downticks38Unchanged7Tick Delta\+24/)
   assert.ok(candleVolume().closest('.market-chart-canvas'), 'Tick Delta controls belong to the chart')
   assert.equal(panes.length, 3, 'Tick Delta adds a native pane below price alongside RSI')
-  const tickSeries = [...panes.find(pane => pane.fixtureSeries?.size === 2).fixtureSeries]
+  const tickPane = panes.find(pane => pane.fixtureSeries?.size === 3 && [...pane.fixtureSeries].some(line => line.options().base === 0))
+  const [upTicks, downTicks, deltaLine] = tickPane.fixtureSeries
+  const tickSeries = [upTicks, downTicks]
   const requestedHistory = () => requests.filter(url => url.startsWith('/api/v1/candle-tick-history?'))
     .flatMap(url => new URL(url, 'http://localhost').searchParams.getAll('start').map(Number))
   assert.ok(requestedHistory().includes(plotted.at(-5).time), 'Visible candle history loads without a click')
@@ -645,6 +650,20 @@ try {
   assert.ok(requestedHistory().includes(zoomedCandle.time), 'Panning loads older visible candles automatically')
   await React.act(async () => scale.setVisibleLogicalRange(layerWindow))
   await flush()
+  const requestsBeforeLine = requests.length
+  await click([...candleVolume().querySelectorAll('button')].find(button => button.textContent === 'Delta Line')); await flush()
+  assert.equal(panes.length, 3, 'Switching visualizations keeps the same native pane')
+  assert.deepEqual([upTicks.options().visible, downTicks.options().visible, deltaLine.options().visible], [false, false, true])
+  assert.equal(deltaLine.priceLines[0].price, 0)
+  assert.equal(deltaLine.data().at(-1).value, 24)
+  assert.equal(deltaLine.data().find(bar => bar.time === plotted.at(-4).time).value, -5)
+  assert.equal(deltaLine.data().find(bar => bar.time === plotted.at(-3).time).value, 0)
+  assert.deepEqual([...candleVolume().querySelectorAll('dt')].map(label => label.textContent), ['Tick Delta'])
+  assert.equal(candleVolume().querySelector('dd').textContent, '+4')
+  assert.equal(requests.length, requestsBeforeLine, 'Switching views reuses already loaded tick history')
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.indicators.volume.v1')).tickDeltaView, 'line')
+  await click([...candleVolume().querySelectorAll('button')].find(button => button.textContent === 'Uptick / Downtick Bars')); await flush()
+  assert.deepEqual([upTicks.options().visible, downTicks.options().visible, deltaLine.options().visible], [true, true, false])
   await click([...candleVolume().querySelectorAll('button')].find(button => button.textContent === 'Currency Activity')); await flush()
   assert.ok(requests.includes(`/api/v1/currency-activity?timeframe=H1&start=${selectedCandle.time}`))
   assert.match(candleVolume().textContent, /GBPJPY125Unavailable/)
