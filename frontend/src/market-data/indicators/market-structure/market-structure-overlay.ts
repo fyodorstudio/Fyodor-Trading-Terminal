@@ -158,6 +158,25 @@ export function createMarketStructureOverlay(chart: IChartApi, series: ISeriesAp
           context.setLineDash([])
           result.broken.forEach(drawSegment)
         }
+        if (preferences?.showAutoTrendlines) {
+          for (const line of result.trendlines) {
+            const start = bars[line.startIndex].time
+            const end = bars[line.endIndex].time
+            if (end < from || start > to) continue
+            const x1 = scale.timeToCoordinate(start)
+            const x2 = scale.timeToCoordinate(end)
+            const y1 = series.priceToCoordinate(line.startPrice)
+            const y2 = series.priceToCoordinate(line.endPrice)
+            if (x1 === null || x2 === null || y1 === null || y2 === null) continue
+
+            context.strokeStyle = line.side === 'high' ? highColor : lowColor
+            context.setLineDash(line.broken ? [] : [8, 4])
+            context.beginPath()
+            context.moveTo(x1, y1)
+            context.lineTo(x2, y2)
+            context.stroke()
+          }
+        }
         if (showMarkers) {
           // Paint newer outcomes above older sweep markers when they overlap.
           for (let i = markers.length - 1; i >= 0; i--) {
@@ -193,7 +212,7 @@ export function createMarketStructureOverlay(chart: IChartApi, series: ISeriesAp
         (changedRecentBarStart(nextBars, bars) ?? -1) >= nextBars.length - 1)
       if (!unchangedClosedBars || preferences?.swingStrength !== next.swingStrength ||
         preferences.confirmationCloses !== next.confirmationCloses || preferences.atrBufferPercent !== next.atrBufferPercent ||
-        preferences.failureWindow !== next.failureWindow) {
+        preferences.failureWindow !== next.failureWindow || preferences.showAutoTrendlines !== next.showAutoTrendlines) {
         result = calculateMarketStructure(nextBars, next)
         markers = buildMarkers(result.signals)
       } else if (preferences === next && nextBars === bars) {

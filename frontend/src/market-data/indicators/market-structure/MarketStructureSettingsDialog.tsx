@@ -139,6 +139,11 @@ export function MarketStructureSettingsDialog({ preferences, onSave, onClose }: 
                 onChange={event => setDraft({ ...draft, showSolidLines: event.target.checked })} />
             </label>
             <p id={`${titleId}-solid`}>Levels where a breakout reached confirmation, including breakouts that later failed.</p>
+            <label>Auto Trendlines
+              <input type="checkbox" aria-describedby={`${titleId}-trendlines`} checked={draft.showAutoTrendlines}
+                onChange={event => setDraft({ ...draft, showAutoTrendlines: event.target.checked })} />
+            </label>
+            <p id={`${titleId}-trendlines`}>Draw rising support and falling resistance from recent confirmed swings.</p>
             <label>Show signal markers
               <input type="checkbox" checked={draft.showMarkers}
                 onChange={event => setDraft({ ...draft, showMarkers: event.target.checked })} />

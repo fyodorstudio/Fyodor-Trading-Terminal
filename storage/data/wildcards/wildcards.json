@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "revision": 11,
+  "revision": 18,
   "items": [
     {
       "id": "66ce0d0ebc6b4412baac1c4975cd9a6f",
@@ -44,6 +44,42 @@
       "at": "2026-10-28T18:30:00Z",
       "title": "Fed Remarks",
       "details": "The Fed held interest rates at 3.75%–4.00%, as widely expected (~95% probability), with two members favoring a 25-bp hike. The FOMC statement was hawkish, highlighting stronger economic growth, persistent inflation, and a resilient labor market. However, Chair Warsh's remarks were relatively dovish, acknowledging that previous tightening was taking effect and emphasizing the need for more economic data before deciding on further hikes, without committing to a December increase. Overall, the decision was largely priced in, while the cautious guidance temporarily weakened December hike expectations.",
+      "url": "",
+      "archived": false
+    },
+    {
+      "id": "0475ea26e3f640f09352ef0f32ba7b51",
+      "date": "2026-09-11",
+      "at": "2026-09-11T09:00:00Z",
+      "title": "USD CPI Surprise",
+      "details": "Yen's rally to seven-month high weighs on dollar ahead of US CPI",
+      "url": "https://www.marketscreener.com/news/yen-extends-rally-to-new-seven-month-high-dollar-subdued-ahead-of-cpi-ce785bd8d981f225?utm_source=chatgpt.com",
+      "archived": false
+    },
+    {
+      "id": "2dbd736c349045ff8700c15d58cdcda2",
+      "date": "2026-09-08",
+      "at": "2026-09-07T21:00:00Z",
+      "title": "Carry trades unwind; strong Japanese wages reinforce tightening",
+      "details": "Thin US holiday trading amplified JPY's gains on September 7. On September 8, Japanese real wages showed +2.4% year over year, their strongest increase since 2021.\n\nUSD/JPY reached 152.89, while the probability of a 25-bp BoJ hike rose to around 97%, compared with 52% a month earlier.",
+      "url": "https://www.investing.com/news/economy-news/japan-july-real-wages-rise-24-biggest-gain-since-2021-4890748?utm_source=chatgpt.com",
+      "archived": false
+    },
+    {
+      "id": "62da6540a3884e53b4b759c18f7aac25",
+      "date": "2026-09-03",
+      "at": "2026-09-02T21:00:00Z",
+      "title": "BoJ hike bets rise; Fed's Waller weakens USD",
+      "details": "Markets priced approximately a 75% probability of a September BoJ hike. Meanwhile, Christopher Waller said he favored holding US rates if inflation continued cooling, reducing Fed hike expectations.\n\nJPY rose more than 2% against USD, with USD/JPY approaching 155.50.",
+      "url": "https://www.streetinsider.com/Reuters/Yen%2Bgets%2Bboost%2Bfrom%2Bhawkish%2BBOJ%2Brepricing%2Bof%2Brate%2Bexpectations/27020761.html?utm_source=chatgpt.com",
+      "archived": false
+    },
+    {
+      "id": "89024b77d1c8453699e22ec169c59b16",
+      "date": "2026-09-02",
+      "at": "2026-09-02T09:00:00Z",
+      "title": "BoJ board member Hajime Takata delivers unexpectedly hawkish guidance",
+      "details": "Takata said Japan had entered a new phase in which hikes should be conducted flexibly rather than at a fixed six-month interval. The market began reassessing not just the next hike but the entire future rate path.",
       "url": "",
       "archived": false
     },

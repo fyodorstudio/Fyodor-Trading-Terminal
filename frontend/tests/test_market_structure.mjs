@@ -24,7 +24,7 @@ try {
   const highBreak = { side: 'high', price: 15, start: 2, end: 5 }
   const settings = { ...defaults, enabled: true, swingStrength: 1, showUnbroken: true }
   assert.deepEqual(calculateMarketStructure(bars.slice(0, 3), settings), {
-    broken: [], replacedTestedLevels: [], signals: [], pending: [], activeTestedLevels: [], high: undefined, low: undefined,
+    broken: [], replacedTestedLevels: [], signals: [], trendlines: [], pending: [], activeTestedLevels: [], high: undefined, low: undefined,
   }, 'Forming candles cannot confirm a swing')
   const plateau = bars.slice(0, 5).map((bar, index) => ({ ...bar, high: [10, 15, 15, 12, 11][index] }))
   assert.deepEqual(calculateMarketStructure(plateau, settings).high, { side: 'high', price: 15, start: 3 })
@@ -84,6 +84,37 @@ try {
   const marginal = fixture([...atrFixture, [13, 9, 12.1], [12, 11, 11.9], [12, 10, 11]])
   assert.deepEqual(events(calculateMarketStructure(marginal, settings)), [['reclaim', 18, 15]])
 
+  const trendlineSettings = { ...withoutBuffer, showAutoTrendlines: true }
+  const trendBars = fixture([
+    [20, 5, 10], [20, 2, 10], [20, 6, 10], [20, 4, 10], [20, 8, 10],
+    [20, 6, 10], [20, 6.5, 11], [20, 7, 7], [20, 8, 8], [20, 10, 11],
+  ])
+  const support = { side: 'low', startIndex: 1, startPrice: 2, endIndex: 8, endPrice: 9, broken: false }
+  const brokenSupport = { ...support, broken: true }
+  assert.deepEqual(calculateMarketStructure(trendBars, withoutBuffer).trendlines, [], 'Trendlines are opt-in')
+  assert.deepEqual(calculateMarketStructure(trendBars.slice(0, 5), trendlineSettings).trendlines, [],
+    'A second pivot confirmed only by the live candle cannot anchor a trendline')
+  assert.deepEqual(calculateMarketStructure(trendBars.slice(0, 9), trendlineSettings).trendlines, [support],
+    'The first crossing and a live second crossing keep the trendline active')
+  assert.deepEqual(calculateMarketStructure(trendBars, trendlineSettings).trendlines, [brokenSupport],
+    'A confirmed break pins the endpoint to the confirming candle')
+  assert.deepEqual(calculateMarketStructure(mirror(trendBars), trendlineSettings).trendlines, [
+    { ...brokenSupport, side: 'high', startPrice: 28, endPrice: 21 },
+  ], 'Falling resistance mirrors rising support')
+  const crossedAnchors = fixture([
+    [20, 5, 10], [20, 2, 10], [20, 3.5, 3.5], [20, 11, 12], [20, 12, 13],
+    [20, 10, 13], [20, 13, 14], [20, 14, 15],
+  ])
+  assert.deepEqual(calculateMarketStructure(crossedAnchors, trendlineSettings).trendlines, [],
+    'A line that cuts through a close between its anchors is rejected')
+  const competingSupport = [
+    ...trendBars.slice(0, 6), ...fixture([[20, 10, 11], [20, 7, 11], [20, 10, 11], [20, 10, 11]])
+      .map((bar, index) => ({ ...bar, time: 7 + index })),
+  ]
+  assert.deepEqual(calculateMarketStructure(competingSupport, trendlineSettings).trendlines, [
+    { ...support, endIndex: 9, endPrice: 10 },
+  ], 'A third confirmed touch outranks a wider two-touch line, even after a wick sweep')
+
   assert.deepEqual(readMarketStructurePreferences(), defaults)
   const legacyKey = 'fyodor.indicators.market-structure.v1'
   const currentKey = 'fyodor.indicators.market-structure.v2'
@@ -96,7 +127,7 @@ try {
     ...defaults, showMarkers: false, markerColors: { ...defaults.markerColors, sweep: '#123456' },
   })
   assert.equal(defaults.showUnbroken, true)
-  const savedSettings = { ...settings, failureWindow: 0, showUnbroken: false, extendLines: true, showDashedLines: false, showSolidLines: false }
+  const savedSettings = { ...settings, failureWindow: 0, showUnbroken: false, extendLines: true, showDashedLines: false, showSolidLines: false, showAutoTrendlines: true }
   saveMarketStructurePreferences(savedSettings)
   assert.deepEqual(readMarketStructurePreferences(), savedSettings)
   dom.localStorage.setItem(currentKey, '{"swingStrength":51,"highColor":"red","lineWidth":0,"atrBufferPercent":101,"confirmationCloses":1,"failureWindow":6}')
@@ -233,6 +264,19 @@ try {
   assert.deepEqual(dots, [])
   assert.equal(strokes.length, 2, 'The marker toggle preserves level lines')
   assert.equal(tooltip.hidden, true)
+  const trendlineOnly = { ...trendlineSettings, showDashedLines: false, showSolidLines: false, extendLines: true }
+  const activeTrendBars = trendBars.slice(0, 9)
+  strokes.length = 0
+  overlay.sync(activeTrendBars, { ...trendlineOnly, showAutoTrendlines: false })
+  drawOverlay()
+  assert.deepEqual(strokes, [])
+  overlay.sync(activeTrendBars, trendlineOnly)
+  drawOverlay()
+  assert.deepEqual(strokes, [[[20, 98], [90, 91], settings.lowColor, [8, 4]]], 'Toggling on draws the active diagonal immediately')
+  strokes.length = 0
+  overlay.sync(trendBars, trendlineOnly)
+  drawOverlay()
+  assert.deepEqual(strokes, [[[20, 98], [90, 91], settings.lowColor, []]], 'Broken trendlines stop extending')
   overlay.destroy()
   assert.equal(attached, undefined)
   assert.equal(hover, undefined)
