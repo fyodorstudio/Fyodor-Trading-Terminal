@@ -15,7 +15,7 @@ type CandlePage = {
 }
 type CandleRequest = { symbol: string; timeframe: ChartTimeframe; through: number; time: number; synthetic: boolean }
 
-async function readTrendCandles(request: CandleRequest, generation: number, signal: AbortSignal): Promise<TrendAlertChart | undefined> {
+export async function readTrendCandles(request: CandleRequest, generation: number, signal: AbortSignal): Promise<TrendAlertChart | undefined> {
   const { symbol, timeframe, through, time, synthetic } = request
   const step = timeframeToSeconds(timeframe)
   const count = Math.min(5000, Math.max(3, Math.ceil((time - through) / step) + 2))

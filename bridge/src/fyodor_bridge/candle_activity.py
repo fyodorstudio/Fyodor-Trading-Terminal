@@ -9,6 +9,9 @@ import numpy as np
 from .currency_indices import CURRENCIES, MEMBERS, SERVER, STEPS
 from .market_data import TIMEFRAME_NAMES
 
+MAX_TICK_HISTORY_CANDLES = 32
+MAX_TICK_HISTORY_SECONDS = 4 * 3600
+
 
 def candle_time(seconds):
     # The bridge passes MT5's chart-clock times back to MT5 unchanged.
@@ -72,12 +75,19 @@ def basket_moves(legs):
         changes.append(deltas)
     times = np.concatenate(timestamps)
     if not times.size:
-        return np.array([])
+        return times, np.array([])
     order = np.argsort(times, kind="stable")
     # MT5 gives no cross-symbol ordering inside one millisecond. Apply those
     # updates together so the basket direction cannot depend on pair order.
     starts = np.r_[0, np.flatnonzero(np.diff(times[order])) + 1]
-    return np.add.reduceat(np.concatenate(changes)[order], starts)
+    return times[order[starts]], np.add.reduceat(np.concatenate(changes)[order], starts)
+
+
+def candle_move_counts(times, moves, candle_starts, step, tolerance):
+    for at in candle_starts:
+        first, stop = np.searchsorted(times, [at * 1000, (at + step) * 1000])
+        if first < stop:
+            yield dict(time=at, **count_moves(moves[first:stop], tolerance))
 
 
 def account_identity(mt5):
@@ -98,13 +108,14 @@ class CandleTickReader:
     def __init__(self):
         self.pending = {}
 
-    def read(self, mt5, symbol, timeframe, start, read_id, begin):
+    def read(self, mt5, symbol, timeframe, start, read_id, begin, history=None):
         account = account_identity(mt5)
-        end = start + STEPS[timeframe]
+        step = STEPS[timeframe]
+        end = (history[-1] if history else start) + step
         members = MEMBERS.get(symbol) if account[0] == SERVER else None
         if members is None:
-            _, prices, previous = quote_series(mt5, symbol, start, end, True, end * 1000 - 1)
-            counts = count_moves(np.diff(np.r_[previous, prices]))
+            times, prices, previous = quote_series(mt5, symbol, start, end, True, end * 1000 - 1)
+            moves = np.diff(np.r_[previous, prices])
         else:
             # Read one pair per adapter operation so chart and alert calls can
             # run between cold tick-history reads. Keep the arrays in MT5's process.
@@ -126,11 +137,15 @@ class CandleTickReader:
                 if len(self.pending) > 3:
                     self.pending.pop(next(iter(self.pending)))
                 return None
-            counts = count_moves(basket_moves(state.legs), tolerance=1e-12)
-        if not sum(counts.values()):
-            raise RuntimeError(f"No quote ticks returned for {symbol} in this candle")
+            times, moves = basket_moves(state.legs)
         if account_identity(mt5) != account:
             raise RuntimeError("MT5 account changed during the candle read")
+        tolerance = 1e-12 if members else 0
+        if history is not None:
+            return {"rows": list(candle_move_counts(times, moves, history, step, tolerance))}
+        counts = count_moves(moves, tolerance)
+        if not sum(counts.values()):
+            raise RuntimeError(f"No quote ticks returned for {symbol} in this candle")
         return dict(**counts, synthetic=bool(members))
 
 

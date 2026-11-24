@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { applyColorTheme, readColorTheme, type ColorTheme } from '../../appearance/color-theme/color-theme-preference'
 import { readTimeDisplayPreference, saveTimeDisplayPreference, timeDisplayLabel, type TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
 import { useInspector } from '../../inspector'
 import { nextEventIconMode, readEventIconMode, saveEventIconMode } from '../../appearance/event-icons-visibility'
 import { readDrawingToolbarVisible, saveDrawingToolbarVisible } from '../../market-data/chart-drawings/drawing-toolbar-visibility'
 import type { ChartDrawingPoint, ChartDrawingRecord } from '../../market-data/chart-drawings/chart-drawing-record'
+import type { DrawingTimeline } from '../../market-data/chart-drawings/drawing-coordinates'
 import { isPriceAlertTool, type DrawingToolId } from '../../market-data/chart-drawings/drawing-tool'
 import { useChartDrawings } from '../../market-data/chart-drawings/use-chart-drawings'
 import { readChartAppearance, saveChartAppearance, type ChartAppearance } from '../../market-data/chart-settings/chart-appearance-preference'
@@ -20,7 +21,9 @@ import { getPipMultiplier, type PlannedTradeState, type RegisteredTradeArrow, ty
 import { tradeMetrics } from '../../entry-trade/dock/plan-math'
 import { useRegisteredArrows } from '../../entry-trade/storage/use-registered-arrows'
 import { usePriceAlerts } from '../../price-alerts/usePriceAlerts'
-import { createTrendAlertScale, type TrendAlertScale } from '../../price-alerts/trend-alert-scale'
+import { createTrendAlertScale, extendTrendAlertScale, type TrendAlertScale } from '../../price-alerts/trend-alert-scale'
+import { trendAlertPoints } from '../../price-alerts/trend-alert'
+import { readTrendCandles } from '../../price-alerts/useTrendAlertCandles'
 import { alertDateForRelease, type AlertFocus } from '../../alert/model/alert-focus'
 import { useVolumePreferences } from '../../market-data/indicators/volume/useVolumePreferences'
 import { useRsiPreferences } from '../../market-data/indicators/rsi/useRsiPreferences'
@@ -107,7 +110,8 @@ export function useTerminalWorkspace() {
     clearPairDrawings,
   } = useChartDrawings(activeSymbol, timeframe)
 
-  const [trendPreview, setTrendPreview] = useState<{ id: string; points: ChartDrawingPoint[]; scale: TrendAlertScale } | null>(null)
+  const [trendPreview, setTrendPreview] = useState<{ id: string; points: ChartDrawingPoint[]; scale?: TrendAlertScale } | null>(null)
+  const pendingTrendEdit = useRef<AbortController | null>(null)
   const trendDrawings = useMemo(() => priceAlerts.brokerAlerts.flatMap((alert): ChartDrawingRecord[] => {
     if (alert.symbol !== activeSymbol || !alert.trend) return []
     const text = [alert.name || 'Trend Price Alert', alert.label === 'supply' ? 'Supply' : alert.label === 'demand' ? 'Demand' : ''].filter(Boolean).join(' · ')
@@ -119,18 +123,64 @@ export function useTerminalWorkspace() {
   const drawings = useMemo(() => trendDrawings.length ? [...savedDrawings, ...trendDrawings] : savedDrawings, [savedDrawings, trendDrawings])
   const { moveTrendAlert, setDraggingAlertId, deleteAlert } = priceAlerts
   const changeTrendDrag = useCallback((id: string | null) => {
-    if (id === null) setTrendPreview(null)
+    if (id === null && pendingTrendEdit.current) return
+    pendingTrendEdit.current?.abort()
+    pendingTrendEdit.current = null
+    setTrendPreview(null)
     setDraggingAlertId(id)
   }, [setDraggingAlertId])
+  useEffect(() => () => {
+    if (!pendingTrendEdit.current) return
+    pendingTrendEdit.current.abort()
+    pendingTrendEdit.current = null
+    setTrendPreview(null)
+    setDraggingAlertId(null)
+  }, [activeSymbol, timeframe, brokerId, bridge.generation, setDraggingAlertId])
+
   const updateDrawingPoints = useCallback((id: string, points: ChartDrawingPoint[], persist: boolean) => {
-    const drawing = trendDrawings.find(item => item.id === id)
-    if (!drawing) { updateSavedPoints(id, points, persist); return }
-    if (!alertChart || timeframe !== drawing.timeframe || points.length !== 2) return
-    const scale = createTrendAlertScale(timeframe, alertChart.bars, Math.min(points[0].time, points[1].time))
-    if (!scale) return
-    if (persist) moveTrendAlert(id, points, scale)
-    else setTrendPreview({ id, points, scale })
-  }, [alertChart, moveTrendAlert, timeframe, trendDrawings, updateSavedPoints])
+    const alert = priceAlerts.brokerAlerts.find(item => item.id === id && item.symbol === activeSymbol)
+    if (!alert?.trend) { updateSavedPoints(id, points, persist); return }
+    const trend = trendAlertPoints(points)
+    if (!trend || alert.status === 'triggered') return
+    const originalScale = alert.trendScale
+    const stored = originalScale && originalScale.confirmedFrom === undefined
+      ? { ...originalScale, confirmedFrom: Math.min(alert.trend[0].time, originalScale.confirmedThrough) } : originalScale
+    const sourceBars = alertChart?.timeframe === stored?.timeframe ? alertChart?.bars : undefined
+    const scale = stored && sourceBars ? extendTrendAlertScale(stored, sourceBars) : stored
+    if (!persist) { setTrendPreview({ id, points, scale }); return }
+    const start = trend[0].time
+    if (!scale || start >= Math.min(scale.confirmedFrom ?? alert.trend[0].time, alert.trend[0].time)) {
+      moveTrendAlert(id, points, scale)
+      return
+    }
+    const rebuild = (reference: DrawingTimeline | undefined) => reference && (reference[0]?.time ?? Infinity) <= start
+      && (reference.at(-1)?.time ?? -Infinity) >= scale.confirmedThrough
+      ? createTrendAlertScale(scale.timeframe, reference, start) : undefined
+    const local = rebuild(sourceBars)
+    if (local) { moveTrendAlert(id, points, local); return }
+
+    // The drag uses the visible chart, but the alert needs the gap history from
+    // its own timeframe before an earlier endpoint can be committed.
+    const abort = new AbortController()
+    pendingTrendEdit.current?.abort()
+    pendingTrendEdit.current = abort
+    setTrendPreview({ id, points, scale })
+    void readTrendCandles({ symbol: activeSymbol, timeframe: scale.timeframe, through: start,
+      time: scale.confirmedThrough, synthetic: quote?.synthetic === true }, bridge.generation, abort.signal).then(chart => {
+      if (abort.signal.aborted) return
+      const rebuilt = rebuild(chart?.bars)
+      if (!rebuilt) throw new Error(`The broker did not return enough ${scale.timeframe} history for the new endpoint.`)
+      moveTrendAlert(id, points, rebuilt)
+    }).catch(error => {
+      if (!abort.signal.aborted) appendActivity('Drawing', 'Trend price alert edit not saved',
+        error instanceof Error ? error.message : 'Reference candles are unavailable.', { severity: 'warning' })
+    }).finally(() => {
+      if (pendingTrendEdit.current !== abort) return
+      pendingTrendEdit.current = null
+      setTrendPreview(null)
+      setDraggingAlertId(null)
+    })
+  }, [priceAlerts.brokerAlerts, activeSymbol, alertChart, moveTrendAlert, updateSavedPoints, quote?.synthetic, bridge.generation, appendActivity, setDraggingAlertId])
   const updateDrawingPoint = useCallback((id: string, index: number, point: ChartDrawingPoint, persist: boolean) => {
     const trend = trendDrawings.find(drawing => drawing.id === id)
     if (trend) updateDrawingPoints(id, trend.points.map((value, at) => at === index ? point : value), persist)

@@ -12,7 +12,7 @@ at the broker session open on 6 January 2025. Candles use synchronized
 one-minute opens and closes. A line shows historical D1 closes where the chart
 has only daily data. Synthetic price alerts monitor the live index level
 calculated from all seven constituent Bid quotes. Alerts wait when any quote is
-missing or stale. Synthetic charts show quote activity in the Volume sidebar. Inspector icons follow
+missing or stale. Synthetic charts show quote activity in the Volume pane. Inspector icons follow
 the chart's own currency, such as GBP releases on GBPX.
 Inspector shows saved release dates with a blank Actual when the result is
 unavailable. MFDI uses grey markers for past releases without an actual on
@@ -261,9 +261,12 @@ Relative activity compares matching session candles from earlier days. Scrolling
 left loads more history for comparison. Tick volume counts broker price updates.
 
 Select **Tick Delta** in Volume settings, then turn on **Volume** in the chart header.
-On a synthetic index, **Volume** opens the sidebar directly. Click a candle, use the
-arrow buttons, or choose **Latest**. Tick Delta shows upticks, downticks and unchanged
-quotes. Broker symbols use the Bid/Ask midpoint. Synthetic indices use the basket's
+On a synthetic index, **Volume** opens Tick Delta directly in the pane below the
+price chart. Its settings gear controls the uptick and downtick colours. Upticks
+plot above zero and downticks below. Visible history loads automatically as you pan.
+Hover a candle to see its exact upticks, downticks and unchanged quotes. With the
+pointer away from the chart, the readout follows the latest candle. Broker symbols
+use the Bid/Ask midpoint. Synthetic indices use the basket's
 Bid inputs and group updates that share a millisecond. These counts describe quote
 movement. Trade sizes and aggressor sides are separate data.
 
@@ -339,6 +342,11 @@ source links. A bell selects a reminder for a timed release package.
 **Alarm Settings** controls delivery, pause, offset, sound and history.
 The local worker and Windows must be running for delivery.
 Price alerts and calendar reminders have separate controls.
+
+Select a **Trend Price Alert** on the chart to move the line or drag either
+endpoint. An alert can be edited from another timeframe. Crossings still use the
+candle spacing from the timeframe where the alert was created. Moving an endpoint
+earlier may require loading more candles from that timeframe before the edit saves.
 
 ## Ledger and Detail
 

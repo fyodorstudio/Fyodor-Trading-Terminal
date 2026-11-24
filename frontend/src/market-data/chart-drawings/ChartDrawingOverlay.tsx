@@ -65,7 +65,7 @@ export function ChartDrawingOverlay(props: ChartDrawingOverlayProps) {
             }}
           >
             <ChartDrawingShape drawing={drawing} points={screenPoints} trendPath={toTrendPath(drawing, screenPoints)} width={viewport.width} height={viewport.height} precision={precision} />
-            {selected && drawing.alertStatus !== 'triggered' && (!drawing.trendScale || drawing.trendScale.timeframe === props.timeframe) && (
+            {selected && drawing.alertStatus !== 'triggered' && (
               <ChartDrawingSelectionHandles
                 drawing={drawing}
                 screenPoints={screenPoints}

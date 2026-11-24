@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { useDisplayClock } from '../../appearance/time-display/useDisplayClock'
 import {
   CandlestickSeries,
@@ -24,6 +25,8 @@ import { createChartPriceSpace } from './chart-price-space'
 import { createChartPaneResize, isChartPaneDivider } from './chart-pane-resize'
 import { timeframeToSeconds } from '../chart-drawings/position-drawing-geometry'
 import { createVolumePane } from '../indicators/volume/volume-pane'
+import { createTickDeltaPane, type TickDeltaPoint } from '../indicators/volume/tick-delta-pane'
+import { CandleActivityControls, type CandleActivityProps } from '../indicators/volume/CandleActivityControls'
 import type { VolumeLayer, VolumePreferences } from '../indicators/volume/volume-preferences'
 import { createRsiPane } from '../indicators/rsi/rsi-pane'
 import { createAtrPane } from '../indicators/atr/atr-pane'
@@ -50,6 +53,7 @@ type MarketCandlestickChartProps = {
   timeframe?: ChartTimeframe
   hasDailyCloseHistory?: boolean
   volume?: VolumePreferences
+  tickDelta?: Omit<CandleActivityProps, 'bars'>
   onChangeVolumeAxis?: (target: VolumePreferences['axisTarget']) => void
   onToggleVolumeLayer?: (layer: VolumeLayer) => void
   rsi?: RsiPreferences
@@ -98,6 +102,7 @@ function MarketCandlestickChartComponent({
   timeframe,
   hasDailyCloseHistory = false,
   volume,
+  tickDelta,
   onChangeVolumeAxis,
   onToggleVolumeLayer,
   rsi,
@@ -142,6 +147,12 @@ function MarketCandlestickChartComponent({
   const dailyCloseSeriesRef = useRef<ISeriesApi<'Line', Time> | null>(null)
   const candles = useMemo(() => hasDailyCloseHistory ? bars.filter(bar => !bar.closeOnly) : bars, [bars, hasDailyCloseHistory])
   const volumePaneRef = useRef<ReturnType<typeof createVolumePane> | null>(null)
+  const tickPaneRef = useRef<ReturnType<typeof createTickDeltaPane> | null>(null)
+  const [tickLegend, setTickLegend] = useState<HTMLDivElement | null>(null)
+  const tickDeltaEnabled = Boolean(tickDelta)
+  const plotTickDelta = useCallback((rows: ReadonlyMap<number, TickDeltaPoint>, upColor: string, downColor: string, showHistogram: boolean) => {
+    tickPaneRef.current?.sync(rows, upColor, downColor, showHistogram)
+  }, [])
   const rsiPaneRef = useRef<ReturnType<typeof createRsiPane> | null>(null)
   const atrPaneRef = useRef<ReturnType<typeof createAtrPane> | null>(null)
   const marketStructureRef = useRef<ReturnType<typeof createMarketStructureOverlay> | null>(null)
@@ -267,6 +278,9 @@ function MarketCandlestickChartComponent({
       macroPaneRef.current = null
       volumePaneRef.current?.destroy()
       volumePaneRef.current = null
+      tickPaneRef.current?.destroy()
+      tickPaneRef.current = null
+      setTickLegend(null)
       rsiPaneRef.current?.destroy()
       rsiPaneRef.current = null
       atrPaneRef.current?.destroy()
@@ -380,6 +394,7 @@ function MarketCandlestickChartComponent({
       if (!bars.length) {
         priceSpaceRef.current?.sync(bars, true, precision)
         volumePaneRef.current?.clearData()
+        tickPaneRef.current?.clearData()
         rsiPaneRef.current?.clearData()
         atrPaneRef.current?.clearData()
         macroPaneRef.current?.clearData()
@@ -394,6 +409,7 @@ function MarketCandlestickChartComponent({
       if (isNewKey) {
         macroPaneRef.current?.clearData()
         volumePaneRef.current?.clearData()
+        tickPaneRef.current?.clearData()
         rsiPaneRef.current?.clearData()
         atrPaneRef.current?.clearData()
         replaced = true
@@ -519,6 +535,22 @@ function MarketCandlestickChartComponent({
 
   useLayoutEffect(() => {
     const chart = chartRef.current
+    if (!chart || (!tickDeltaEnabled && !tickPaneRef.current)) return
+    const range = readLogicalRange()
+    applyingDataRef.current = true
+    try {
+      if (tickDeltaEnabled) tickPaneRef.current ??= createTickDeltaPane(chart)
+      else {
+        tickPaneRef.current?.destroy()
+        tickPaneRef.current = null
+      }
+      setTickLegend(tickPaneRef.current?.legend ?? null)
+      if (range) setLogicalRange(range)
+    } finally { applyingDataRef.current = false }
+  }, [tickDeltaEnabled, readLogicalRange, setLogicalRange])
+
+  useLayoutEffect(() => {
+    const chart = chartRef.current
     if (!chart || (!macroEnabled && !macroPaneRef.current)) return
     const range = readLogicalRange()
     applyingDataRef.current = true
@@ -582,7 +614,7 @@ function MarketCandlestickChartComponent({
     const rect = container.getBoundingClientRect()
     const leftWidth = chartRef.current?.options().leftPriceScale.visible ? chartRef.current.priceScale('left').width() : 0
     if (event.clientX < rect.left + leftWidth) return
-    const paneHeight = (atr?.enabled || rsi?.enabled || volume?.enabled || macroEnabled) ? chartRef.current?.paneSize(0).height : undefined
+    const paneHeight = (atr?.enabled || rsi?.enabled || volume?.enabled || tickDeltaEnabled || macroEnabled) ? chartRef.current?.paneSize(0).height : undefined
     if (paneHeight !== undefined && event.clientY - rect.top >= paneHeight) return
     // Do not intercept if clicking on the right price scale area
     if (event.clientX > rect.right - 55) return
@@ -634,7 +666,7 @@ function MarketCandlestickChartComponent({
 
   const handleDoubleClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (chartRef.current && isChartPaneDivider(chartRef.current, event.target)) return
-    const paneHeight = (atr?.enabled || rsi?.enabled || volume?.enabled || macroEnabled) ? chartRef.current?.paneSize(0).height : undefined
+    const paneHeight = (atr?.enabled || rsi?.enabled || volume?.enabled || tickDeltaEnabled || macroEnabled) ? chartRef.current?.paneSize(0).height : undefined
     const top = containerRef.current?.getBoundingClientRect().top ?? 0
     if (paneHeight !== undefined && event.clientY - top >= paneHeight) return
     pendingWindowRef.current = false
@@ -684,7 +716,9 @@ function MarketCandlestickChartComponent({
         <span>{hasOlderData ? 'Older history could not reach the selected dates.' : 'MT5 history does not cover the selected dates.'}</span>
         {hasOlderData && <button type="button" onClick={onRequestOlderData}>Retry history</button>}
       </div>}
-      {chartApi && seriesApi && <PricePaneOverlays chartApi={chartApi} seriesApi={seriesApi} constrained={Boolean(atr?.enabled || rsi?.enabled || volume?.enabled || macroEnabled)}>
+      {tickDelta && tickLegend && chartApi && createPortal(<CandleActivityControls {...tickDelta} chart={chartApi} bars={bars} onPlot={plotTickDelta} />,
+        tickLegend, `${clock.brokerId}:${tickDelta.generation}:${fitContentKey}`)}
+      {chartApi && seriesApi && <PricePaneOverlays chartApi={chartApi} seriesApi={seriesApi} constrained={Boolean(atr?.enabled || rsi?.enabled || volume?.enabled || tickDeltaEnabled || macroEnabled)}>
       {renderChartOverlay?.(chartApi, seriesApi)}
       {chartApi && seriesApi && (activeDrawingTool || drawings.length > 0) && (
         <ChartDrawingOverlay

@@ -4,6 +4,7 @@ import type { ChartTimeframe } from '../market-data/contracts/ChartTimeframe'
 
 export type TrendAlertScale = {
   timeframe: ChartTimeframe
+  confirmedFrom?: number
   confirmedThrough: number
   // Adjacent candles with irregular spacing still occupy exactly one bar.
   intervals: Array<readonly [number, number]>
@@ -12,6 +13,8 @@ export type TrendAlertScale = {
 export function validTrendAlertScale(scale: TrendAlertScale) {
   if (!scale || !['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1'].includes(scale.timeframe)
     || !Number.isFinite(scale.confirmedThrough) || scale.confirmedThrough <= 0 || !Array.isArray(scale.intervals)) return false
+  if (scale.confirmedFrom !== undefined && (!Number.isFinite(scale.confirmedFrom)
+    || scale.confirmedFrom <= 0 || scale.confirmedFrom > scale.confirmedThrough)) return false
   let previous = 0
   for (const interval of scale.intervals) {
     if (!Array.isArray(interval) || interval.length !== 2) return false
@@ -36,7 +39,7 @@ export function createTrendAlertScale(timeframe: ChartTimeframe, bars: DrawingTi
   const first = bars[0], last = bars.at(-1)
   if (!first || !last) return
   const index = Math.max(1, barAfter(bars, start))
-  return { timeframe, confirmedThrough: last.time,
+  return { timeframe, confirmedFrom: bars[index - 1].time, confirmedThrough: last.time,
     intervals: candleIntervals(bars, timeframeToSeconds(timeframe), index, bars[index - 1].time) }
 }
 

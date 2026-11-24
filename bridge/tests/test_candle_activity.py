@@ -56,6 +56,14 @@ class CandleActivityTest(unittest.TestCase):
         result = CandleTickReader().read(FakeMt5(), "EURUSD", "M1", START, "first", True)
         self.assertEqual(result, dict(up=1, down=1, flat=1, unknown=0, synthetic=False))
 
+    def test_history_counts_boundary_tick_in_its_own_candle_and_omits_missing_quotes(self):
+        result = CandleTickReader().read(FakeMt5(), "EURUSD", "M1", START, "history", True,
+                                         history=[START, START + 60, START + 120])
+        self.assertEqual(result, {"rows": [
+            dict(time=START, up=1, down=1, flat=1, unknown=0),
+            dict(time=START + 60, up=1, down=0, flat=0, unknown=0),
+        ]})
+
     def test_basket_reads_one_pair_at_a_time(self):
         reader, mt5 = CandleTickReader(), FakeMt5()
         for step in range(6):
@@ -71,7 +79,9 @@ class CandleActivityTest(unittest.TestCase):
             (times, np.array([200, 400]), 100, 1),
             (np.array([100]), np.array([200]), 100, -1),
         ]
-        self.assertEqual(count_moves(basket_moves(legs), 1e-12), dict(up=1, down=0, flat=1, unknown=0))
+        timestamps, moves = basket_moves(legs)
+        self.assertEqual(timestamps.tolist(), [100, 200])
+        self.assertEqual(count_moves(moves, 1e-12), dict(up=1, down=0, flat=1, unknown=0))
 
     def test_currency_without_all_seven_pair_counts_is_unranked(self):
         rows = read_currency_activity(FakeMt5(), "M1", START)

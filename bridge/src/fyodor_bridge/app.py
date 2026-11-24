@@ -10,7 +10,9 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 
 from .calendar_ingestion import CalendarStore
+from .candle_activity import MAX_TICK_HISTORY_CANDLES, MAX_TICK_HISTORY_SECONDS
 from .contracts import CalendarIngestPayload
+from .currency_indices import STEPS
 from .market_data import TIMEFRAME_NAMES
 from .mt5_worker import Mt5UnavailableError, Mt5Worker, SupersededRequest
 from .runtime_activity import ActivityLedger, HeartbeatRegistry, utc_milliseconds
@@ -128,6 +130,7 @@ def get_ohlc(
                 "before": before,
             },
             priority=6 if trend_alert else 8 if older else 1,
+            supersede=not trend_alert,
         )
     except Exception as error:
         heartbeat.fail(component, token, str(error))
@@ -159,11 +162,30 @@ async def get_candle_ticks(
     timeframe: CandleTimeframe,
     start: CandleStart,
 ) -> dict[str, object]:
-    arguments = dict(symbol=symbol, timeframe=timeframe, start=start, read_id=uuid4().hex, begin=True)
+    return await read_candle_ticks(request, symbol, timeframe, start)
+
+
+@app.get("/api/v1/candle-tick-history")
+async def get_candle_tick_history(
+    request: Request,
+    symbol: Annotated[str, Query(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9._#-]+$")],
+    timeframe: CandleTimeframe,
+    start: Annotated[list[CandleStart], Query(min_length=1, max_length=MAX_TICK_HISTORY_CANDLES)],
+) -> dict[str, object]:
+    step = STEPS[timeframe]
+    candles = sorted(set(start))
+    if candles[-1] - candles[0] + step > max(step, MAX_TICK_HISTORY_SECONDS):
+        raise HTTPException(status_code=422, detail="Tick history requires one bounded candle window")
+    return await read_candle_ticks(request, symbol, timeframe, candles[0], candles)
+
+
+async def read_candle_ticks(request, symbol, timeframe, start, history=None):
+    arguments = dict(symbol=symbol, timeframe=timeframe, start=start, read_id=uuid4().hex, begin=True, history=history)
+    priority = 7 if history is None else 9
     try:
         while not await request.is_disconnected():
             reading = await run_in_threadpool(
-                mt5_worker.submit, "candle-ticks", "candle-ticks", arguments, priority=7, supersede=False,
+                mt5_worker.submit, "candle-ticks", "candle-ticks", arguments, priority=priority, supersede=False,
             )
             if reading is not None:
                 return reading

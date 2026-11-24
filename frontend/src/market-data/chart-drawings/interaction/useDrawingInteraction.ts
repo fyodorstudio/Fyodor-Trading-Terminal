@@ -312,8 +312,7 @@ export function useDrawingInteraction({
     event.stopPropagation()
     const drawing = drawings.find((candidate) => candidate.id === drawingId)
     const point = eventToDataPoint(event)
-    if (!drawing || !point || drawing.alertStatus === 'triggered'
-      || (drawing.trendScale && drawing.trendScale.timeframe !== timeframe)) return
+    if (!drawing || !point || drawing.alertStatus === 'triggered') return
     const captureTarget = overlayRef.current?.setPointerCapture ? overlayRef.current : event.currentTarget
     captureTarget.setPointerCapture?.(event.pointerId)
 

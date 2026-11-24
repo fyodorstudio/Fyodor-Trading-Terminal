@@ -236,12 +236,12 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
     waitingSamples.current.delete(id)
     commit({ ...current.current, alerts })
   }, [commit])
-  const moveTrendAlert = useCallback((id: string, points: ChartDrawingPoint[], trendScale: TrendAlertScale) => {
+  const moveTrendAlert = useCallback((id: string, points: ChartDrawingPoint[], trendScale?: TrendAlertScale) => {
     const trend = trendAlertPoints(points)
     if (!trend) return
     const alert = current.current.alerts.find(item => item.id === id)
     if (!alert?.trend || alert.brokerId !== feed.current.brokerId || alert.status === 'triggered'
-      || (alert.trendScale && trendScale.timeframe !== alert.trendScale.timeframe)) return
+      || (alert.trendScale && trendScale?.timeframe !== alert.trendScale.timeframe)) return
     trendSamples.current.delete(id)
     waitingSamples.current.delete(id)
     commit({ ...current.current, alerts: current.current.alerts.map(item => item === alert
