@@ -5,7 +5,7 @@ import { SessionTimeline } from '../market-data/market-watch/SessionTimeline'
 import { dailyRangeLabel } from '../market-data/market-watch/daily-range'
 import { isNdfSymbol } from '../market-data/market-watch/symbol-classification'
 import { supportsMacro } from '../market-data/indicators/macro/macro-data'
-import { swingStrengthLimits } from '../market-data/indicators/market-structure/market-structure-preferences'
+import { swingStrengthLimits, type MarketStructurePreferences } from '../market-data/indicators/market-structure/market-structure-preferences'
 import { nextEventIconMode, type EventIconMode } from '../appearance/event-icons-visibility'
 import '../market-data/indicators/rsi/rsi.css'
 
@@ -26,11 +26,8 @@ type ChartWorkspaceHeaderProps = {
   refocusDisabled?: boolean
   drawingToolbarVisible?: boolean
   onToggleDrawingToolbar?: () => void
-  marketStructureEnabled?: boolean
-  marketStructureSwingStrength?: number
-  onChangeMarketStructureSwingStrength?: (strength: number) => void
-  marketStructureExtendLines?: boolean
-  onChangeMarketStructureExtendLines?: (extend: boolean) => void
+  marketStructure?: MarketStructurePreferences
+  onChangeMarketStructure?: (changes: Partial<MarketStructurePreferences>) => void
   onToggleMarketStructure?: () => void
   onOpenMarketStructureSettings?: () => void
   atrEnabled?: boolean
@@ -96,11 +93,8 @@ export function ChartWorkspaceHeader({
   refocusDisabled = false,
   drawingToolbarVisible = true,
   onToggleDrawingToolbar,
-  marketStructureEnabled = false,
-  marketStructureSwingStrength,
-  onChangeMarketStructureSwingStrength,
-  marketStructureExtendLines = false,
-  onChangeMarketStructureExtendLines,
+  marketStructure,
+  onChangeMarketStructure,
   onToggleMarketStructure,
   onOpenMarketStructureSettings,
   atrEnabled = false,
@@ -127,6 +121,13 @@ export function ChartWorkspaceHeader({
   onToggleDetail,
 }: ChartWorkspaceHeaderProps) {
   const rangeLabel = quote ? dailyRangeLabel(quote) : null
+  const marketStructureEnabled = marketStructure?.enabled ?? false
+  const majorTrendlines = !!(marketStructure?.showAutoTrendlines && marketStructure.showMajorTrendlines)
+  const minorTrendlines = !!(marketStructure?.showAutoTrendlines && marketStructure.showMinorTrendlines)
+  const changeTrendlines = (showMajorTrendlines: boolean, showMinorTrendlines: boolean) =>
+    onChangeMarketStructure?.({
+      showMajorTrendlines, showMinorTrendlines, showAutoTrendlines: showMajorTrendlines || showMinorTrendlines,
+    })
   return (
     <div className="chart-toolbar">
       <div className="active-market">
@@ -184,22 +185,24 @@ export function ChartWorkspaceHeader({
         </button>}
         <div className="chart-header-actions">
         {onToggleMarketStructure && <div className="rsi-header-controls" role="group" aria-label="Market Structure indicator">
-          {marketStructureEnabled && marketStructureSwingStrength !== undefined && onChangeMarketStructureSwingStrength && (
+          {marketStructure?.enabled && onChangeMarketStructure && <>
             <label className="market-structure-toolbar-slider">
               <span>Swing strength</span>
               <input type="range" min={swingStrengthLimits.min} max={swingStrengthLimits.max} step={1}
-                value={marketStructureSwingStrength}
-                onChange={event => onChangeMarketStructureSwingStrength(event.currentTarget.valueAsNumber)} />
-              <span aria-hidden="true">{marketStructureSwingStrength}</span>
+                value={marketStructure.swingStrength}
+                onChange={event => onChangeMarketStructure({ swingStrength: event.currentTarget.valueAsNumber })} />
+              <span aria-hidden="true">{marketStructure.swingStrength}</span>
             </label>
-          )}
-          {marketStructureEnabled && onChangeMarketStructureExtendLines && (
-            <label className="market-structure-toolbar-extend" title="Extend lines to the latest candle">
-              <input type="checkbox" checked={marketStructureExtendLines} aria-label="Extend Market Structure lines"
-                onChange={event => onChangeMarketStructureExtendLines(event.currentTarget.checked)} />
-              <span>Extend</span>
-            </label>
-          )}
+            <button type="button" className="market-structure-toolbar-toggle" aria-pressed={marketStructure.extendLines}
+              aria-label="Extend Market Structure lines" title="Extend horizontal Market Structure lines to the latest candle"
+              onClick={() => onChangeMarketStructure({ extendLines: !marketStructure.extendLines })}>E</button>
+            <button type="button" className="market-structure-toolbar-toggle" aria-pressed={majorTrendlines}
+              aria-label="Major trendlines" title="Major trendlines · Three or more well-spaced touches"
+              onClick={() => changeTrendlines(!majorTrendlines, minorTrendlines)}>M</button>
+            <button type="button" className="market-structure-toolbar-toggle" aria-pressed={minorTrendlines}
+              aria-label="Minor trendlines" title="Minor trendlines · Fewer than three well-spaced touches"
+              onClick={() => changeTrendlines(majorTrendlines, !minorTrendlines)}>m</button>
+          </>}
           <button type="button" aria-pressed={marketStructureEnabled} onClick={onToggleMarketStructure}
             aria-label={marketStructureEnabled ? 'Hide Market Structure' : 'Show Market Structure'}
             title={marketStructureEnabled ? 'Hide Market Structure' : 'Show Market Structure'}>MS</button>

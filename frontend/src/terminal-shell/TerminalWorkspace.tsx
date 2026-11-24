@@ -136,11 +136,8 @@ function TerminalWorkspaceContent() {
             onSelectTimeframe={selectTimeframe}
             onRefocus={() => setRefocusRequest(request => request + 1)}
             refocusDisabled={!bars.length}
-            marketStructureEnabled={marketStructure.enabled}
-            marketStructureSwingStrength={marketStructure.swingStrength}
-            onChangeMarketStructureSwingStrength={swingStrength => changeMarketStructure({ ...marketStructure, swingStrength })}
-            marketStructureExtendLines={marketStructure.extendLines}
-            onChangeMarketStructureExtendLines={extendLines => changeMarketStructure({ ...marketStructure, extendLines })}
+            marketStructure={marketStructure}
+            onChangeMarketStructure={changes => changeMarketStructure({ ...marketStructure, ...changes })}
             onToggleMarketStructure={toggleMarketStructure}
             onOpenMarketStructureSettings={() => setMarketStructureSettingsOpen(true)}
             atrEnabled={atr.enabled}

@@ -1,7 +1,7 @@
 import type { OhlcBar } from '../../contracts/OhlcBar'
 import { createAtrCalculator } from '../atr/atr-calculation'
 import type { MarketStructurePreferences } from './market-structure-preferences'
-import { calculateTrendline, trendlineLookback, type TrendlinePivot } from './market-structure-trendlines'
+import { calculateTrendlines, trendlineLookback, type TrendlinePivot } from './market-structure-trendlines'
 
 type Swing = { side: 'high' | 'low'; start: OhlcBar['time']; price: number }
 type StructureSegment = Swing & { end?: OhlcBar['time'] }
@@ -44,7 +44,10 @@ function classifyCrossing(slot: SwingSlot, level: Swing, closeDistance: number, 
 
 export function calculateMarketStructure(
   bars: OhlcBar[],
-  { swingStrength: strength, confirmationCloses, atrBufferPercent, failureWindow, showAutoTrendlines }: MarketStructurePreferences,
+  {
+    swingStrength: strength, confirmationCloses, atrBufferPercent, failureWindow,
+    showAutoTrendlines, showHistoricalTrendlines, showMajorTrendlines, showMinorTrendlines,
+  }: MarketStructurePreferences,
 ) {
   const broken: StructureSegment[] = []
   const replacedTestedLevels: StructureSegment[] = []
@@ -54,8 +57,10 @@ export function calculateMarketStructure(
   const low: SwingSlot = { closes: 0, marginal: false, tested: false }
   const sides = [high, low]
   const pivots = { high: [] as TrendlinePivot[], low: [] as TrendlinePivot[] }
-  const firstTrendlineIndex = Math.max(0, bars.length - 1 - trendlineLookback)
-  const atr = atrBufferPercent > 0 || showAutoTrendlines
+  const detectTrendlines = showAutoTrendlines && (showMajorTrendlines || showMinorTrendlines)
+  const replayTrendlines = showHistoricalTrendlines || !showMinorTrendlines
+  const firstTrendlineIndex = replayTrendlines ? 0 : Math.max(0, bars.length - 1 - trendlineLookback)
+  const atr = atrBufferPercent > 0 || detectTrendlines
     ? createAtrCalculator().sync(bars, 14, 'market-structure').atr
     : undefined
   const previousAtr = (index: number) => {
@@ -114,7 +119,7 @@ export function calculateMarketStructure(
     }
     if (isHigh) {
       const swing = { side: 'high', start: pivot.time, price: pivot.high } as const
-      if (showAutoTrendlines && i - strength >= firstTrendlineIndex) {
+      if (detectTrendlines && i - strength >= firstTrendlineIndex) {
         pivots.high.push({ index: i - strength, confirmedAt: i, price: swing.price })
       }
       if (high.closes) high.queued = swing
@@ -122,7 +127,7 @@ export function calculateMarketStructure(
     }
     if (isLow) {
       const swing = { side: 'low', start: pivot.time, price: pivot.low } as const
-      if (showAutoTrendlines && i - strength >= firstTrendlineIndex) {
+      if (detectTrendlines && i - strength >= firstTrendlineIndex) {
         pivots.low.push({ index: i - strength, confirmedAt: i, price: swing.price })
       }
       if (low.closes) low.queued = swing
@@ -130,12 +135,15 @@ export function calculateMarketStructure(
     }
   }
 
+  const diagonals = (['high', 'low'] as const).map(side =>
+    calculateTrendlines(bars, side, pivots[side], confirmationCloses, breakoutBuffer, previousAtr, {
+      includeHistory: showHistoricalTrendlines, showMajor: showMajorTrendlines, showMinor: showMinorTrendlines,
+      touchSpacing: Math.max(4, strength * 2),
+    }))
   return {
     broken, replacedTestedLevels, signals,
-    trendlines: (['high', 'low'] as const).flatMap(side => {
-      const line = calculateTrendline(bars, side, pivots[side], confirmationCloses, breakoutBuffer, previousAtr)
-      return line ? [line] : []
-    }),
+    trendlines: diagonals.flatMap(({ current }) => current ? [current] : []),
+    historicalTrendlines: diagonals.flatMap(({ history }) => history).sort((a, b) => a.endIndex - b.endIndex),
     high: high.level, low: low.level,
     pending: sides.flatMap(slot => slot.closes > 0 && slot.level ? [slot.level] : []),
     activeTestedLevels: sides.flatMap(slot => slot.tested && slot.level ? [slot.level] : []),

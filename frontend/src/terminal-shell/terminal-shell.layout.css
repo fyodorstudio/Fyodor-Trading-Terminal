@@ -92,8 +92,7 @@
 
 .chart-header-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; max-width: 100%; }
 
-.market-structure-toolbar-slider,
-.market-structure-toolbar-extend {
+.market-structure-toolbar-slider {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -108,16 +107,15 @@
 
 .market-structure-toolbar-slider input {
   width: 76px;
-}
-
-.market-structure-toolbar-slider input,
-.market-structure-toolbar-extend input {
   margin: 0;
   accent-color: var(--accent);
   cursor: pointer;
 }
 
-.market-structure-toolbar-extend { cursor: pointer; }
+.rsi-header-controls .market-structure-toolbar-toggle {
+  width: 21px;
+  padding: 0;
+}
 
 .market-structure-toolbar-slider span:last-child {
   min-width: 2ch;

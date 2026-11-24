@@ -23,6 +23,9 @@ export type MarketStructurePreferences = {
   showUnbroken: boolean
   extendLines: boolean
   showAutoTrendlines: boolean
+  showMajorTrendlines: boolean
+  showMinorTrendlines: boolean
+  showHistoricalTrendlines: boolean
   showMarkers: boolean
   markerColors: Record<MarkerKind, string>
 }
@@ -47,6 +50,9 @@ export const defaultMarketStructurePreferences: MarketStructurePreferences = {
   showUnbroken: true,
   extendLines: false,
   showAutoTrendlines: false,
+  showMajorTrendlines: true,
+  showMinorTrendlines: true,
+  showHistoricalTrendlines: false,
   showMarkers: true,
   markerColors: {
     sweep: '#8b5cf6',
@@ -89,6 +95,9 @@ export function readMarketStructurePreferences(): MarketStructurePreferences {
       showUnbroken: stored.showUnbroken !== false,
       extendLines: stored.extendLines === true,
       showAutoTrendlines: stored.showAutoTrendlines === true,
+      showMajorTrendlines: stored.showMajorTrendlines !== false,
+      showMinorTrendlines: stored.showMinorTrendlines !== false,
+      showHistoricalTrendlines: stored.showHistoricalTrendlines === true,
       showMarkers: typeof stored.showMarkers === 'boolean' ? stored.showMarkers : stored.showLabels !== false,
       markerColors,
     }

@@ -13,6 +13,7 @@ const server = await createServer({
 try {
   const root = './src/market-data/indicators/market-structure'
   const { calculateMarketStructure } = await server.ssrLoadModule(`${root}/market-structure-calculation.ts`)
+  const { calculateTrendlines } = await server.ssrLoadModule(`${root}/market-structure-trendlines.ts`)
   const { createMarketStructureOverlay } = await server.ssrLoadModule(`${root}/market-structure-overlay.ts`)
   const { defaultMarketStructurePreferences: defaults, readMarketStructurePreferences, saveMarketStructurePreferences } =
     await server.ssrLoadModule(`${root}/market-structure-preferences.ts`)
@@ -24,7 +25,8 @@ try {
   const highBreak = { side: 'high', price: 15, start: 2, end: 5 }
   const settings = { ...defaults, enabled: true, swingStrength: 1, showUnbroken: true }
   assert.deepEqual(calculateMarketStructure(bars.slice(0, 3), settings), {
-    broken: [], replacedTestedLevels: [], signals: [], trendlines: [], pending: [], activeTestedLevels: [], high: undefined, low: undefined,
+    broken: [], replacedTestedLevels: [], signals: [], trendlines: [], historicalTrendlines: [],
+    pending: [], activeTestedLevels: [], high: undefined, low: undefined,
   }, 'Forming candles cannot confirm a swing')
   const plateau = bars.slice(0, 5).map((bar, index) => ({ ...bar, high: [10, 15, 15, 12, 11][index] }))
   assert.deepEqual(calculateMarketStructure(plateau, settings).high, { side: 'high', price: 15, start: 3 })
@@ -114,6 +116,59 @@ try {
   assert.deepEqual(calculateMarketStructure(competingSupport, trendlineSettings).trendlines, [
     { ...support, endIndex: 9, endPrice: 10 },
   ], 'A third confirmed touch outranks a wider two-touch line, even after a wick sweep')
+  const historySettings = { ...trendlineSettings, showHistoricalTrendlines: true }
+  const afterBreak = calculateMarketStructure(trendBars, historySettings)
+  assert.deepEqual(afterBreak.trendlines, [], 'A broken line is not drawn again as a current line')
+  assert.deepEqual(afterBreak.historicalTrendlines, [brokenSupport], 'Collinear anchors share one historical trendline')
+  assert.deepEqual(calculateMarketStructure(trendBars.slice(0, 9), historySettings).historicalTrendlines, [],
+    'A live close cannot retire an active trendline')
+  const oldTrendBars = [...trendBars, ...Array.from({ length: 520 }, (_, index) => ({
+    ...trendBars.at(-1), time: trendBars.length + index + 1,
+  }))]
+  assert.deepEqual(calculateMarketStructure(oldTrendBars, trendlineSettings).trendlines, [],
+    'The current window excludes old trendlines')
+  assert.deepEqual(calculateMarketStructure(oldTrendBars, historySettings).historicalTrendlines, [brokenSupport],
+    'Replay retains lines older than the current detection window')
+  assert.deepEqual(calculateMarketStructure(oldTrendBars, { ...historySettings, showAutoTrendlines: false }).historicalTrendlines, [],
+    'Historical trendlines require Auto Trendlines')
+  const replacedTrend = fixture([
+    [20, 5, 10], [20, 2, 10], [20, 6, 10], [20, 4, 10], [20, 8, 10],
+    [20, 5, 10], [20, 9, 11], [20, 6, 11], [20, 10, 11], [20, 10, 11],
+  ])
+  const afterReplacement = calculateMarketStructure(replacedTrend, historySettings)
+  assert.deepEqual(afterReplacement.historicalTrendlines, [
+    { ...support, endIndex: 6, endPrice: 7 },
+    { ...support, endIndex: 8, endPrice: 7.25 },
+  ], 'Superseded lines end at the candle that confirmed their replacement')
+  assert.deepEqual(afterReplacement.trendlines, calculateMarketStructure(replacedTrend, trendlineSettings).trendlines,
+    'Replay and the current-only calculation select the same active line')
+
+  const majorSettings = { ...historySettings, showMinorTrendlines: false }
+  assert.deepEqual(calculateMarketStructure(trendBars, majorSettings).historicalTrendlines, [],
+    'Clustered touches do not form a major line')
+  const majorBars = fixture(Array.from({ length: 17 }, (_, index) => {
+    const low = { 1: 10, 5: 12, 9: 14, 14: 15.5, 15: 15.75 }[index] ?? 25
+    return [40, low, index === 14 || index === 15 ? low : 30]
+  }))
+  assert.deepEqual(calculateMarketStructure(majorBars.slice(0, 11), majorSettings).trendlines, [],
+    'The third touch must be confirmed by a closed candle')
+  assert.deepEqual(calculateMarketStructure(majorBars, majorSettings).historicalTrendlines, [
+    { side: 'low', startIndex: 1, startPrice: 10, endIndex: 15, endPrice: 17, broken: true },
+  ], 'A retired major line ends at its confirmed break')
+  const minorHistory = calculateMarketStructure(majorBars, { ...historySettings, showMajorTrendlines: false }).historicalTrendlines
+  assert.ok(minorHistory.length > 0)
+  assert.ok(!minorHistory.some(line => line.broken && line.endIndex === 15 && line.endPrice === 17),
+    'Minor history excludes the same major break when a later anchor pair describes it')
+  const challengerPivots = [[1, 10], [5, 12], [9, 14], [13, 28], [21, 40], [25, 46]]
+    .map(([index, price]) => ({ index, confirmedAt: index + 1, price }))
+  const challenge = length => calculateTrendlines(
+    Array.from({ length }, () => ({ close: 100 })), 'low',
+    challengerPivots.filter(pivot => pivot.confirmedAt < length - 1), 2, () => 0, () => 0,
+    { includeHistory: true, showMajor: true, showMinor: false, touchSpacing: 4 },
+  )
+  assert.equal(challenge(25).current.endPrice, 21.5, 'A wider equally confirmed major line cannot displace the active line')
+  assert.equal(challenge(28).current.endPrice, 49, 'A challenger with more spaced touches replaces the active line')
+  assert.deepEqual(challenge(28).history.map(line => line.endIndex), [26], 'The old major retires on the qualifying close')
 
   assert.deepEqual(readMarketStructurePreferences(), defaults)
   const legacyKey = 'fyodor.indicators.market-structure.v1'
@@ -127,7 +182,7 @@ try {
     ...defaults, showMarkers: false, markerColors: { ...defaults.markerColors, sweep: '#123456' },
   })
   assert.equal(defaults.showUnbroken, true)
-  const savedSettings = { ...settings, failureWindow: 0, showUnbroken: false, extendLines: true, showDashedLines: false, showSolidLines: false, showAutoTrendlines: true }
+  const savedSettings = { ...majorSettings, failureWindow: 0, showUnbroken: false, extendLines: true, showDashedLines: false, showSolidLines: false }
   saveMarketStructurePreferences(savedSettings)
   assert.deepEqual(readMarketStructurePreferences(), savedSettings)
   dom.localStorage.setItem(currentKey, '{"swingStrength":51,"highColor":"red","lineWidth":0,"atrBufferPercent":101,"confirmationCloses":1,"failureWindow":6}')
@@ -137,7 +192,8 @@ try {
   let updates = 0
   let hover
   const container = dom.document.createElement('div')
-  const scale = { getVisibleRange: () => ({ from: 3, to: 8 }), timeToCoordinate: time => time * 10 }
+  let visibleRange = { from: 3, to: 8 }
+  const scale = { getVisibleRange: () => visibleRange, timeToCoordinate: time => time * 10 }
   const chart = {
     timeScale: () => scale,
     chartElement: () => container,
@@ -277,6 +333,25 @@ try {
   overlay.sync(trendBars, trendlineOnly)
   drawOverlay()
   assert.deepEqual(strokes, [[[20, 98], [90, 91], settings.lowColor, []]], 'Broken trendlines stop extending')
+  strokes.length = 0
+  overlay.sync(oldTrendBars, trendlineOnly)
+  drawOverlay()
+  assert.deepEqual(strokes, [])
+  overlay.sync(oldTrendBars, { ...trendlineOnly, showHistoricalTrendlines: true })
+  drawOverlay()
+  assert.deepEqual(strokes, [[[20, 98], [90, 91], settings.lowColor, []]], 'Toggling history draws old segments immediately')
+  strokes.length = 0
+  overlay.sync(oldTrendBars, { ...trendlineOnly, showHistoricalTrendlines: true, showMinorTrendlines: false })
+  drawOverlay()
+  assert.deepEqual(strokes, [], 'Turning Minor off removes clustered historical lines on the same candle snapshot')
+  overlay.sync(oldTrendBars, { ...trendlineOnly, showHistoricalTrendlines: true })
+  visibleRange = { from: 510, to: 520 }
+  drawOverlay()
+  assert.deepEqual(strokes, [], 'The current viewport skips expired historical segments')
+  visibleRange = { from: 3, to: 8 }
+  overlay.sync(oldTrendBars, trendlineOnly)
+  drawOverlay()
+  assert.deepEqual(strokes, [], 'Turning history back off hides old segments')
   overlay.destroy()
   assert.equal(attached, undefined)
   assert.equal(hover, undefined)

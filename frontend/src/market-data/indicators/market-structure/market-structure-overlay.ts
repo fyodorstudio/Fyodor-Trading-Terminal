@@ -2,6 +2,7 @@ import type { IChartApi, ISeriesApi, ISeriesPrimitive, IPrimitivePaneRenderer, M
 import type { OhlcBar } from '../../contracts/OhlcBar'
 import { changedRecentBarStart } from '../../mt5-feed/market-snapshots'
 import { calculateMarketStructure } from './market-structure-calculation'
+import { trendlineLookback } from './market-structure-trendlines'
 import {
   defaultMarketStructurePreferences, marketStructureMarkerLabels, type MarketStructurePreferences,
 } from './market-structure-preferences'
@@ -159,15 +160,15 @@ export function createMarketStructureOverlay(chart: IChartApi, series: ISeriesAp
           result.broken.forEach(drawSegment)
         }
         if (preferences?.showAutoTrendlines) {
-          for (const line of result.trendlines) {
+          const drawTrendline = (line: (typeof result.trendlines)[number]) => {
             const start = bars[line.startIndex].time
             const end = bars[line.endIndex].time
-            if (end < from || start > to) continue
+            if (end < from || start > to) return
             const x1 = scale.timeToCoordinate(start)
             const x2 = scale.timeToCoordinate(end)
             const y1 = series.priceToCoordinate(line.startPrice)
             const y2 = series.priceToCoordinate(line.endPrice)
-            if (x1 === null || x2 === null || y1 === null || y2 === null) continue
+            if (x1 === null || x2 === null || y1 === null || y2 === null) return
 
             context.strokeStyle = line.side === 'high' ? highColor : lowColor
             context.setLineDash(line.broken ? [] : [8, 4])
@@ -176,6 +177,26 @@ export function createMarketStructureOverlay(chart: IChartApi, series: ISeriesAp
             context.lineTo(x2, y2)
             context.stroke()
           }
+          if (preferences.showHistoricalTrendlines) {
+            const history = result.historicalTrendlines
+            let first = 0
+            let limit = history.length
+            while (first < limit) {
+              const middle = Math.floor((first + limit) / 2)
+              if (bars[history[middle].endIndex].time < from) first = middle + 1
+              else limit = middle
+            }
+            context.save()
+            context.globalAlpha = 0.55
+            for (let index = first; index < history.length; index++) {
+              const line = history[index]
+              // Each retired line starts within its final detection window.
+              if (bars[Math.max(0, line.endIndex - trendlineLookback)].time > to) break
+              drawTrendline(line)
+            }
+            context.restore()
+          }
+          result.trendlines.forEach(drawTrendline)
         }
         if (showMarkers) {
           // Paint newer outcomes above older sweep markers when they overlap.
@@ -212,7 +233,9 @@ export function createMarketStructureOverlay(chart: IChartApi, series: ISeriesAp
         (changedRecentBarStart(nextBars, bars) ?? -1) >= nextBars.length - 1)
       if (!unchangedClosedBars || preferences?.swingStrength !== next.swingStrength ||
         preferences.confirmationCloses !== next.confirmationCloses || preferences.atrBufferPercent !== next.atrBufferPercent ||
-        preferences.failureWindow !== next.failureWindow || preferences.showAutoTrendlines !== next.showAutoTrendlines) {
+        preferences.failureWindow !== next.failureWindow || preferences.showAutoTrendlines !== next.showAutoTrendlines ||
+        preferences.showHistoricalTrendlines !== next.showHistoricalTrendlines ||
+        preferences.showMajorTrendlines !== next.showMajorTrendlines || preferences.showMinorTrendlines !== next.showMinorTrendlines) {
         result = calculateMarketStructure(nextBars, next)
         markers = buildMarkers(result.signals)
       } else if (preferences === next && nextBars === bars) {

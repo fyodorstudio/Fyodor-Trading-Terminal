@@ -141,9 +141,23 @@ export function MarketStructureSettingsDialog({ preferences, onSave, onClose }: 
             <p id={`${titleId}-solid`}>Levels where a breakout reached confirmation, including breakouts that later failed.</p>
             <label>Auto Trendlines
               <input type="checkbox" aria-describedby={`${titleId}-trendlines`} checked={draft.showAutoTrendlines}
-                onChange={event => setDraft({ ...draft, showAutoTrendlines: event.target.checked })} />
+                onChange={event => {
+                  const showAutoTrendlines = event.target.checked
+                  const restoreCategories = showAutoTrendlines && !draft.showMajorTrendlines && !draft.showMinorTrendlines
+                  setDraft({
+                    ...draft, showAutoTrendlines,
+                    showMajorTrendlines: restoreCategories || draft.showMajorTrendlines,
+                    showMinorTrendlines: restoreCategories || draft.showMinorTrendlines,
+                  })
+                }} />
             </label>
-            <p id={`${titleId}-trendlines`}>Draw rising support and falling resistance from recent confirmed swings.</p>
+            <p id={`${titleId}-trendlines`}>Draw rising support and falling resistance. Use M and m in the chart toolbar to filter major and minor lines.</p>
+            <label>Show historical trendlines
+              <input type="checkbox" aria-describedby={`${titleId}-trendline-history`}
+                checked={draft.showHistoricalTrendlines} disabled={!draft.showAutoTrendlines}
+                onChange={event => setDraft({ ...draft, showHistoricalTrendlines: event.target.checked })} />
+            </label>
+            <p id={`${titleId}-trendline-history`}>Keep earlier trendlines on the chart after they break or are replaced.</p>
             <label>Show signal markers
               <input type="checkbox" checked={draft.showMarkers}
                 onChange={event => setDraft({ ...draft, showMarkers: event.target.checked })} />
