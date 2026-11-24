@@ -1,0 +1,55 @@
+.candle-activity-panel {
+  flex: 0 0 236px;
+  min-width: 0;
+  overflow: auto;
+  padding: 12px;
+  border-left: 1px solid var(--border-strong);
+  background: var(--surface-panel, var(--surface-inset));
+  color: var(--text-strong);
+  font-size: 12px;
+}
+
+.candle-activity-panel header, .candle-tick-counts div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.candle-activity-panel header { margin-bottom: 10px; }
+.candle-activity-panel button {
+  min-height: 27px;
+  padding: 2px 7px;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  background: var(--surface-inset);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.candle-activity-panel button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.candle-activity-panel button:disabled { opacity: .45; cursor: default; }
+.candle-activity-switch { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+.candle-activity-time { margin: 3px 0 8px; }
+.candle-activity-note, .candle-activity-time { color: var(--text-muted); }
+.candle-activity-panel table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.candle-activity-panel caption { text-align: left; padding-bottom: 6px; }
+.candle-activity-panel td, .candle-activity-panel th { border-bottom: 1px solid var(--border-strong); padding: 5px 0; text-align: left; }
+.candle-activity-panel td:last-child, .candle-activity-panel th:last-child { text-align: right; }
+.candle-tick-balance { display: flex; overflow: hidden; height: 8px; border-radius: 4px; }
+.candle-tick-counts { margin: 8px 0 0; font-variant-numeric: tabular-nums; }
+.candle-tick-counts div { border-bottom: 1px solid var(--border-strong); padding: 5px 0; }
+.candle-tick-counts dd { margin: 0; font-weight: 700; }
+
+@container chart-workspace (max-width: 620px) {
+  .candle-activity-panel {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    z-index: 3;
+    width: min(236px, 60%);
+    max-height: 65%;
+    border-top: 1px solid var(--border-strong);
+  }
+}

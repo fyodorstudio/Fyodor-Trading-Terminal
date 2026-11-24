@@ -1,7 +1,8 @@
 # Fyodor MT5 bridge
 
-Local MT5 adapter serving Market Watch, OHLC, health, Activity and economic-calendar
-transport at `127.0.0.1:8001`. Native MetaTrader5 calls run in a supervised child
+Local MT5 adapter serving Market Watch, OHLC, candle ticks, currency activity,
+health, the Activity log, and economic-calendar transport at `127.0.0.1:8001`.
+Native MetaTrader5 calls run in a supervised child
 process. The bridge has no trading endpoints.
 
 From the repository root:

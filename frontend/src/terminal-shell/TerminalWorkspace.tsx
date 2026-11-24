@@ -22,6 +22,7 @@ import { PriceAlertDeliveryNotice } from '../price-alerts/PriceAlertDeliveryNoti
 import { heatmapNewsSelection } from '../news-flow/date-range'
 import { selectNewsDate } from '../news-flow/settings'
 import { VolumeSettingsDialog } from '../market-data/indicators/volume/VolumeSettingsDialog'
+import { CandleActivityPanel, CandleTickPicker } from '../market-data/indicators/volume/CandleActivityPanel'
 import { AtrSettingsDialog } from '../market-data/indicators/atr/AtrSettingsDialog'
 import { MarketStructureSettingsDialog } from '../market-data/indicators/market-structure/MarketStructureSettingsDialog'
 import { RsiSettingsDialog } from '../market-data/indicators/rsi/RsiSettingsDialog'
@@ -62,6 +63,12 @@ function TerminalWorkspaceContent() {
     rankingOpen, toggleRanking, closeRanking, newsOpen, toggleNews, closeNews, openNews, detailOpen, toggleDetail, closeDetail, openDetail, viewLedgerEvent, viewMacroRelease, returnToLedger,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab } = useTerminalWorkspace()
   const hasDailyCloseHistory = quote?.synthetic === true && timeframe === 'D1' && bars.some(bar => bar.closeOnly)
+  const tickActivityOpen = volume.enabled && (quote?.synthetic === true || volume.mode === 'tick-delta')
+  const tickCandleScope = `${bridge.generation}:${brokerId}:${activeSymbol}:${timeframe}`
+  const [tickCandle, setTickCandle] = useState<{ scope: string; time: number } | null>(null)
+  const selectTickCandle = useCallback((time: number | null) =>
+    setTickCandle(time === null ? null : { scope: tickCandleScope, time }), [tickCandleScope])
+  const pickTickCandle = tickActivityOpen && !activeDrawingTool && !wildcards.placing && !wildcards.editor
   const [heatmapStarted, setHeatmapStarted] = useState(false)
   if ((bottomDockWindow === 'heatmap' || rankingOpen) && !heatmapStarted) setHeatmapStarted(true)
   const brokerOffsetSeconds = bridge.brokerOffsetSeconds
@@ -86,8 +93,9 @@ function TerminalWorkspaceContent() {
   const renderChartWithLedger = useCallback((chartApi: IChartApi, seriesApi: ISeriesApi<'Candlestick', Time>) => <>
     {renderChartOverlay?.(chartApi, seriesApi)}
     <LedgerCandlePicker chartApi={chartApi} bars={bars} />
+    {pickTickCandle && <CandleTickPicker chart={chartApi} bars={bars} onSelect={selectTickCandle} />}
     <WildcardChartLayer chartApi={chartApi} seriesApi={seriesApi} bars={bars} step={timeframeToSeconds(timeframe)} visible={wildcardIconsVisible} context={`${brokerId}:${activeSymbol}:${timeframe}`} />
-  </>, [renderChartOverlay, bars, timeframe, wildcardIconsVisible, brokerId, activeSymbol])
+  </>, [renderChartOverlay, bars, timeframe, wildcardIconsVisible, brokerId, activeSymbol, pickTickCandle, selectTickCandle])
   const closeRsiSettings = useCallback(() => setRsiSettingsOpen(false), [setRsiSettingsOpen])
   const closeAtrSettings = useCallback(() => setAtrSettingsOpen(false), [setAtrSettingsOpen])
   const closeMarketStructureSettings = useCallback(() => setMarketStructureSettingsOpen(false), [setMarketStructureSettingsOpen])
@@ -145,7 +153,7 @@ function TerminalWorkspaceContent() {
             onOpenAtrSettings={() => setAtrSettingsOpen(true)}
             volumeEnabled={volume.enabled}
             onToggleVolume={toggleVolume}
-            onOpenVolumeSettings={() => setVolumeSettingsOpen(true)}
+            onOpenVolumeSettings={quote?.synthetic ? undefined : () => setVolumeSettingsOpen(true)}
             rsiEnabled={rsi.enabled}
             onToggleRsi={toggleRsi}
             onOpenRsiSettings={() => setRsiSettingsOpen(true)}
@@ -182,7 +190,7 @@ function TerminalWorkspaceContent() {
                   timeDisplay={timeDisplay}
                   timeframe={timeframe}
                   hasDailyCloseHistory={hasDailyCloseHistory}
-                  volume={quote?.synthetic ? undefined : volume}
+                  volume={quote?.synthetic || volume.mode === 'tick-delta' ? undefined : volume}
                   marketStructure={marketStructure}
                   atr={atr}
                   onChangeVolumeAxis={changeVolumeAxis}
@@ -241,6 +249,10 @@ function TerminalWorkspaceContent() {
                   : marketData.chartStatus === 'live' ? 'MT5 broker data' : 'Awaiting MT5 data'}</span>
               </div>
             </div>
+            {tickActivityOpen && <CandleActivityPanel bars={bars}
+              selectedTime={tickCandle?.scope === tickCandleScope ? tickCandle.time : null} onSelect={selectTickCandle}
+              symbol={activeSymbol} timeframe={timeframe} synthetic={quote?.synthetic === true} canRank={brokerId === 'Pepperstone-Demo'}
+              connected={bridge.connected} generation={bridge.generation} upColor={volume.upColor} downColor={volume.downColor} onClose={toggleVolume} />}
             {recentEventsOpen && <RecentEventsPanel brokerId={brokerId} symbol={activeSymbol} onClose={closeRecentEvents} />}
             {rankingOpen && <aside id="heatmap-ranking-panel" className="heatmap-ranking-slot" aria-label="Heatmap Ranking" onKeyDown={e=>{if(e.key==='Escape'){e.stopPropagation();closeRanking()}}}>
               <header><strong>Heatmap Ranking</strong><button type="button" aria-label="Close Heatmap Ranking" autoFocus onClick={closeRanking}>×</button></header>

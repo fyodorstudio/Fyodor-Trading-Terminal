@@ -48,7 +48,7 @@ class _QueuedCall:
     priority: int
     order: int
     category: str = field(compare=False)
-    generation: int = field(compare=False)
+    generation: int | None = field(compare=False)
     operation: str = field(compare=False)
     arguments: dict[str, object] = field(compare=False)
     future: Future[Any] = field(compare=False)
@@ -103,11 +103,14 @@ class Mt5Worker:
         *,
         priority: int = 10,
         timeout: float | None = None,
+        supersede: bool = True,
     ) -> Any:
         future: Future[Any] = Future()
         with self._generation_lock:
-            generation = self._latest_generation.get(category, 0) + 1
-            self._latest_generation[category] = generation
+            generation = None
+            if supersede:
+                generation = self._latest_generation.get(category, 0) + 1
+                self._latest_generation[category] = generation
             self._order += 1
             queued = _QueuedCall(
                 priority,
@@ -142,7 +145,7 @@ class Mt5Worker:
                 continue
             with self._generation_lock:
                 latest = self._latest_generation.get(queued.category)
-            if latest != queued.generation:
+            if queued.generation is not None and latest != queued.generation:
                 queued.future.set_exception(SupersededRequest("A newer request replaced this one"))
                 continue
 

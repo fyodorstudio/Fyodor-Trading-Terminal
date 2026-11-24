@@ -199,6 +199,10 @@ const journalFixture = { version: 1, revision: 0, arrows: [], deletedIds: [] }
 let wildcardFixture = { schema: 1, revision: 0, items: [] }
 globalThis.fetch = (url, options = {}) => {
   const u = String(url); requests.push(u)
+  if (u.startsWith('/api/v1/candle-ticks?')) return Promise.resolve({ ok: true,
+    json: async () => ({ up: 62, down: 38, flat: 7, unknown: 0, synthetic: false }) })
+  if (u.startsWith('/api/v1/currency-activity?')) return Promise.resolve({ ok: true,
+    json: async () => ({ rows: [{ currency: 'GBP', updates: 125, missing: [] }, { currency: 'JPY', updates: null, missing: ['GBPJPY'] }] }) })
   if (u.startsWith('/storage-api/wildcards')) {
     if (options.method === 'POST') wildcardFixture = { ...wildcardFixture, revision: wildcardFixture.revision + 1, items: [...wildcardFixture.items,{id:String(wildcardFixture.revision),...JSON.parse(options.body)}] }
     return Promise.resolve({ ok: true, json: async () => structuredClone(wildcardFixture) })
@@ -606,6 +610,27 @@ try {
   await click(container.querySelector('[aria-label="Hide Volume"]')); await flush()
   assert.equal(panes.length, 2); assert.equal(indicatorSeries.size, 3, 'Volume removal preserves the RSI series')
   assert.equal(container.querySelector('.volume-legend'), null)
+  await click(container.querySelector('[aria-label="Volume settings"]'))
+  await React.act(async () => {
+    const mode = container.querySelector('.rsi-settings-dialog select')
+    mode.value = 'tick-delta'; mode.dispatchEvent(new dom.Event('change', { bubbles: true }))
+  })
+  await click([...container.querySelectorAll('.rsi-settings-dialog button')].find(button => button.textContent === 'OK'))
+  await click(container.querySelector('[aria-label="Show Volume"]')); await flush()
+  const candleVolume = () => container.querySelector('[aria-label="Candle volume"]')
+  assert.match(candleVolume().textContent, /Upticks62Downticks38Unchanged7Tick Delta\+24/)
+  assert.equal(panes.length, 2, 'Tick Delta leaves the price and RSI panes intact')
+  const selectedCandle = plotted.at(-3)
+  await React.act(async () => {
+    for (const fn of clickListeners) fn({ paneIndex: 0, time: selectedCandle.time, point: { x: 200, y: 100 } })
+  })
+  await flush()
+  assert.ok(requests.includes(`/api/v1/candle-ticks?symbol=EURUSD&timeframe=H1&start=${selectedCandle.time}`))
+  await click([...candleVolume().querySelectorAll('button')].find(button => button.textContent === 'Currency Activity')); await flush()
+  assert.ok(requests.includes(`/api/v1/currency-activity?timeframe=H1&start=${selectedCandle.time}`))
+  assert.match(candleVolume().textContent, /GBP125JPYUnavailable/)
+  await click(container.querySelector('[aria-label="Close Candle volume"]')); await flush()
+  assert.equal(candleVolume(), null)
   assert.deepEqual([...container.querySelectorAll('[aria-label="App features"] button')].map(node => node.textContent.trim().replace(/\s+\d+$/, '')),
     ['Alert', 'Wildcards', 'Ledger', 'Heatmap', 'Inspector', 'Entry Trade', 'Activity', '⚙ Settings'])
   reset()

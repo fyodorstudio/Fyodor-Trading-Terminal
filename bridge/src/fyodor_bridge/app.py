@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from time import perf_counter
+from typing import Annotated, Literal
+from uuid import uuid4
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 
 from .calendar_ingestion import CalendarStore
@@ -143,6 +146,42 @@ def get_ohlc(
         "duration_ms": max(duration, round((perf_counter() - started) * 1000)),
         "source_generation": mt5_worker.snapshot()["generation"],
     }
+
+
+CandleTimeframe = Literal["M1", "M5", "M15", "M30", "H1", "H4", "D1"]
+CandleStart = Annotated[int, Query(ge=1, le=253402214399)]
+
+
+@app.get("/api/v1/candle-ticks")
+async def get_candle_ticks(
+    request: Request,
+    symbol: Annotated[str, Query(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9._#-]+$")],
+    timeframe: CandleTimeframe,
+    start: CandleStart,
+) -> dict[str, object]:
+    arguments = dict(symbol=symbol, timeframe=timeframe, start=start, read_id=uuid4().hex, begin=True)
+    try:
+        while not await request.is_disconnected():
+            reading = await run_in_threadpool(
+                mt5_worker.submit, "candle-ticks", "candle-ticks", arguments, priority=7, supersede=False,
+            )
+            if reading is not None:
+                return reading
+            arguments["begin"] = False
+    except Exception as error:
+        raise bridge_error(error) from error
+    raise HTTPException(status_code=499, detail="Candle tick read cancelled")
+
+
+@app.get("/api/v1/currency-activity")
+def get_currency_activity(timeframe: CandleTimeframe, start: CandleStart) -> dict[str, object]:
+    try:
+        rows = mt5_worker.submit(
+            "currency-activity", "currency-activity", dict(timeframe=timeframe, start=start), priority=7, supersede=False,
+        )
+    except Exception as error:
+        raise bridge_error(error) from error
+    return {"rows": rows}
 
 
 @app.get("/api/v1/calendar")

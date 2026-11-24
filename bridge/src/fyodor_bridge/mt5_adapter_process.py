@@ -3,6 +3,7 @@ from __future__ import annotations
 from queue import Empty
 from typing import Any
 
+from .candle_activity import CandleTickReader, read_currency_activity
 from .currency_indices import SERVER, SYMBOLS, CurrencyIndexHistory
 from .market_data import read_market_watch, read_ohlc
 
@@ -46,6 +47,7 @@ def run_mt5_adapter(
 
         account_info = mt5.account_info()
         index_history = CurrencyIndexHistory()
+        tick_reader = CandleTickReader()
         response_queue.put(
             {
                 "kind": "ready",
@@ -81,6 +83,10 @@ def run_mt5_adapter(
                         result = index_history.read(mt5, symbol, timeframe, count, arguments.get("before"))
                     else:
                         result = read_ohlc(mt5, symbol, timeframe, int(arguments["start_pos"]), count)
+                elif operation == "candle-ticks":
+                    result = tick_reader.read(mt5, **arguments)
+                elif operation == "currency-activity":
+                    result = read_currency_activity(mt5, arguments["timeframe"], arguments["start"])
                 else:
                     raise RuntimeError(f"Unsupported MT5 adapter operation: {operation}")
             except Exception as error:

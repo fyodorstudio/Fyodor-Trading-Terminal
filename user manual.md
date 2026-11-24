@@ -12,7 +12,7 @@ at the broker session open on 6 January 2025. Candles use synchronized
 one-minute opens and closes. A line shows historical D1 closes where the chart
 has only daily data. Synthetic price alerts monitor the live index level
 calculated from all seven constituent Bid quotes. Alerts wait when any quote is
-missing or stale. Synthetic charts have no traded volume. Inspector icons follow
+missing or stale. Synthetic charts show quote activity in the Volume sidebar. Inspector icons follow
 the chart's own currency, such as GBP releases on GBPX.
 Inspector shows saved release dates with a blank Actual when the result is
 unavailable. MFDI uses grey markers for past releases without an actual on
@@ -259,6 +259,18 @@ Volume supports Raw tick counts and Relative activity. **Bars**, **Relative** an
 **Average** toggle its layers. In Raw mode, **Axis** selects the draggable scale.
 Relative activity compares matching session candles from earlier days. Scrolling
 left loads more history for comparison. Tick volume counts broker price updates.
+
+Select **Tick Delta** in Volume settings, then turn on **Volume** in the chart header.
+On a synthetic index, **Volume** opens the sidebar directly. Click a candle, use the
+arrow buttons, or choose **Latest**. Tick Delta shows upticks, downticks and unchanged
+quotes. Broker symbols use the Bid/Ask midpoint. Synthetic indices use the basket's
+Bid inputs and group updates that share a millisecond. These counts describe quote
+movement. Trade sizes and aggressor sides are separate data.
+
+On Pepperstone-Demo, **Currency Activity** ranks all eight major currencies by the
+sum of broker ticks in each currency's seven FX pairs over the selected candle.
+A pair's count contributes to both currencies. A currency with missing pair data
+shows **Unavailable**.
 
 ## Heatmap
 

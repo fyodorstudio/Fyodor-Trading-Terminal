@@ -28,9 +28,9 @@ export function VolumeSettingsDialog({ preferences, onSave, onClose }: {
     <form ref={dialog} className="rsi-settings-dialog" role="dialog" aria-modal="true" aria-labelledby={`${id}-title`}
       onSubmit={event => {
         event.preventDefault()
-        if (!Number.isInteger(draft.lookback) || draft.lookback < 5 || draft.lookback > 60 ||
+        if (draft.mode !== 'tick-delta' && (!Number.isInteger(draft.lookback) || draft.lookback < 5 || draft.lookback > 60 ||
           !Number.isInteger(draft.minimumSamples) || draft.minimumSamples < 1 || draft.minimumSamples > draft.lookback ||
-          !Number.isInteger(draft.averageLength) || draft.averageLength < 1 || draft.averageLength > 200) {
+          !Number.isInteger(draft.averageLength) || draft.averageLength < 1 || draft.averageLength > 200)) {
           setError('Use 5–60 previous sessions, minimum samples from 1 to previous sessions, and an average length from 1 to 200.'); setTab('inputs'); return
         }
         onSave({ ...draft, enabled: preferences.enabled }); onClose()
@@ -51,17 +51,22 @@ export function VolumeSettingsDialog({ preferences, onSave, onClose }: {
         {tab === 'inputs' ? <>
         <fieldset><legend>Activity data</legend>
           <label>Mode<select value={draft.mode} onChange={event => patch({ mode: event.target.value as VolumePreferences['mode'] })}>
-            <option value="raw">Raw ticks</option><option value="relative">Relative activity</option></select></label>
+            <option value="raw">Raw ticks</option><option value="relative">Relative activity</option><option value="tick-delta">Tick Delta</option></select></label>
+          {draft.mode === 'tick-delta' ? <p>Shows upticks and downticks for the selected candle in the chart sidebar.</p> : <>
           <label>Previous sessions<input aria-label="Previous sessions" type="number" min="5" max="60" required value={draft.lookback} onChange={event => patch({ lookback: Number(event.target.value) })} /></label>
           <label>Minimum samples<input aria-label="Minimum samples" type="number" min="1" max={draft.lookback} required value={draft.minimumSamples} onChange={event => patch({ minimumSamples: Number(event.target.value) })} /></label>
           <p>Sessions are automatic, including overlaps and daylight saving. Relative values compare matching candles in earlier sessions; D1 uses earlier daily bars.</p>
           <p>Missing history stays blank. Scroll left to build the baseline. Uses earlier candles only.</p>
+          </>}
         </fieldset>
-        <fieldset><legend>Raw tick average</legend>
+        {draft.mode !== 'tick-delta' && <fieldset><legend>Raw tick average</legend>
           <label>Average length<input aria-label="Average length" type="number" min="1" max="200" required disabled={!draft.averageVisible} value={draft.averageLength} onChange={event => patch({ averageLength: Number(event.target.value) })} /></label>
           <p>Optional average for Raw bars, enabled in Style. This does not smooth the Relative activity line.</p>
-        </fieldset>
-        </> : <>
+        </fieldset>}
+        </> : draft.mode === 'tick-delta' ? <fieldset><legend>Tick Delta colours</legend>
+          <label>Upticks<input type="color" value={draft.upColor} onChange={event => patch({ upColor: event.target.value })} /></label>
+          <label>Downticks<input type="color" value={draft.downColor} onChange={event => patch({ downColor: event.target.value })} /></label>
+        </fieldset> : <>
         <fieldset><legend>Pane</legend>
           <label>Right axis<select value={draft.axisTarget} onChange={event => patch({ axisTarget: event.target.value as VolumePreferences['axisTarget'] })}>
             <option value="volume">Volume bars</option><option value="relative">Relative line</option></select></label>
