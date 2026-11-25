@@ -6,13 +6,14 @@ import { bridgeRequest } from '../../../system-connectivity/bridge-status/bridge
 import { timeframeToSeconds } from '../../chart-drawings/position-drawing-geometry'
 import type { ChartTimeframe } from '../../contracts/ChartTimeframe'
 import type { OhlcBar } from '../../contracts/OhlcBar'
-import type { TickDeltaPaneView, TickDeltaPoint } from './tick-delta-pane'
-import type { TickDeltaView } from './volume-preferences'
+import { tickDeltaColor, type TickDeltaPlotOptions, type TickDeltaPoint } from './tick-delta-pane'
+import type { TickDeltaLine, TickDeltaLines, TickDeltaView } from './volume-preferences'
 import { useTickDeltaHistory, type TickCounts } from './use-tick-delta-history'
 import './candle-activity.css'
 
 type CurrencyActivity = { rows: { currency: string; updates: number | null; missing: string[] }[] }
 const count = new Intl.NumberFormat()
+const tickDeltaLineButtons = [['up', 'Upticks'], ['down', 'Downticks'], ['delta', 'Delta']] as const
 
 function useCandleReading<T>(request: string | null, refreshUntil?: number | null) {
   const [retry, setRetry] = useState(0)
@@ -47,12 +48,13 @@ export type CandleActivityProps = {
   symbol: string; timeframe: ChartTimeframe; synthetic: boolean; canRank: boolean; connected: boolean; generation: number
   upColor: string; downColor: string
   tickDeltaView: TickDeltaView; onTickDeltaViewChange: (view: TickDeltaView) => void
+  tickDeltaLines: TickDeltaLines; onToggleTickDeltaLine: (line: TickDeltaLine) => void
 }
 
 export function CandleActivityControls({ chart, bars, symbol, timeframe, synthetic, canRank,
-  connected, upColor, downColor, tickDeltaView, onTickDeltaViewChange, onPlot }: CandleActivityProps & {
+  connected, upColor, downColor, tickDeltaView, onTickDeltaViewChange, tickDeltaLines, onToggleTickDeltaLine, onPlot }: CandleActivityProps & {
   chart: IChartApi
-  onPlot: (rows: ReadonlyMap<number, TickDeltaPoint>, upColor: string, downColor: string, view: TickDeltaPaneView) => void
+  onPlot: (rows: ReadonlyMap<number, TickDeltaPoint>, options: TickDeltaPlotOptions) => void
 }) {
   const clock = useDisplayClock()
   const [showRanking, setShowRanking] = useState(false)
@@ -108,20 +110,30 @@ export function CandleActivityControls({ chart, bars, symbol, timeframe, synthet
     if (liveTicks) points.set(last, liveTicks)
     return points
   }, [history, first, last, liveTicks])
-  useLayoutEffect(() => onPlot(visiblePoints, upColor, downColor, paneView), [onPlot, visiblePoints, upColor, downColor, paneView])
+  useLayoutEffect(() => onPlot(visiblePoints, { upColor, downColor, view: paneView, lines: tickDeltaLines }),
+    [onPlot, visiblePoints, upColor, downColor, paneView, tickDeltaLines])
 
   const current = ranking ? rank : start === last ? live : fallback
   const ticks = !ranking && start !== undefined ? start === last ? liveTicks : history.get(start) ?? recovered : undefined
   const ranks = ranking ? rank.current?.data?.rows : undefined
   const delta = ticks && ticks.up - ticks.down
   const activitySource = synthetic ? 'Synthetic basket Bid moves' : 'Bid/ask midpoint moves'
+  const barsView = paneView === 'bars'
+  const lineView = paneView === 'line'
+  const showUp = barsView || (lineView && tickDeltaLines.up)
+  const showDown = barsView || (lineView && tickDeltaLines.down)
+  const showDelta = barsView || (lineView && tickDeltaLines.delta)
   return <section className="candle-activity-pane" aria-label="Candle volume">
     <div className="candle-activity-toolbar">
       <div className="volume-controls" role="group" aria-label="Volume view">
-        <button type="button" aria-pressed={paneView === 'bars'} onClick={() => selectTickView('bars')}>Uptick / Downtick Bars</button>
-        <button type="button" aria-pressed={paneView === 'line'} onClick={() => selectTickView('line')}>Delta Line</button>
+        <button type="button" aria-pressed={barsView} onClick={() => selectTickView('bars')}>Uptick / Downtick Bars</button>
+        <button type="button" aria-pressed={lineView} onClick={() => selectTickView('line')}>Delta Line</button>
         {canRank && <button type="button" aria-pressed={ranking} onClick={() => setShowRanking(true)}>Currency Activity</button>}
       </div>
+      {lineView && <div className="volume-controls tick-delta-line-controls" role="group" aria-label="Tick Delta lines">
+        {tickDeltaLineButtons.map(([line, label]) => <button key={line} type="button" aria-pressed={tickDeltaLines[line]}
+          onClick={() => onToggleTickDeltaLine(line)}>{label}</button>)}
+      </div>}
       <span className="candle-activity-time" title={ranking ? 'Selected candle' : activitySource}>
         {start === undefined ? 'No candles available' : clock.chart(start * 1000)}
       </span>
@@ -129,14 +141,12 @@ export function CandleActivityControls({ chart, bars, symbol, timeframe, synthet
     {!connected ? <p role="status">Waiting for MT5.</p> : start !== undefined && !ticks && !ranks && !current.current
       ? <p role="status">Reading candle data…</p> : null}
     {current.current?.error && <div className="volume-controls"><span role="status">{current.current.error}</span><button type="button" onClick={current.retry}>Retry</button></div>}
-    {ticks && delta !== undefined && <dl className="candle-tick-counts" aria-label="Tick Delta">
-      {paneView === 'bars' && <>
-        <div><dt>Upticks</dt><dd style={{ color: upColor }}>{count.format(ticks.up)}</dd></div>
-        <div><dt>Downticks</dt><dd style={{ color: downColor }}>{count.format(ticks.down)}</dd></div>
-        <div><dt>Unchanged</dt><dd>{count.format(ticks.flat)}</dd></div>
-      </>}
-      <div><dt>Tick Delta</dt><dd>{delta > 0 ? '+' : ''}{count.format(delta)}</dd></div>
-      {paneView === 'bars' && ticks.unknown > 0 && <div><dt>Unclassified</dt><dd>{count.format(ticks.unknown)}</dd></div>}
+    {ticks && delta !== undefined && (showUp || showDown || showDelta) && <dl className="candle-tick-counts" aria-label="Tick Delta">
+      {showUp && <div><dt>Upticks</dt><dd style={{ color: upColor }}>{count.format(ticks.up)}</dd></div>}
+      {showDown && <div><dt>Downticks</dt><dd style={{ color: downColor }}>{count.format(ticks.down)}</dd></div>}
+      {barsView && <div><dt>Unchanged</dt><dd>{count.format(ticks.flat)}</dd></div>}
+      {showDelta && <div><dt>Tick Delta</dt><dd style={lineView ? { color: tickDeltaColor } : undefined}>{delta > 0 ? '+' : ''}{count.format(delta)}</dd></div>}
+      {barsView && ticks.unknown > 0 && <div><dt>Unclassified</dt><dd>{count.format(ticks.unknown)}</dd></div>}
     </dl>}
     {ranks && <div className="candle-currency-ranking">
       <table><caption title="Each pair’s updates count toward both currencies">Broker ticks across seven pairs</caption>

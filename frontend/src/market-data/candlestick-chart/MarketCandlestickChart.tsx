@@ -25,7 +25,7 @@ import { createChartPriceSpace } from './chart-price-space'
 import { createChartPaneResize, isChartPaneDivider } from './chart-pane-resize'
 import { timeframeToSeconds } from '../chart-drawings/position-drawing-geometry'
 import { createVolumePane } from '../indicators/volume/volume-pane'
-import { createTickDeltaPane, type TickDeltaPaneView, type TickDeltaPoint } from '../indicators/volume/tick-delta-pane'
+import { createTickDeltaPane, type TickDeltaPlotOptions, type TickDeltaPoint } from '../indicators/volume/tick-delta-pane'
 import { CandleActivityControls, type CandleActivityProps } from '../indicators/volume/CandleActivityControls'
 import type { VolumeLayer, VolumePreferences } from '../indicators/volume/volume-preferences'
 import { createRsiPane } from '../indicators/rsi/rsi-pane'
@@ -150,8 +150,8 @@ function MarketCandlestickChartComponent({
   const tickPaneRef = useRef<ReturnType<typeof createTickDeltaPane> | null>(null)
   const [tickLegend, setTickLegend] = useState<HTMLDivElement | null>(null)
   const tickDeltaEnabled = Boolean(tickDelta)
-  const plotTickDelta = useCallback((rows: ReadonlyMap<number, TickDeltaPoint>, upColor: string, downColor: string, view: TickDeltaPaneView) => {
-    tickPaneRef.current?.sync(rows, upColor, downColor, view)
+  const plotTickDelta = useCallback((rows: ReadonlyMap<number, TickDeltaPoint>, options: TickDeltaPlotOptions) => {
+    tickPaneRef.current?.sync(rows, options)
   }, [])
   const rsiPaneRef = useRef<ReturnType<typeof createRsiPane> | null>(null)
   const atrPaneRef = useRef<ReturnType<typeof createAtrPane> | null>(null)

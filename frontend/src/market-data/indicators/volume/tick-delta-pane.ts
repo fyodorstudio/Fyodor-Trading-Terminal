@@ -1,9 +1,10 @@
 import { HistogramSeries, LineSeries, LineStyle, type AutoscaleInfo, type IChartApi, type IPanePrimitive, type Time, type UTCTimestamp } from 'lightweight-charts'
-import type { TickDeltaView } from './volume-preferences'
+import type { TickDeltaLines, TickDeltaView } from './volume-preferences'
 
 export type TickDeltaPoint = { up: number; down: number }
-export type TickDeltaPaneView = TickDeltaView | 'currency'
-const deltaColor = '#7e57c2'
+type TickDeltaPaneView = TickDeltaView | 'currency'
+export type TickDeltaPlotOptions = { upColor: string; downColor: string; view: TickDeltaPaneView; lines: TickDeltaLines }
+export const tickDeltaColor = '#7e57c2'
 
 export function createTickDeltaPane(chart: IChartApi) {
   const pane = chart.addPane(true)
@@ -14,16 +15,21 @@ export function createTickDeltaPane(chart: IChartApi) {
   const options = { priceLineVisible: false, lastValueVisible: false, priceFormat: { type: 'volume' as const } }
   const up = pane.addSeries(HistogramSeries, { ...options, base: 0 })
   const down = pane.addSeries(HistogramSeries, { ...options, base: 0 })
-  const delta = pane.addSeries(LineSeries, {
-    ...options, visible: false, lastValueVisible: true, color: deltaColor, lineWidth: 1, crosshairMarkerBackgroundColor: deltaColor,
+  const lineOptions = {
+    ...options, visible: false, lastValueVisible: true, lineWidth: 1 as const,
     autoscaleInfoProvider: (original: () => AutoscaleInfo | null) => {
       const info = original()
       const range = info?.priceRange
       return range ? { ...info, priceRange: { minValue: Math.min(range.minValue, 0), maxValue: Math.max(range.maxValue, 0) } } : info
     },
-  })
+  }
+  const upLine = pane.addSeries(LineSeries, lineOptions)
+  const downLine = pane.addSeries(LineSeries, lineOptions)
+  const delta = pane.addSeries(LineSeries, { ...lineOptions, color: tickDeltaColor, lineWidth: 2, crosshairMarkerBackgroundColor: tickDeltaColor })
   const zero = { price: 0, color: '#787b86', lineWidth: 1 as const, lineStyle: LineStyle.Dashed, axisLabelVisible: false }
   up.createPriceLine(zero)
+  const upZero = upLine.createPriceLine(zero)
+  const downZero = downLine.createPriceLine(zero)
   delta.createPriceLine(zero)
   pane.priceScale('right').applyOptions({ autoScale: true, scaleMargins: { top: 0.4, bottom: 0.08 } })
 
@@ -44,15 +50,26 @@ export function createTickDeltaPane(chart: IChartApi) {
 
   let previousRows: ReadonlyMap<number, TickDeltaPoint> | undefined
   let previousView: TickDeltaPaneView | undefined
+  let previousLines: TickDeltaLines | undefined
   return {
     legend,
-    sync(rows: ReadonlyMap<number, TickDeltaPoint>, upColor: string, downColor: string, view: TickDeltaPaneView) {
+    sync(rows: ReadonlyMap<number, TickDeltaPoint>, { upColor, downColor, view, lines }: TickDeltaPlotOptions) {
       up.applyOptions({ color: upColor, visible: view === 'bars' })
       down.applyOptions({ color: downColor, visible: view === 'bars' })
-      delta.applyOptions({ visible: view === 'line' })
-      if (view === 'currency' || (previousRows === rows && previousView === view)) return
-      previousRows = rows
+      upLine.applyOptions({ color: upColor, crosshairMarkerBackgroundColor: upColor, visible: view === 'line' && lines.up })
+      downLine.applyOptions({ color: downColor, crosshairMarkerBackgroundColor: downColor, visible: view === 'line' && lines.down })
+      delta.applyOptions({ visible: view === 'line' && lines.delta })
+      const viewChanged = previousView !== view
+      if (view === 'line' && (viewChanged || previousLines !== lines)) {
+        // Draw zero on just one visible series and refit the shared axis to the selection.
+        upZero.applyOptions({ lineVisible: !lines.delta })
+        downZero.applyOptions({ lineVisible: !lines.delta && !lines.up })
+        pane.priceScale('right').applyOptions({ autoScale: true })
+      }
       previousView = view
+      previousLines = lines
+      if (view === 'currency' || (previousRows === rows && !viewChanged)) return
+      previousRows = rows
       const points = [...rows.entries()].sort(([a], [b]) => a - b)
         .map(([time, point]) => ({ time: time as UTCTimestamp, ...point }))
       if (view === 'bars') {
@@ -61,17 +78,22 @@ export function createTickDeltaPane(chart: IChartApi) {
       } else {
         const scale = chart.timeScale()
         const indices = points.map(({ time }) => scale.timeToIndex(time))
-        delta.setData(points.map(({ time, up, down }, index) => {
+        const lineData = (value: (point: TickDeltaPoint) => number) => points.map((point, index) => {
           const here = indices[index], next = indices[index + 1]
           // Skip the outgoing segment when intervening price candles lack tick history.
           const gap = here != null && next != null && next > here + 1
-          return { time, value: up - down, ...(gap ? { color: 'transparent' } : {}) }
-        }))
+          return { time: point.time, value: value(point), ...(gap ? { color: 'transparent' } : {}) }
+        })
+        upLine.setData(lineData(point => point.up))
+        downLine.setData(lineData(point => -point.down))
+        delta.setData(lineData(point => point.up - point.down))
       }
     },
     clearData() {
       up.setData([])
       down.setData([])
+      upLine.setData([])
+      downLine.setData([])
       delta.setData([])
       previousRows = undefined
     },
@@ -81,6 +103,8 @@ export function createTickDeltaPane(chart: IChartApi) {
       legend.remove()
       chart.removeSeries(up)
       chart.removeSeries(down)
+      chart.removeSeries(upLine)
+      chart.removeSeries(downLine)
       chart.removeSeries(delta)
       chart.removePane(pane.paneIndex())
     },

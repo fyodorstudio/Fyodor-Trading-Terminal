@@ -726,6 +726,28 @@ try {
   await React.act(async () => [...dialogHost.querySelectorAll('button')].find(button => button.textContent === 'Cancel').click())
   assert.equal(saved, null, 'Cancel discards drafts changed across either tab')
   await React.act(async () => dialogRoot.render(null))
+  const { createTickDeltaPane } = await server.ssrLoadModule('./src/market-data/indicators/volume/tick-delta-pane.ts')
+  const tickWindow = chart.timeScale().getVisibleLogicalRange()
+  const tickPane = createTickDeltaPane(chart)
+  const firstTickTime = bars.at(-4).time, lastTickTime = bars.at(-2).time
+  const tickRows = new Map([[firstTickTime, { up: 100, down: 90 }], [lastTickTime, { up: 80, down: 85 }]])
+  const plotTickLines = lines => tickPane.sync(tickRows, { view: 'line', upColor: '#089981', downColor: '#f23645', lines })
+  plotTickLines({ up: true, down: true, delta: true })
+  chart.timeScale().setVisibleLogicalRange({ from: bars.length - 8, to: bars.length - 1 }); await paint()
+  const nativeTickPane = chart.panes()[1]
+  const [, , upLine, downLine, deltaLine] = nativeTickPane.getSeries()
+  assert.deepEqual([upLine, downLine, deltaLine].map(line => line.data()[0].color), Array(3).fill('transparent'),
+    'Each line breaks over a candle with missing tick history')
+  const tickScale = nativeTickPane.priceScale('right')
+  assert.deepEqual(tickScale.getVisibleRange(), { from: -90, to: 100 })
+  tickScale.setVisibleRange({ from: -200, to: 200 })
+  plotTickLines({ up: false, down: false, delta: true }); await paint()
+  assert.deepEqual(tickScale.getVisibleRange(), { from: -5, to: 10 }, 'Only the visible delta contributes to the refitted axis')
+  plotTickLines({ up: false, down: true, delta: false }); await paint()
+  assert.deepEqual(tickScale.getVisibleRange(), { from: -90, to: 0 }, 'A lone downtick line keeps zero on the y-axis')
+  assert.equal(downLine.priceLines()[0].options().lineVisible, true)
+  tickPane.destroy()
+  chart.timeScale().setVisibleLogicalRange(tickWindow); await paint()
   // Pane removal must unregister series data, not just hide native widgets.
   // Otherwise 800 H1 timestamps survive and put H4 samples 798/799 at
   // logical positions 1395/1399, exactly as in the NZDJPY Activity trace.

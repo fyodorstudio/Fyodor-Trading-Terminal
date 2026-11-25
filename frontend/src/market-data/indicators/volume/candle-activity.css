@@ -21,6 +21,7 @@
 }
 
 .candle-activity-time { color: var(--text-muted); }
+.tick-delta-line-controls { border: 1px solid var(--border-strong); border-radius: 4px; padding: 2px; gap: 3px; }
 .candle-activity-pane p { margin: 4px 0 0; }
 .candle-tick-counts { margin: 4px 0 0; font-variant-numeric: tabular-nums; }
 .candle-tick-counts div { gap: 0 4px; }

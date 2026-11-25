@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { readVolumePreferences, saveVolumePreferences, type TickDeltaView, type VolumePreferences } from './volume-preferences'
+import { readVolumePreferences, saveVolumePreferences, type TickDeltaLine, type TickDeltaView, type VolumePreferences } from './volume-preferences'
 
 export function useVolumePreferences() {
   const [volume, setVolume] = useState(readVolumePreferences)
@@ -12,5 +12,10 @@ export function useVolumePreferences() {
     if (current.tickDeltaView === tickDeltaView) return current
     const next = { ...current, tickDeltaView }; saveVolumePreferences(next); return next
   }), [])
-  return { volume, changeVolume, changeTickDeltaView, toggleVolume, volumeSettingsOpen, setVolumeSettingsOpen }
+  const toggleTickDeltaLine = useCallback((line: TickDeltaLine) => setVolume(current => {
+    const next = { ...current, tickDeltaLines: { ...current.tickDeltaLines, [line]: !current.tickDeltaLines[line] } }
+    saveVolumePreferences(next)
+    return next
+  }), [])
+  return { volume, changeVolume, changeTickDeltaView, toggleTickDeltaLine, toggleVolume, volumeSettingsOpen, setVolumeSettingsOpen }
 }

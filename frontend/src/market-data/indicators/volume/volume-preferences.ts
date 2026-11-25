@@ -1,4 +1,6 @@
 export type TickDeltaView = 'bars' | 'line'
+export type TickDeltaLine = 'up' | 'down' | 'delta'
+export type TickDeltaLines = Record<TickDeltaLine, boolean>
 
 export type VolumePreferences = {
   enabled: boolean; mode: 'raw' | 'relative' | 'tick-delta'; axisTarget: 'volume' | 'relative'
@@ -6,6 +8,7 @@ export type VolumePreferences = {
   lookback: number; minimumSamples: number; averageVisible: boolean; averageLength: number
   upColor: string; downColor: string; averageColor: string
   tickDeltaView: TickDeltaView
+  tickDeltaLines: TickDeltaLines
 }
 export type VolumeLayer = 'barsVisible' | 'relativeLineVisible' | 'averageVisible'
 export const defaultVolumePreferences: VolumePreferences = {
@@ -13,6 +16,7 @@ export const defaultVolumePreferences: VolumePreferences = {
   barsVisible: true, relativeLineVisible: true, relativeLineColor: '#2962ff',
   averageVisible: false, averageLength: 20, upColor: '#089981', downColor: '#f23645', averageColor: '#b18a00',
   tickDeltaView: 'bars',
+  tickDeltaLines: { up: true, down: true, delta: true },
 }
 const storageKey = 'fyodor.indicators.volume.v1'
 export function readVolumePreferences(): VolumePreferences {
@@ -31,6 +35,7 @@ export function readVolumePreferences(): VolumePreferences {
       minimumSamples: Math.min(integer('minimumSamples', 1, 60), lookback),
       averageVisible: p.averageVisible === true, averageLength: integer('averageLength', 1, 200),
       tickDeltaView: p.tickDeltaView === 'line' ? 'line' : d.tickDeltaView,
+      tickDeltaLines: { up: p.tickDeltaLines?.up !== false, down: p.tickDeltaLines?.down !== false, delta: p.tickDeltaLines?.delta !== false },
       upColor: color('upColor'), downColor: color('downColor'), averageColor: color('averageColor') }
   } catch { return d }
 }
