@@ -277,8 +277,9 @@ Switch between **Uptick / Downtick Bars** and **Delta Line** in the pane. In
 **Delta Line**, **Total Ticks** counts all observed updates, including unchanged
 and unclassified ticks. Delta plots upticks minus downticks. Its dots use the
 line colour except when positive delta meets a down candle or negative delta
-meets an up candle. Those dots are yellow by default. All colours are adjustable
-in **Volume → Style**. Use the checkboxes to show and hide lines. Select a line
+meets an up candle. Both divergence colours default to yellow and can be set
+independently in **Volume → Style**. The same tab has separate dot switches for
+Delta and Total Ticks. Use the pane checkboxes to show and hide lines. Select a line
 and drag the right y-axis to resize it.
 Double-click the axis to return the selected line to the shared automatic scale.
 With both count lines on the shared scale, crossings show where their counts

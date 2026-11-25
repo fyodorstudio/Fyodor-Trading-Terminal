@@ -34,8 +34,10 @@ export function VolumeSettingsDialog({ preferences, synthetic = false, onSave, o
           !Number.isInteger(draft.averageLength) || draft.averageLength < 1 || draft.averageLength > 200)) {
           setError('Use 5–60 previous sessions, minimum samples from 1 to previous sessions, and an average length from 1 to 200.'); setTab('inputs'); return
         }
-        const { upColor, downColor, totalTicksColor, tickDeltaColor, tickDivergenceColor } = draft
-        onSave(synthetic ? { ...preferences, upColor, downColor, totalTicksColor, tickDeltaColor, tickDivergenceColor }
+        const { upColor, downColor, totalTicksColor, tickDeltaColor, redCandleDivergenceColor, greenCandleDivergenceColor,
+          tickDeltaDotsVisible, totalTicksDotsVisible } = draft
+        onSave(synthetic ? { ...preferences, upColor, downColor, totalTicksColor, tickDeltaColor,
+          redCandleDivergenceColor, greenCandleDivergenceColor, tickDeltaDotsVisible, totalTicksDotsVisible }
           : { ...draft, enabled: preferences.enabled })
         onClose()
       }}>
@@ -67,13 +69,20 @@ export function VolumeSettingsDialog({ preferences, synthetic = false, onSave, o
           <label>Average length<input aria-label="Average length" type="number" min="1" max="200" required disabled={!draft.averageVisible} value={draft.averageLength} onChange={event => patch({ averageLength: Number(event.target.value) })} /></label>
           <p>Optional average for Raw bars, enabled in Style. This does not smooth the Relative activity line.</p>
         </fieldset>}
-        </> : mode === 'tick-delta' ? <fieldset><legend>Tick Delta colours</legend>
+        </> : mode === 'tick-delta' ? <>
+        <fieldset><legend>Tick Delta colours</legend>
           <label>Upticks<input type="color" value={draft.upColor} onChange={event => patch({ upColor: event.target.value })} /></label>
           <label>Downticks<input type="color" value={draft.downColor} onChange={event => patch({ downColor: event.target.value })} /></label>
           <label>Total Ticks<input type="color" value={draft.totalTicksColor} onChange={event => patch({ totalTicksColor: event.target.value })} /></label>
           <label>Delta Line<input type="color" value={draft.tickDeltaColor} onChange={event => patch({ tickDeltaColor: event.target.value })} /></label>
-          <label>Divergence<input type="color" value={draft.tickDivergenceColor} onChange={event => patch({ tickDivergenceColor: event.target.value })} /></label>
-        </fieldset> : <>
+          <label>Red candle divergence<input type="color" value={draft.redCandleDivergenceColor} onChange={event => patch({ redCandleDivergenceColor: event.target.value })} /></label>
+          <label>Green candle divergence<input type="color" value={draft.greenCandleDivergenceColor} onChange={event => patch({ greenCandleDivergenceColor: event.target.value })} /></label>
+        </fieldset>
+        <fieldset><legend>Dots</legend>
+          <label>Show Delta dots<input type="checkbox" checked={draft.tickDeltaDotsVisible} onChange={event => patch({ tickDeltaDotsVisible: event.target.checked })} /></label>
+          <label>Show Total Ticks dots<input type="checkbox" checked={draft.totalTicksDotsVisible} onChange={event => patch({ totalTicksDotsVisible: event.target.checked })} /></label>
+        </fieldset>
+        </> : <>
         <fieldset><legend>Pane</legend>
           <label>Right axis<select value={draft.axisTarget} onChange={event => patch({ axisTarget: event.target.value as VolumePreferences['axisTarget'] })}>
             <option value="volume">Volume bars</option><option value="relative">Relative line</option></select></label>

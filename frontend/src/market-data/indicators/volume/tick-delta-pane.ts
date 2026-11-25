@@ -1,10 +1,10 @@
 import { HistogramSeries, LineSeries, LineStyle, type AutoscaleInfo, type IChartApi, type IPanePrimitive, type LineData, type Time, type UTCTimestamp } from 'lightweight-charts'
 import type { OhlcBar } from '../../contracts/OhlcBar'
-import type { TickDeltaColors, TickDeltaLine, TickDeltaLines, TickDeltaView } from './volume-preferences'
+import type { TickDeltaLine, TickDeltaLines, TickDeltaStyle, TickDeltaView } from './volume-preferences'
 
 export type TickDeltaPoint = { up: number; down: number; total: number }
 type TickDeltaPaneView = TickDeltaView | 'currency'
-export type TickDeltaPlotOptions = TickDeltaColors & { view: TickDeltaPaneView; lines: TickDeltaLines; axis?: TickDeltaLine }
+export type TickDeltaPlotOptions = TickDeltaStyle & { view: TickDeltaPaneView; lines: TickDeltaLines; axis?: TickDeltaLine }
 const lineAxes = ['up', 'down', 'delta', 'total'] as const
 const scaleMargins = { top: 0.4, bottom: 0.08 }
 type AxisRange = { from: number; to: number }
@@ -50,10 +50,12 @@ export function createTickDeltaPane(chart: IChartApi) {
   const upLine = pane.addSeries(LineSeries, lineOptions)
   const downLine = pane.addSeries(LineSeries, lineOptions)
   const delta = pane.addSeries(LineSeries, { ...lineOptions, lineWidth: 2, crosshairMarkerVisible: false })
-  const total = pane.addSeries(LineSeries, lineOptions)
-  // Point colours can differ from the connecting segments, even beside a history gap.
-  const deltaDots = pane.addSeries(LineSeries, { ...lineOptions, lastValueVisible: false,
-    lineVisible: false, pointMarkersVisible: true, pointMarkersRadius: 2.5, crosshairMarkerVisible: false })
+  const total = pane.addSeries(LineSeries, { ...lineOptions, crosshairMarkerVisible: false })
+  // Keep dots visible at measured points next to gaps in the connecting lines.
+  const dotOptions = { ...lineOptions, lastValueVisible: false,
+    lineVisible: false, pointMarkersVisible: true, pointMarkersRadius: 2.5, crosshairMarkerVisible: false }
+  const deltaDots = pane.addSeries(LineSeries, dotOptions)
+  const totalDots = pane.addSeries(LineSeries, dotOptions)
   const zero = { price: 0, color: '#787b86', lineWidth: 1 as const, lineStyle: LineStyle.Dashed, axisLabelVisible: false }
   up.createPriceLine(zero)
   const lineSeries = { up: upLine, down: downLine, delta, total }
@@ -80,6 +82,8 @@ export function createTickDeltaPane(chart: IChartApi) {
   let previousAxis: TickDeltaLine | undefined
   let deltaPoints: LineData<UTCTimestamp>[] = []
   let dotPoints: LineData<UTCTimestamp>[] = []
+  let totalPoints: LineData<UTCTimestamp>[] = []
+  let plottedTotalDots: typeof totalPoints | undefined
   const manualRanges = new Map<TickDeltaLine, AxisRange>()
   let barsRange: AxisRange | null = null
   function selectAxis(view: TickDeltaPaneView, axis: TickDeltaLine | undefined) {
@@ -93,6 +97,7 @@ export function createTickDeltaPane(chart: IChartApi) {
       const id = axis === line ? 'right' : `tick-delta-${line}`
       lineSeries[line].applyOptions({ priceScaleId: id, lastValueVisible: axis === line })
       if (line === 'delta') deltaDots.applyOptions({ priceScaleId: id })
+      if (line === 'total') totalDots.applyOptions({ priceScaleId: id })
       zeroLines[line].applyOptions({ lineVisible: axis === line })
       const scale = pane.priceScale(id)
       scale.applyOptions({ scaleMargins })
@@ -103,14 +108,16 @@ export function createTickDeltaPane(chart: IChartApi) {
     if (view === 'bars' && barsRange) right.setVisibleRange(barsRange)
     else if (!axis) right.setAutoScale(true)
   }
-  function syncDeltaDots(candles: readonly OhlcBar[], divergenceColor: string) {
+  function syncDeltaDots(candles: readonly OhlcBar[], redColor: string, greenColor: string) {
     let candleIndex = 0
     const next = deltaPoints.map(({ time, value }) => {
       while (candleIndex < candles.length && candles[candleIndex].time < time) candleIndex++
       const candle = candles[candleIndex]
-      const divergent = candle?.time === time && !candle.closeOnly &&
-        ((value > 0 && candle.close < candle.open) || (value < 0 && candle.close > candle.open))
-      return { time, value, ...(divergent ? { color: divergenceColor } : {}) }
+      if (candle?.time === time && !candle.closeOnly) {
+        if (value > 0 && candle.close < candle.open) return { time, value, color: redColor }
+        if (value < 0 && candle.close > candle.open) return { time, value, color: greenColor }
+      }
+      return { time, value }
     })
     if (next.length !== dotPoints.length || next.some(({ time, value, color }, i) =>
       time !== dotPoints[i].time || value !== dotPoints[i].value || color !== dotPoints[i].color)) {
@@ -122,7 +129,8 @@ export function createTickDeltaPane(chart: IChartApi) {
     legend,
     restoreScaleMargins() { pane.priceScale('right').applyOptions({ scaleMargins }) },
     sync(rows: ReadonlyMap<number, TickDeltaPoint>, plot: TickDeltaPlotOptions, candles: readonly OhlcBar[]) {
-      const { upColor, downColor, totalTicksColor, tickDeltaColor, tickDivergenceColor, view, lines, axis } = plot
+      const { upColor, downColor, totalTicksColor, tickDeltaColor, redCandleDivergenceColor, greenCandleDivergenceColor,
+        tickDeltaDotsVisible, totalTicksDotsVisible, view, lines, axis } = plot
       if (fitRows !== rows || fitLines !== lines) {
         fitRows = rows
         fitLines = lines
@@ -130,6 +138,9 @@ export function createTickDeltaPane(chart: IChartApi) {
       }
       const viewChanged = previousOptions?.view !== view
       const showDelta = view === 'line' && lines.delta
+      const showTotal = view === 'line' && lines.total
+      const showDeltaDots = showDelta && tickDeltaDotsVisible
+      const showTotalDots = showTotal && totalTicksDotsVisible
       if (previousOptions !== plot) {
         const selected = view === 'line' ? axis : undefined
         if (viewChanged || previousAxis !== selected) selectAxis(view, selected)
@@ -139,9 +150,10 @@ export function createTickDeltaPane(chart: IChartApi) {
         down.applyOptions({ color: downColor, visible: view === 'bars' })
         upLine.applyOptions({ color: upColor, crosshairMarkerBackgroundColor: upColor, visible: view === 'line' && lines.up })
         downLine.applyOptions({ color: downColor, crosshairMarkerBackgroundColor: downColor, visible: view === 'line' && lines.down })
-        total.applyOptions({ color: totalTicksColor, crosshairMarkerBackgroundColor: totalTicksColor, visible: view === 'line' && lines.total })
+        total.applyOptions({ color: totalTicksColor, visible: showTotal })
         delta.applyOptions({ color: tickDeltaColor, visible: showDelta })
-        deltaDots.applyOptions({ color: tickDeltaColor, visible: showDelta })
+        deltaDots.applyOptions({ color: tickDeltaColor, visible: showDeltaDots })
+        totalDots.applyOptions({ color: totalTicksColor, visible: showTotalDots })
       }
       if (view !== 'currency' && (previousRows !== rows || viewChanged)) {
         previousRows = rows
@@ -161,20 +173,28 @@ export function createTickDeltaPane(chart: IChartApi) {
           })
           upLine.setData(lineData(point => point.up))
           downLine.setData(lineData(point => point.down))
-          total.setData(lineData(point => point.total))
+          totalPoints = lineData(point => point.total)
+          total.setData(totalPoints)
           deltaPoints = lineData(point => point.up - point.down)
           delta.setData(deltaPoints)
         }
       }
-      if (showDelta) syncDeltaDots(candles, tickDivergenceColor)
+      if (showDeltaDots) syncDeltaDots(candles, redCandleDivergenceColor, greenCandleDivergenceColor)
+      if (showTotalDots && plottedTotalDots !== totalPoints) {
+        totalDots.setData(totalPoints.map(({ time, value }) => ({ time, value })))
+        plottedTotalDots = totalPoints
+      }
     },
     clearData() {
       up.setData([])
       down.setData([])
       for (const line of lineAxes) lineSeries[line].setData([])
       deltaDots.setData([])
+      totalDots.setData([])
       deltaPoints = []
       dotPoints = []
+      totalPoints = []
+      plottedTotalDots = undefined
       previousRows = undefined
       fitRows = undefined
       cachedFit = undefined
@@ -191,6 +211,7 @@ export function createTickDeltaPane(chart: IChartApi) {
       chart.removeSeries(down)
       for (const line of lineAxes) chart.removeSeries(lineSeries[line])
       chart.removeSeries(deltaDots)
+      chart.removeSeries(totalDots)
       chart.removePane(pane.paneIndex())
     },
   }

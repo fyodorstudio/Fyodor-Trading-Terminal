@@ -7,7 +7,7 @@ import { timeframeToSeconds } from '../../chart-drawings/position-drawing-geomet
 import type { ChartTimeframe } from '../../contracts/ChartTimeframe'
 import type { OhlcBar } from '../../contracts/OhlcBar'
 import type { TickDeltaPlotOptions, TickDeltaPoint } from './tick-delta-pane'
-import type { TickDeltaColors, TickDeltaLine, TickDeltaLines, TickDeltaView } from './volume-preferences'
+import type { TickDeltaStyle, TickDeltaLine, TickDeltaLines, TickDeltaView } from './volume-preferences'
 import { useTickDeltaHistory, type TickCounts } from './use-tick-delta-history'
 import './candle-activity.css'
 
@@ -44,7 +44,7 @@ function useCandleReading<T>(request: string | null, refreshUntil?: number | nul
   return { current: reading?.key === key ? reading : null, retry: () => setRetry(value => value + 1) }
 }
 
-export type CandleActivityProps = TickDeltaColors & {
+export type CandleActivityProps = TickDeltaStyle & {
   bars: OhlcBar[]
   symbol: string; timeframe: ChartTimeframe; synthetic: boolean; canRank: boolean; connected: boolean; generation: number
   tickDeltaView: TickDeltaView; onTickDeltaViewChange: (view: TickDeltaView) => void
@@ -53,7 +53,8 @@ export type CandleActivityProps = TickDeltaColors & {
 }
 
 export function CandleActivityControls({ chart, bars, symbol, timeframe, synthetic, canRank,
-  connected, upColor, downColor, totalTicksColor, tickDeltaColor, tickDivergenceColor,
+  connected, upColor, downColor, totalTicksColor, tickDeltaColor, redCandleDivergenceColor, greenCandleDivergenceColor,
+  tickDeltaDotsVisible, totalTicksDotsVisible,
   tickDeltaView, onTickDeltaViewChange, tickDeltaLines, onToggleTickDeltaLine,
   tickDeltaAxis, onTickDeltaAxisChange, onPlot }: CandleActivityProps & {
   chart: IChartApi
@@ -116,9 +117,12 @@ export function CandleActivityControls({ chart, bars, symbol, timeframe, synthet
     if (liveTicks) points.set(last, { up: liveTicks.up, down: liveTicks.down, total: totalTicks(liveTicks) })
     return points
   }, [history, first, last, liveTicks])
-  const plot = useMemo<TickDeltaPlotOptions>(() => ({ upColor, downColor, totalTicksColor, tickDeltaColor, tickDivergenceColor, view: paneView, lines: tickDeltaLines, axis }),
-    [upColor, downColor, totalTicksColor, tickDeltaColor, tickDivergenceColor, paneView, tickDeltaLines, axis])
-  const markerCandles = paneView === 'line' && tickDeltaLines.delta ? bars : undefined
+  const plot = useMemo<TickDeltaPlotOptions>(() => ({
+    upColor, downColor, totalTicksColor, tickDeltaColor, redCandleDivergenceColor, greenCandleDivergenceColor,
+    tickDeltaDotsVisible, totalTicksDotsVisible, view: paneView, lines: tickDeltaLines, axis,
+  }), [upColor, downColor, totalTicksColor, tickDeltaColor, redCandleDivergenceColor, greenCandleDivergenceColor,
+    tickDeltaDotsVisible, totalTicksDotsVisible, paneView, tickDeltaLines, axis])
+  const markerCandles = paneView === 'line' && tickDeltaLines.delta && tickDeltaDotsVisible ? bars : undefined
   useLayoutEffect(() => onPlot(visiblePoints, plot, markerCandles ?? []), [onPlot, visiblePoints, plot, markerCandles])
 
   const current = ranking ? rank : start === last ? live : fallback

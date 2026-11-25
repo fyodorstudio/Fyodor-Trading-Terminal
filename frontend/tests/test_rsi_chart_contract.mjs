@@ -732,12 +732,12 @@ try {
   const firstTickTime = bars.at(-4).time, lastTickTime = bars.at(-2).time
   const tickRows = new Map([[firstTickTime, { up: 100, down: 90, total: 196 }], [lastTickTime, { up: 80, down: 85, total: 165 }]])
   const allTickLines = { up: true, down: true, delta: true, total: false }
-  const plotTickLines = (axis, lines = allTickLines, candles = bars, colors = {}) =>
-    tickPane.sync(tickRows, { ...defaultVolumePreferences, ...colors, view: 'line', lines, axis }, candles)
+  const plotTickLines = (axis, lines = allTickLines, candles = bars, style = {}) =>
+    tickPane.sync(tickRows, { ...defaultVolumePreferences, ...style, view: 'line', lines, axis }, candles)
   plotTickLines('delta')
   chart.timeScale().setVisibleLogicalRange({ from: bars.length - 8, to: bars.length - 1 }); await paint()
   const nativeTickPane = chart.panes()[1]
-  const [, , upLine, downLine, deltaLine, totalLine, deltaDots] = nativeTickPane.getSeries()
+  const [, , upLine, downLine, deltaLine, totalLine, deltaDots, totalDots] = nativeTickPane.getSeries()
   assert.deepEqual([upLine, downLine, deltaLine, totalLine].map(line => line.data()[0].color), Array(4).fill('transparent'),
     'Each line breaks over a candle with missing tick history')
   const tickScale = nativeTickPane.priceScale('right')
@@ -771,19 +771,37 @@ try {
   assert.equal(deltaDots.options().pointMarkersVisible, true)
   assert.equal(deltaLine.options().crosshairMarkerVisible, false)
   assert.deepEqual(deltaDots.data(), [
-    { time: firstTickTime, value: 10, color: defaultVolumePreferences.tickDivergenceColor },
-    { time: lastTickTime, value: -5, color: defaultVolumePreferences.tickDivergenceColor },
+    { time: firstTickTime, value: 10, color: defaultVolumePreferences.redCandleDivergenceColor },
+    { time: lastTickTime, value: -5, color: defaultVolumePreferences.greenCandleDivergenceColor },
   ], 'Both opposing directions get divergence dots, including beside a missing-data gap')
   assert.equal(deltaDots.options().priceScaleId, deltaLine.options().priceScaleId)
   close(deltaDots.priceToCoordinate(-5), deltaLine.priceToCoordinate(-5), 'Dots share Delta’s scale when Total Ticks owns the right axis')
   const alignedTickCandles = tickCandles.map(bar => bar.time === firstTickTime || bar.time === lastTickTime
     ? { ...bar, close: 2 * bar.open - bar.close } : bar)
-  plotTickLines('delta', allTickLines, alignedTickCandles, { tickDeltaColor: '#123456', tickDivergenceColor: '#fedcba' }); await paint()
+  plotTickLines('delta', allTickLines, alignedTickCandles, { tickDeltaColor: '#123456' }); await paint()
   assert.deepEqual(deltaDots.data(), [{ time: firstTickTime, value: 10 }, { time: lastTickTime, value: -5 }])
   assert.equal(deltaDots.options().color, '#123456')
   assert.equal(deltaLine.options().color, '#123456')
-  plotTickLines('delta', allTickLines, tickCandles, { tickDivergenceColor: '#fedcba' }); await paint()
-  assert.ok(deltaDots.data().every(dot => dot.color === '#fedcba'), 'Style changes recolour divergence dots with unchanged tick counts')
+  const divergenceColors = { redCandleDivergenceColor: '#fedcba', greenCandleDivergenceColor: '#abcdef' }
+  plotTickLines('delta', allTickLines, tickCandles, divergenceColors); await paint()
+  assert.deepEqual(deltaDots.data().map(dot => dot.color), ['#fedcba', '#abcdef'], 'Each divergence direction takes its own colour')
+  const bothLines = { ...allTickLines, total: true }
+  plotTickLines('total', bothLines, tickCandles, { tickDeltaDotsVisible: false, totalTicksDotsVisible: true }); await paint()
+  assert.equal(deltaLine.options().visible, true)
+  assert.equal(deltaDots.options().visible, false)
+  assert.equal(totalDots.options().visible, true)
+  assert.equal(totalDots.options().color, defaultVolumePreferences.totalTicksColor)
+  assert.equal(totalDots.options().pointMarkersVisible, true)
+  assert.equal(totalDots.options().lineVisible, false)
+  assert.deepEqual(totalDots.data(), [{ time: firstTickTime, value: 196 }, { time: lastTickTime, value: 165 }],
+    'Total dots use total values and stay coloured next to gaps')
+  close(totalDots.priceToCoordinate(196), totalLine.priceToCoordinate(196), 'Total dots share their line scale')
+  plotTickLines('delta', bothLines, tickCandles, { ...divergenceColors, totalTicksDotsVisible: false }); await paint()
+  assert.equal(deltaDots.options().visible, true)
+  assert.equal(totalDots.options().visible, false)
+  assert.equal(totalLine.options().visible, true)
+  plotTickLines('delta', allTickLines, tickCandles, { totalTicksDotsVisible: true }); await paint()
+  assert.equal(totalDots.options().visible, false, 'Hiding Total Ticks also hides its dots')
   tickPane.destroy()
   chart.timeScale().setVisibleLogicalRange(tickWindow); await paint()
   // Pane removal must unregister series data, not just hide native widgets.

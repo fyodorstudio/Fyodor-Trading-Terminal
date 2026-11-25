@@ -190,7 +190,9 @@ function TerminalWorkspaceContent() {
                     tickDeltaAxis: volume.tickDeltaAxis, onTickDeltaAxisChange: changeTickDeltaAxis,
                     symbol: activeSymbol, timeframe, synthetic: quote?.synthetic === true, canRank: brokerId === 'Pepperstone-Demo',
                     connected: bridge.connected, generation: bridge.generation, upColor: volume.upColor, downColor: volume.downColor,
-                    totalTicksColor: volume.totalTicksColor, tickDeltaColor: volume.tickDeltaColor, tickDivergenceColor: volume.tickDivergenceColor,
+                    totalTicksColor: volume.totalTicksColor, tickDeltaColor: volume.tickDeltaColor,
+                    redCandleDivergenceColor: volume.redCandleDivergenceColor, greenCandleDivergenceColor: volume.greenCandleDivergenceColor,
+                    tickDeltaDotsVisible: volume.tickDeltaDotsVisible, totalTicksDotsVisible: volume.totalTicksDotsVisible,
                   } : undefined}
                   marketStructure={marketStructure}
                   atr={atr}
