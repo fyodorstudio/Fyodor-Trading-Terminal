@@ -10,6 +10,13 @@
       "set": {
         "actual": 50.9
       }
+    },
+    {
+      "value_id": "317184",
+      "source_url": "https://businessnz.org.nz/psi/pre-election-drinks",
+      "set": {
+        "previous": 50.9
+      }
     }
   ]
 }

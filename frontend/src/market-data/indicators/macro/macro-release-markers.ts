@@ -20,7 +20,7 @@ export function createMacroReleaseMarkers() {
         const value = scheduled.forecasts?.[key]
         incoming.add(id)
         markers.set(id, { key, time: scheduled.time, releasedAt: scheduled.releasedAt, forecast: Number.isFinite(value) ? value : undefined,
-          forecastSource: scheduled.forecastSources?.[key], format: scheduled.formats?.[key] })
+          previous: scheduled.previousValues?.[key], forecastSource: scheduled.forecastSources?.[key], format: scheduled.formats?.[key] })
       }
       for (const missing of indicator.missing ?? []) {
         if (!selected.has(missing.key)) continue

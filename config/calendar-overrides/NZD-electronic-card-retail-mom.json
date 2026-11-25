@@ -10,6 +10,14 @@
       "set": {
         "actual": -0.4
       }
+    },
+    {
+      "value_id": "321835",
+      "source_url": "https://ca.investing.com/economic-calendar/electronic-card-retail-sales-1058",
+      "set": {
+        "previous": -0.4,
+        "revised_previous": -0.5
+      }
     }
   ]
 }

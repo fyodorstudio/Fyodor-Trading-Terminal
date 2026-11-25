@@ -154,7 +154,7 @@ try {
     unit: macroMetrics[key].unit, multiplier: macroMetrics[key].multiplier, actual: null,
     release_at: at + days * 86400000, chart_time_seconds: start + days * 86400, ...patch })
   const upcoming = macroUpcoming([scheduledEvent('coreCpi'), scheduledEvent('headlineCpi'), scheduledEvent('coreCpi'),
-    scheduledEvent('payrolls', 2), scheduledEvent('unemployment', 2), event(),
+    scheduledEvent('payrolls', 2, { previous: 0 }), scheduledEvent('unemployment', 2, { previous: 4.1 }), event(),
     scheduledEvent('rate', 3, { chart_time_seconds: null }), scheduledEvent('rate', 4, { time_mode: 2 }),
     scheduledEvent('rate', 5, { availability: 'not-returned-by-latest-query' }), scheduledEvent('rate', 6, { currency: 'CAD' }),
   ], at)
@@ -162,21 +162,23 @@ try {
   assert.deepEqual(upcoming[0].metrics, ['coreCpi', 'headlineCpi'])
   assert.deepEqual(upcoming[1].metrics, ['payrolls', 'unemployment'])
   assert.deepEqual(upcoming[1].forecasts, { payrolls: 9, unemployment: 9 }, 'Companion forecasts retain their individual series')
+  assert.deepEqual(upcoming[1].previousValues, { payrolls: 0, unemployment: 4.1 }, 'Each forecast has its own reported comparison, including zero')
   assert.equal(upcoming[1].formats.payrolls.unit, 4); assert.equal(upcoming[1].formats.payrolls.multiplier, 1)
   const revisedUpcoming = macroUpcoming([
     scheduledEvent('payrolls', 1, { forecast: 100 }),
-    scheduledEvent('payrolls', 1, { revision: 1, forecast: null }),
+    scheduledEvent('payrolls', 1, { revision: 1, forecast: null, previous: null }),
     scheduledEvent('unemployment', 1, { forecast: 0 }),
     scheduledEvent('coreCpi', 2, { forecast: NaN }),
   ], at)
   assert.deepEqual(revisedUpcoming[0].forecasts, { unemployment: 0 }, 'Latest blank/zero forecasts preserve their distinct meanings')
+  assert.deepEqual(revisedUpcoming[0].previousValues, { unemployment: 8 }, 'Missing Previous is not taken from an older schedule')
   assert.deepEqual(revisedUpcoming[1].forecasts, {}, 'Nonnumeric upcoming values remain schedule only')
   assert.equal(macroUpcoming([scheduledEvent('coreCpi')], at + 86400000).length, 0, 'Elapsed schedules never remain upcoming')
 
   const { createMacroReleaseMarkers } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-release-markers.ts')
   const markerState = createMacroReleaseMarkers(), markerAt = at + 1000
   const markerIndicator = { enabled: true, status: '', preferences: defaultMacroPreferences, history: {}, upcoming: [
-    { time: start, releasedAt: markerAt, metrics: ['payrolls'], forecasts: { payrolls: 0 } },
+    { time: start, releasedAt: markerAt, metrics: ['payrolls'], forecasts: { payrolls: 0 }, previousValues: { payrolls: -10 } },
   ] }
   const archived = scheduledEvent('coreCpi', -1, { availability: 'not-returned-by-latest-query' })
   const missing = macroMissing([archived, { ...archived, value_id: '42' }, scheduledEvent('coreCpi')], at, ['coreCpi'], {})
@@ -196,6 +198,7 @@ try {
   assert.equal(markerState.all()[0].forecast, 0)
   markerState.sync({ ...markerIndicator, upcoming: [] }, markerAt + 1)
   assert.equal(markerState.all()[0].forecast, 0, 'A due release keeps its last captured forecast while the actual is pending')
+  assert.equal(markerState.all()[0].previous, -10, 'The forecast keeps its comparison until the actual arrives')
   assert.equal(markerState.all()[0].actual, undefined, 'Reaching the scheduled time never fabricates an actual')
   const publishedReading = { time: start, releasedAt: markerAt, id: 'published', value: 125 }
   markerState.sync({ ...markerIndicator, upcoming: [], history: { payrolls: [publishedReading] } }, markerAt + 1)

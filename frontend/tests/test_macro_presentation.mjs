@@ -84,7 +84,7 @@ try {
   const shell = document.createElement('div'); host.append(shell)
   shell.style.setProperty('--surface-panel', '#ffffff')
   const start = Date.parse('2026-01-01T00:00:00Z') / 1000, primitives = new Set(), hover = new Set(), clicks = new Set(), listeners = new Set(), scales = new Map(), lines = new Set()
-  const scale = { getVisibleRange: () => ({ from: start, to: start + 3600 * 9 }), timeToCoordinate: time => 100 + (time - start) / 3600 * 20,
+  const scale = { getVisibleRange: () => ({ from: start, to: start + 3600 * 11 }), timeToCoordinate: time => 100 + (time - start) / 3600 * 20,
     timeToIndex: () => 0, logicalToCoordinate: index => 100 + index * 20,
     subscribeVisibleLogicalRangeChange: fn => listeners.add(fn), unsubscribeVisibleLogicalRangeChange: fn => listeners.delete(fn),
     subscribeSizeChange: fn => listeners.add(fn), unsubscribeSizeChange: fn => listeners.delete(fn) }
@@ -115,7 +115,7 @@ try {
   assert.ok(labels.claim({ x: 100, y: 120, rx: 20, ry: 8 }, 800, 400), 'Compact neighboring lanes do not lose labels merely because they share a grid cell')
   const viewPane = createMacroPane(chart)
   let preferences = { ...original, numberPlacement: 'inside', essentialsVersion: 1, series: { ...original.series, rate: { ...original.series.rate, numbersVisible: true } } }
-  const bars = Array.from({ length: 10 }, (_, i) => ({ time: start + i * 3600, open: 1, high: 1, low: 1, close: 1 }))
+  const bars = Array.from({ length: 12 }, (_, i) => ({ time: start + i * 3600, open: 1, high: 1, low: 1, close: 1 }))
   const history = { rate: bars.slice(0, 3).map((bar, i) => ({ id: String(i), time: bar.time, releasedAt: bar.time * 1000, value: 4 + i / 10 })) }
   let indicator = { enabled: true, preferences, history, upcoming: [], status: '', events: [{ id: 'note', time: start, at: start * 1000, title: 'Manual note', details: '' }] }
   const sync = () => viewPane.sync(bars, indicator, 3600, String, { toggleMetric() {}, selectMetric() {}, changePreferences(next) { preferences = next; indicator = { ...indicator, preferences } } })
@@ -140,7 +140,10 @@ try {
   const header = shell.querySelector('.macro-currency-header')
   assert.ok(header.contains(shell.querySelector('.macro-controls')), 'Currency tabs and chart actions share one toolbar row')
   const deltaButton = shell.querySelector('[data-macro-color-mode="ap-delta"]'), customButton = shell.querySelector('[data-macro-color-mode="custom"]')
-  assert.equal(deltaButton.nextElementSibling, shell.querySelector('[aria-label="MFDI series drawer"]'))
+  const seriesButton = shell.querySelector('[aria-label="MFDI series drawer"]')
+  assert.equal(deltaButton.nextElementSibling, seriesButton)
+  const copyButton = seriesButton.nextElementSibling
+  assert.equal(copyButton.textContent, 'Copy Prompt')
   const savedColor = preferences.series.rate.color
   preferences = { ...preferences, series: { ...preferences.series, rate: { ...preferences.series.rate, visible: true, forecastVisible: true } } }
   indicator = { ...indicator, preferences, history: { rate: [
@@ -148,7 +151,7 @@ try {
     { id: 'down', time: bars[3].time, releasedAt: bars[3].time * 1000, value: 4, previous: 5 },
     { id: 'equal', time: bars[6].time, releasedAt: bars[6].time * 1000, value: 4, previous: 4 },
     { id: 'last', time: bars[8].time, releasedAt: bars[8].time * 1000, value: 3, previous: 4 },
-  ] }, upcoming: [{ time: bars[9].time, releasedAt: Date.now() + 60000, metrics: ['rate'], forecasts: { rate: 3.5 } }] }; sync()
+  ] }, upcoming: [{ time: bars[11].time, releasedAt: Date.now() + 60000, metrics: ['rate'], forecasts: { rate: 3.5 }, previousValues: { rate: 4 } }] }; sync()
   deltaButton.click(); sync(); draw()
   assert.equal(deltaButton.getAttribute('aria-pressed'), 'true')
   assert.equal(customButton.getAttribute('aria-pressed'), 'false')
@@ -156,29 +159,61 @@ try {
   for (const color of ['#16a34a', '#dc2626', '#6b7280']) assert.ok(operations.some(op => op[0] === 'fill' && op[1] === color), `${color}: actual box is filled`)
   const strokes = operations.filter(op => op[0] === 'stroke' && op[2] === 1)
   assert.ok(strokes.some(op => op[1] === '#16a34a' && op[3][0]?.[1] === 100 && op[3][1]?.[1] === 160), 'Green carries forward until the red release')
-  assert.ok(strokes.some(op => op[1] === '#dc2626' && op[3][0]?.[1] === 260 && op[3][1]?.[1] === 280), 'The latest actual color continues up to the forecast box')
-  assert.ok(strokes.some(op => op[1] === '#6b7280' && op[3][0]?.[1] === 280 && op[3][1]?.[1] === 800), 'The line after the forecast box is gray')
+  assert.ok(strokes.some(op => op[1] === '#dc2626' && op[3][0]?.[1] === 260 && op[3][1]?.[1] === 320), 'The latest actual color continues up to the forecast box')
+  assert.ok(strokes.some(op => op[1] === '#6b7280' && op[3][0]?.[1] === 320 && op[3][1]?.[1] === 800), 'The line after the forecast box is gray')
   assert.ok(!operations.some(op => op[0] === 'stroke' && op[1] === savedColor && op[2] === .25), 'Forecast connectors do not paint over the latest result in delta lanes')
-  assert.ok(strokes.some(op => op[1] === savedColor && op[3].length === 0), 'Pending forecast markers retain their custom outline')
+  const expectForecast = (label, color) => {
+    const index = operations.findIndex(op => op[0] === 'text' && op[1] === label)
+    assert.ok(index >= 2, `${label} forecast is drawn`)
+    assert.deepEqual(operations[index - 2].slice(0, 2), ['fill', '#ffffff'], 'The forecast stays hollow')
+    assert.deepEqual(operations[index - 1].slice(0, 2), ['stroke', color], 'The outline shows the forecast comparison')
+  }
+  expectForecast('3.50%', '#dc2626')
+  for (const [previousValues, color] of [[{ rate: 0 }, '#16a34a'], [{ rate: 3.5 }, '#6b7280'], [{}, '#6b7280']]) {
+    indicator = { ...indicator, upcoming: [{ ...indicator.upcoming[0], previousValues }] }
+    sync(); draw(); expectForecast('3.50%', color)
+  }
   preferences = { ...preferences, series: { ...preferences.series, rate: { ...preferences.series.rate, forecastVisible: false } } }
   indicator = { ...indicator, preferences }; sync(); draw()
   assert.ok(operations.some(op => op[0] === 'stroke' && op[1] === '#dc2626' && op[3][0]?.[1] === 260 && op[3][1]?.[1] === 800), 'Hiding forecasts restores the latest actual color to the right edge')
   customButton.click(); sync(); draw()
   assert.equal(customButton.getAttribute('aria-pressed'), 'true')
   assert.ok(!operations.some(op => op[0] === 'stroke' && ['#16a34a', '#dc2626', '#6b7280'].includes(op[1])))
+  preferences = { ...preferences, series: { ...preferences.series, rate: { ...preferences.series.rate, forecastVisible: true } } }
+  indicator = { ...indicator, preferences }; sync(); draw()
+  expectForecast('3.50%', savedColor)
   const uk = 'GBP:GB:826010003'
   preferences = { ...p.switchMacroCurrency(expanded, 'GBP'), colorMode: 'ap-delta',
-    eventsByCurrency: { GBP: [uk] } }
-  indicator = { ...indicator, preferences, upcoming: [], history: { [uk]: [
+    eventsByCurrency: { ...expanded.eventsByCurrency, GBP: [uk] },
+    series: { ...expanded.series, [uk]: { ...expanded.series[uk], forecastVisible: true } } }
+  indicator = { ...indicator, preferences, sourceId: 'Pepperstone-Demo', upcoming: [{ time: bars[11].time,
+    releasedAt: Date.now() + 60000, metrics: [uk], forecasts: { [uk]: 4.5 }, previousValues: { [uk]: 5 }, formats: { [uk]: { unit: 1 } } }], history: { [uk]: [
     { id: 'uk-up', time: bars[0].time, releasedAt: bars[0].time * 1000, value: 5, previous: 4, unit: 1 },
   ] } }
   sync(); draw()
   assert.ok(operations.some(op => op[0] === 'fill' && op[1] === '#dc2626'), 'Higher unemployment paints red')
   assert.ok(operations.some(op => op[0] === 'text' && op[1] === '↑5.00%'), 'The arrow still shows the actual increase')
+  expectForecast('4.50%', '#16a34a')
   preferences = { ...preferences, invertUnemployment: false }
   indicator = { ...indicator, preferences }
   sync(); draw()
   assert.ok(operations.some(op => op[0] === 'fill' && op[1] === '#16a34a'), 'Toggling the setting repaints the same release green')
+  expectForecast('4.50%', '#dc2626')
+
+  let copiedPrompt = ''
+  Object.defineProperty(dom.navigator, 'clipboard', { configurable: true, value: { async writeText(text) { copiedPrompt = text } } })
+  await copyButton.onclick()
+  assert.match(copiedPrompt, /next 14 days in Jakarta time/)
+  assert.match(copiedPrompt, /Apply the updates directly to MFDI/)
+  assert.match(copiedPrompt, /Pepperstone-Demo/)
+  for (const id of ['GBP:GB:826010003', 'AUD:AU:36010006', 'USD:US:840050014']) assert.ok(copiedPrompt.includes(id), `${id} is included regardless of the active tab`)
+  const copyStatus = copyButton.nextElementSibling
+  assert.equal(copyStatus.getAttribute('role'), 'status')
+  assert.equal(copyStatus.textContent, 'Copied')
+  Object.defineProperty(dom.navigator, 'clipboard', { configurable: true, value: { async writeText() { throw new Error('denied') } } })
+  await copyButton.onclick()
+  assert.equal(copyStatus.textContent, 'Could not copy prompt')
+  assert.equal(copyButton.disabled, false)
 
   const { createMacroTooltip } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-tooltip.ts')
   const tooltip = createMacroTooltip(shell)

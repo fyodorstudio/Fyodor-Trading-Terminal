@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "event_id": "840220010",
+  "currency": "USD",
+  "country": "US",
+  "releases": [
+    {
+      "value_id": "314149",
+      "source_url": "https://www.investing.com/economic-calendar/2-year-note-auction-569",
+      "set": {
+        "actual": 4.7,
+        "previous": 4.708
+      }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "event_id": "840500002",
+  "currency": "USD",
+  "country": "US",
+  "releases": [
+    {
+      "value_id": "326385",
+      "source_url": "https://www.investing.com/economic-calendar/services-pmi-1062",
+      "set": {
+        "actual": 56.1
+      }
+    }
+  ]
+}

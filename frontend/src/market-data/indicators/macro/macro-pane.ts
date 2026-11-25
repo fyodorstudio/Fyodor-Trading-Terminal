@@ -5,7 +5,7 @@ import { macroCatalog } from './macro-catalog'
 import { claimChartClick } from '../../candlestick-chart/chart-click-selection'
 import { futureTimelineSeconds } from '../../candlestick-chart/future-timeline'
 import { fedSurprise } from './fed-forecast'
-import { macroAxis, macroMetricAxis, macroMetricVisible, selectedMacroMetrics, setMacroEvents, selectMacroMetric, toggleMacroMetric, toggleMacroForecast, toggleMacroNumbers, switchMacroCurrency, type MacroAxis, type MacroMetric, type MacroPreferences } from './macro-preferences'
+import { macroAxis, macroMetricAxis, macroMetricVisible, selectedMacroEvents, selectedMacroMetrics, setMacroEvents, selectMacroMetric, toggleMacroMetric, toggleMacroForecast, toggleMacroNumbers, switchMacroCurrency, type MacroAxis, type MacroMetric, type MacroPreferences } from './macro-preferences'
 import { macroEventRowKey } from './macro-event-key'
 import { macroCategoryColor } from './macro-essentials'
 import { macroCategory, macroRowVisible } from './macro-layout'
@@ -41,11 +41,11 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
   const colourDrafts = new Map<string, string>(), colourPreviews = new Map<string, string>()
   let colourTimer: number | null = null
   const colourFor = (key: string) => colourPreviews.get(key) ?? indicator!.preferences.series[key].color
-  const readingColour = (key: string, reading?: MacroReading) => {
+  const readingColour = (key: string, reading?: Pick<MacroReading, 'value' | 'previous'>, fallback?: string) => {
     const color = colourFor(key)
     if (indicator?.preferences.colorMode !== 'ap-delta') return color
     const inverse = indicator.preferences.invertUnemployment !== false && macroCatalog[key].lowerIsStronger === true
-    return macroDeltaColor(reading, color, inverse)
+    return macroDeltaColor(reading, fallback ?? color, inverse)
   }
   const stopColourTimer = () => { if (colourTimer !== null) window.clearTimeout(colourTimer); colourTimer = null }
   const clearColourPreviews = () => { stopColourTimer(); colourDrafts.clear(); colourPreviews.clear() }
@@ -190,14 +190,18 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
   flattenIcon.append(bars); flattenButton.append(flattenIcon)
   const seriesButton = document.createElement('button'); seriesButton.type = 'button'; seriesButton.textContent = 'Series'
   seriesButton.setAttribute('aria-label', 'MFDI series drawer'); seriesButton.setAttribute('aria-expanded', 'false')
+  const copyPromptButton = document.createElement('button'); copyPromptButton.type = 'button'; copyPromptButton.textContent = 'Copy Prompt'
+  copyPromptButton.title = 'Copy a prompt to update upcoming MFDI releases and forecasts'
+  const copyStatus = document.createElement('span'); copyStatus.setAttribute('role', 'status')
+  let copyStatusTimer: number | undefined
   const colorButtons = (['custom', 'ap-delta'] as const).map(mode => {
     const button = document.createElement('button'); button.type = 'button'; button.dataset.macroColorMode = mode
     button.textContent = mode === 'ap-delta' ? 'A-P Delta' : 'Custom Color'
-    button.title = mode === 'ap-delta' ? 'Color releases by Actual minus reported Previous. Unchanged releases are gray.' : 'Use saved series and category colors'
+    button.title = mode === 'ap-delta' ? 'Compare actuals and forecasts with reported Previous. Unchanged values are gray.' : 'Use saved series and category colors'
     button.onclick = () => { if (indicator && (indicator.preferences.colorMode ?? 'custom') !== mode) commitPreferences({ ...indicator.preferences, colorMode: mode }) }
     return button
   })
-  controls.append(fitButton, fitAllButton, lockButton, flattenButton, ...colorButtons, seriesButton)
+  controls.append(fitButton, fitAllButton, lockButton, flattenButton, ...colorButtons, seriesButton, copyPromptButton, copyStatus)
   const readout = document.createElement('div'); readout.className = 'macro-readout'
   const note = document.createElement('div'); note.className = 'macro-note'
   const currencyHeader = document.createElement('div'); currencyHeader.className = 'macro-currency-header'; currencyHeader.append(currencyTabs, controls)
@@ -243,6 +247,32 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
   }, categorySelected: () => { linked = false; updateLock() } })
   seriesButton.onclick = () => laneControls.toggleDrawer()
   seriesButton.setAttribute('aria-controls', laneControls.drawerId)
+  copyPromptButton.onclick = async () => {
+    if (!indicator || copyPromptButton.disabled) return
+    window.clearTimeout(copyStatusTimer)
+    copyStatus.textContent = ''
+    copyPromptButton.disabled = true
+    const selected = selectedMacroEvents(indicator.preferences, true).map(key => {
+      const { currency, country, eventId } = macroCatalog[key]
+      return `${currency}:${country}:${eventId}`
+    })
+    const prompt = [
+      'In the Fyodor Trading Terminal Lite workspace, check upcoming economic releases and forecasts for the next 14 days in Jakarta time.',
+      `Check ${majorCurrencies.join(', ')} for missing releases, schedule changes, and new or updated forecasts.`,
+      'Apply the updates directly to MFDI using the existing config/calendar-overrides workflow and reload storage if needed. Leave unavailable forecasts blank. Reply with a brief confirmation.',
+      ...(indicator.sourceId ? [`Broker: ${indicator.sourceId}`] : []),
+      ...(selected.length ? [`Selected MFDI series: ${selected.join(', ')}`] : []),
+    ].join('\n')
+    try {
+      await navigator.clipboard.writeText(prompt)
+      copyStatus.textContent = 'Copied'
+    } catch {
+      copyStatus.textContent = 'Could not copy prompt'
+    } finally {
+      copyPromptButton.disabled = false
+      if (!destroyed) copyStatusTimer = window.setTimeout(() => { copyStatus.textContent = '' }, 3000)
+    }
+  }
   laneControls.setRows([...metricControls, eventControl])
   const inPane = (event: Event) => event.target instanceof Node && pane.getHTMLElement()?.contains(event.target)
   const groupDrag = (event: PointerEvent) => {
@@ -774,9 +804,11 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
           const y = value === undefined ? laneMode ? plotY(key, 0) : null : plotY(key, value), { x, time } = coordinate
           if (value === undefined) previous.delete(key)
           if (y === null) continue
-          const color = readingColour(key, actual), from = previous.get(key)
+          const color = actual ? readingColour(key, actual)
+            : readingColour(key, forecast === undefined ? undefined : { value: forecast, previous: marker.previous }, '#6b7280')
+          const from = previous.get(key)
           if (!actual && value !== undefined && (!laneMode || indicator!.preferences.colorMode !== 'ap-delta')) {
-            context.strokeStyle = color; context.lineWidth = style.lineWidth; context.globalAlpha = 0.25; context.setLineDash([])
+            context.strokeStyle = colourFor(key); context.lineWidth = style.lineWidth; context.globalAlpha = 0.25; context.setLineDash([])
             if (from) { context.beginPath(); context.moveTo(from.x, from.y); context.lineTo(x, y); context.stroke() }
             previous.set(key, { x, y })
           }
@@ -976,6 +1008,7 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
       if (destroyed) return
       laneControls.flushScroll()
       destroyed = true
+      window.clearTimeout(copyStatusTimer)
       window.removeEventListener('pagehide', saveOnExit)
       releaseMarkers.clear(); markerSnapshot = undefined; markerHits = []; pendingHits = []; pendingHover = undefined; markerBars = []
       clearColourPreviews()

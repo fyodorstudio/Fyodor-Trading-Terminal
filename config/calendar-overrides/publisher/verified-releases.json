@@ -43,7 +43,17 @@
         "name": "S&P Global",
         "url": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates"
       },
-      "stage": "Flash"
+      "stage": "Flash",
+      "actual": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/analysis/black-monday-averted-by-bargain-hunters-200692133",
+        "value": 48.7
+      },
+      "previous": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/analysis/black-monday-averted-by-bargain-hunters-200692133",
+        "value": 49.6
+      }
     },
     {
       "series": {
@@ -60,7 +70,17 @@
         "name": "S&P Global",
         "url": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates"
       },
-      "stage": "Flash"
+      "stage": "Flash",
+      "actual": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/analysis/black-monday-averted-by-bargain-hunters-200692133",
+        "value": 46.2
+      },
+      "previous": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/analysis/black-monday-averted-by-bargain-hunters-200692133",
+        "value": 48.5
+      }
     },
     {
       "series": {
@@ -77,7 +97,638 @@
         "name": "S&P Global",
         "url": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates"
       },
-      "stage": "Flash"
+      "stage": "Flash",
+      "actual": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/analysis/black-monday-averted-by-bargain-hunters-200692133",
+        "value": 46.1
+      },
+      "previous": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/analysis/black-monday-averted-by-bargain-hunters-200692133",
+        "value": 48.2
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500001",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2024-12-16T14:45:00Z",
+      "period": "2024-12-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/8537676804634a8b9243c2911f2243a1"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/8537676804634a8b9243c2911f2243a1",
+        "value": 48.3
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/8537676804634a8b9243c2911f2243a1",
+        "value": 49.7
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500001",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-01-24T14:45:00Z",
+      "period": "2025-01-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/93dcd42e0e5f44d3899605d537b6c350"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/93dcd42e0e5f44d3899605d537b6c350",
+        "value": 50.1
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/93dcd42e0e5f44d3899605d537b6c350",
+        "value": 49.4
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500001",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-02-21T14:45:00Z",
+      "period": "2025-02-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/c3a10cc3461d4d8aa1758082292e7358"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/c3a10cc3461d4d8aa1758082292e7358",
+        "value": 51.6
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/c3a10cc3461d4d8aa1758082292e7358",
+        "value": 51.2
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500001",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-03-24T13:45:00Z",
+      "period": "2025-03-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/a30301f1804041a083e1a0671ee3df46"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/a30301f1804041a083e1a0671ee3df46",
+        "value": 49.8
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/a30301f1804041a083e1a0671ee3df46",
+        "value": 52.7
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500001",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-04-23T13:45:00Z",
+      "period": "2025-04-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/9ee36c52b8a649adada211c1842512be"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/9ee36c52b8a649adada211c1842512be",
+        "value": 50.7
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/9ee36c52b8a649adada211c1842512be",
+        "value": 50.2
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500001",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-05-22T13:45:00Z",
+      "period": "2025-05-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/730109510e164e5489ff0a326463f6ab"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/730109510e164e5489ff0a326463f6ab",
+        "value": 52.3
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/730109510e164e5489ff0a326463f6ab",
+        "value": 50.2
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500001",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-06-23T13:45:00Z",
+      "period": "2025-06-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/39d3680103b24fa69e87a6bd87c758e0"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/39d3680103b24fa69e87a6bd87c758e0",
+        "value": 52
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/39d3680103b24fa69e87a6bd87c758e0",
+        "value": 52
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500001",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-07-24T13:45:00Z",
+      "period": "2025-07-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/1af69f9287454749b8cf193c5acae2b0"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/1af69f9287454749b8cf193c5acae2b0",
+        "value": 49.5
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/1af69f9287454749b8cf193c5acae2b0",
+        "value": 52.9
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500001",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-08-21T13:45:00Z",
+      "period": "2025-08-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/970a92b794eb4408b7b0a3df3073d275"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/970a92b794eb4408b7b0a3df3073d275",
+        "value": 53.3
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/970a92b794eb4408b7b0a3df3073d275",
+        "value": 49.8
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500001",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-09-23T13:45:00Z",
+      "period": "2025-09-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/b15622fa46c94d74af2bd879a1f8e72b"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/b15622fa46c94d74af2bd879a1f8e72b",
+        "value": 52
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/b15622fa46c94d74af2bd879a1f8e72b",
+        "value": 53
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500001",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-10-24T13:45:00Z",
+      "period": "2025-10-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/eb6ffb6222214cbfbb42d44541c5ebbe"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/eb6ffb6222214cbfbb42d44541c5ebbe",
+        "value": 52.2
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/eb6ffb6222214cbfbb42d44541c5ebbe",
+        "value": 52
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500001",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-11-21T14:45:00Z",
+      "period": "2025-11-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/7da582e151d74189902319ed1465da03"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/7da582e151d74189902319ed1465da03",
+        "value": 51.9
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/7da582e151d74189902319ed1465da03",
+        "value": 52.5
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500001",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-12-16T14:45:00Z",
+      "period": "2025-12-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/7c38539749e84275b30a6c77cf2bc463"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/7c38539749e84275b30a6c77cf2bc463",
+        "value": 51.8
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/7c38539749e84275b30a6c77cf2bc463",
+        "value": 52.2
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500001",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-01-23T14:45:00Z",
+      "period": "2026-01-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/0a129f6065114f30907f0b169122e1f3"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/0a129f6065114f30907f0b169122e1f3",
+        "value": 51.9
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/0a129f6065114f30907f0b169122e1f3",
+        "value": 51.8
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500001",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-02-20T14:45:00Z",
+      "period": "2026-02-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/de7251a734954460986e49e0ab041b2f"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/de7251a734954460986e49e0ab041b2f",
+        "value": 51.2
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/de7251a734954460986e49e0ab041b2f",
+        "value": 52.4
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500001",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-03-24T13:45:00Z",
+      "period": "2026-03-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/adc91b5cf42442cbb220d5b66b64ec7d"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/adc91b5cf42442cbb220d5b66b64ec7d",
+        "value": 52.4
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/adc91b5cf42442cbb220d5b66b64ec7d",
+        "value": 51.6
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500001",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-04-23T13:45:00Z",
+      "period": "2026-04-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/8bdf1bb2dddf420e9c0e9d7e22f75c09"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/8bdf1bb2dddf420e9c0e9d7e22f75c09",
+        "value": 54
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/8bdf1bb2dddf420e9c0e9d7e22f75c09",
+        "value": 52.3
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500001",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-05-21T13:45:00Z",
+      "period": "2026-05-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/d7a15ea4f43c4e3493db3814db67ad99"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/d7a15ea4f43c4e3493db3814db67ad99",
+        "value": 55.3
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/d7a15ea4f43c4e3493db3814db67ad99",
+        "value": 54.5
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500001",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-06-23T13:45:00Z",
+      "period": "2026-06-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/0f8762edff954b619d90d12531497919"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/0f8762edff954b619d90d12531497919",
+        "value": 55.7
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/0f8762edff954b619d90d12531497919",
+        "value": 55.1
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500001",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-07-24T13:45:00Z",
+      "period": "2026-07-01",
+      "schedule": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/news/economic-indicators/us-business-activity-perks-up-in-july-helped-by-world-cup-but-trend-may-not-last-sp-global-says-4812037"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/news/economic-indicators/us-business-activity-perks-up-in-july-helped-by-world-cup-but-trend-may-not-last-sp-global-says-4812037",
+        "value": 53.8
+      },
+      "previous": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/news/economic-indicators/us-business-activity-perks-up-in-july-helped-by-world-cup-but-trend-may-not-last-sp-global-says-4812037",
+        "value": 53.9
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500001",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-08-21T13:45:00Z",
+      "period": "2026-08-01",
+      "schedule": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/news/economic-indicators/us-service-sector-fuels-acceleration-in-business-activity-sp-global-says-4871819"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/news/economic-indicators/us-service-sector-fuels-acceleration-in-business-activity-sp-global-says-4871819",
+        "value": 53.2
+      },
+      "previous": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/news/economic-indicators/us-service-sector-fuels-acceleration-in-business-activity-sp-global-says-4871819",
+        "value": 53.9
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500001",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-09-23T13:45:00Z",
+      "period": "2026-09-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.spglobal.com/market-intelligence/en/news-insights/research/2026/09/us-flash-pmi-signals-fastest-growth-for-over-five-years-in-september"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/economic-calendar/einkaufsmanagerindex-%28emi%29-verarbeitendes-gewerbe-829",
+        "value": 57
+      },
+      "previous": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/economic-calendar/einkaufsmanagerindex-%28emi%29-verarbeitendes-gewerbe-829",
+        "value": 53.9
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500001",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-10-23T13:45:00Z",
+      "period": "2026-10-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.spglobal.com/market-intelligence/en/news-insights/research/2026/10/us-flash-pmi-signals-sustained-strong-growth-but-also-further-inflation-uplift-in-october"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "Investing.com",
+        "url": "https://ca.investing.com/news/economic-indicators/us-business-activity-growth-holds-near-fiveyear-high-in-october-4900243",
+        "value": 56
+      },
+      "previous": {
+        "name": "Investing.com",
+        "url": "https://ca.investing.com/news/economic-indicators/us-business-activity-growth-holds-near-fiveyear-high-in-october-4900243",
+        "value": 55.9
+      }
     },
     {
       "series": {
@@ -128,6 +779,637 @@
         "url": "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
         "as_of": "2026-11-23T13:31:34Z",
         "value": 54.5
+      },
+      "actual": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/news/economic-indicators/us-business-activity-growth-eases-further-in-november-survey-shows-5045933",
+        "value": 54.5
+      },
+      "previous": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/news/economic-indicators/us-business-activity-growth-eases-further-in-november-survey-shows-5045933",
+        "value": 54.9
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500002",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2024-12-16T14:45:00Z",
+      "period": "2024-12-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/8537676804634a8b9243c2911f2243a1"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/8537676804634a8b9243c2911f2243a1",
+        "value": 58.5
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/8537676804634a8b9243c2911f2243a1",
+        "value": 56.1
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500002",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-01-24T14:45:00Z",
+      "period": "2025-01-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/93dcd42e0e5f44d3899605d537b6c350"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/93dcd42e0e5f44d3899605d537b6c350",
+        "value": 52.8
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/93dcd42e0e5f44d3899605d537b6c350",
+        "value": 56.8
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500002",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-02-21T14:45:00Z",
+      "period": "2025-02-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/c3a10cc3461d4d8aa1758082292e7358"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/c3a10cc3461d4d8aa1758082292e7358",
+        "value": 49.7
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/c3a10cc3461d4d8aa1758082292e7358",
+        "value": 52.9
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500002",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-03-24T13:45:00Z",
+      "period": "2025-03-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/a30301f1804041a083e1a0671ee3df46"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/a30301f1804041a083e1a0671ee3df46",
+        "value": 54.3
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/a30301f1804041a083e1a0671ee3df46",
+        "value": 51
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500002",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-04-23T13:45:00Z",
+      "period": "2025-04-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/9ee36c52b8a649adada211c1842512be"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/9ee36c52b8a649adada211c1842512be",
+        "value": 51.4
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/9ee36c52b8a649adada211c1842512be",
+        "value": 54.4
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500002",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-05-22T13:45:00Z",
+      "period": "2025-05-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/730109510e164e5489ff0a326463f6ab"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/730109510e164e5489ff0a326463f6ab",
+        "value": 52.3
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/730109510e164e5489ff0a326463f6ab",
+        "value": 50.8
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500002",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-06-23T13:45:00Z",
+      "period": "2025-06-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/39d3680103b24fa69e87a6bd87c758e0"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/39d3680103b24fa69e87a6bd87c758e0",
+        "value": 53.1
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/39d3680103b24fa69e87a6bd87c758e0",
+        "value": 53.7
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500002",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-07-24T13:45:00Z",
+      "period": "2025-07-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/1af69f9287454749b8cf193c5acae2b0"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/1af69f9287454749b8cf193c5acae2b0",
+        "value": 55.2
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/1af69f9287454749b8cf193c5acae2b0",
+        "value": 52.9
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500002",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-08-21T13:45:00Z",
+      "period": "2025-08-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/970a92b794eb4408b7b0a3df3073d275"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/970a92b794eb4408b7b0a3df3073d275",
+        "value": 55.4
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/970a92b794eb4408b7b0a3df3073d275",
+        "value": 55.7
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500002",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-09-23T13:45:00Z",
+      "period": "2025-09-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/b15622fa46c94d74af2bd879a1f8e72b"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/b15622fa46c94d74af2bd879a1f8e72b",
+        "value": 53.9
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/b15622fa46c94d74af2bd879a1f8e72b",
+        "value": 54.5
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500002",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-10-24T13:45:00Z",
+      "period": "2025-10-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/eb6ffb6222214cbfbb42d44541c5ebbe"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/eb6ffb6222214cbfbb42d44541c5ebbe",
+        "value": 55.2
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/eb6ffb6222214cbfbb42d44541c5ebbe",
+        "value": 54.2
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500002",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-11-21T14:45:00Z",
+      "period": "2025-11-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/7da582e151d74189902319ed1465da03"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/7da582e151d74189902319ed1465da03",
+        "value": 55
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/7da582e151d74189902319ed1465da03",
+        "value": 54.8
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500002",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-12-16T14:45:00Z",
+      "period": "2025-12-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/7c38539749e84275b30a6c77cf2bc463"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/7c38539749e84275b30a6c77cf2bc463",
+        "value": 52.9
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/7c38539749e84275b30a6c77cf2bc463",
+        "value": 54.1
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500002",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-01-23T14:45:00Z",
+      "period": "2026-01-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/0a129f6065114f30907f0b169122e1f3"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/0a129f6065114f30907f0b169122e1f3",
+        "value": 52.5
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/0a129f6065114f30907f0b169122e1f3",
+        "value": 52.5
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500002",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-02-20T14:45:00Z",
+      "period": "2026-02-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/de7251a734954460986e49e0ab041b2f"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/de7251a734954460986e49e0ab041b2f",
+        "value": 52.3
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/de7251a734954460986e49e0ab041b2f",
+        "value": 52.7
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500002",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-03-24T13:45:00Z",
+      "period": "2026-03-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/adc91b5cf42442cbb220d5b66b64ec7d"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/adc91b5cf42442cbb220d5b66b64ec7d",
+        "value": 51.1
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/adc91b5cf42442cbb220d5b66b64ec7d",
+        "value": 51.7
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500002",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-04-23T13:45:00Z",
+      "period": "2026-04-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/8bdf1bb2dddf420e9c0e9d7e22f75c09"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/8bdf1bb2dddf420e9c0e9d7e22f75c09",
+        "value": 51.3
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/8bdf1bb2dddf420e9c0e9d7e22f75c09",
+        "value": 49.8
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500002",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-05-21T13:45:00Z",
+      "period": "2026-05-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/d7a15ea4f43c4e3493db3814db67ad99"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/d7a15ea4f43c4e3493db3814db67ad99",
+        "value": 50.9
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/d7a15ea4f43c4e3493db3814db67ad99",
+        "value": 51
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500002",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-06-23T13:45:00Z",
+      "period": "2026-06-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/0f8762edff954b619d90d12531497919"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/0f8762edff954b619d90d12531497919",
+        "value": 51.3
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/0f8762edff954b619d90d12531497919",
+        "value": 50.7
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500002",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-07-24T13:45:00Z",
+      "period": "2026-07-01",
+      "schedule": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/news/economic-indicators/us-business-activity-perks-up-in-july-helped-by-world-cup-but-trend-may-not-last-sp-global-says-4812037"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/news/economic-indicators/us-business-activity-perks-up-in-july-helped-by-world-cup-but-trend-may-not-last-sp-global-says-4812037",
+        "value": 53.6
+      },
+      "previous": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/news/economic-indicators/us-business-activity-perks-up-in-july-helped-by-world-cup-but-trend-may-not-last-sp-global-says-4812037",
+        "value": 51.2
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500002",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-08-21T13:45:00Z",
+      "period": "2026-08-01",
+      "schedule": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/news/economic-indicators/us-service-sector-fuels-acceleration-in-business-activity-sp-global-says-4871819"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/news/economic-indicators/us-service-sector-fuels-acceleration-in-business-activity-sp-global-says-4871819",
+        "value": 56.8
+      },
+      "previous": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/news/economic-indicators/us-service-sector-fuels-acceleration-in-business-activity-sp-global-says-4871819",
+        "value": 54.6
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500002",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-09-23T13:45:00Z",
+      "period": "2026-09-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.spglobal.com/market-intelligence/en/news-insights/research/2026/09/us-flash-pmi-signals-fastest-growth-for-over-five-years-in-september"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "Investing.com",
+        "url": "https://uk.investing.com/news/stock-market-news/30year-treasury-yield-hits-539-a-22year-high-after-hot-pmi-data-93CH-4881227",
+        "value": 58.7
+      },
+      "previous": {
+        "name": "Investing.com",
+        "url": "https://uk.investing.com/news/stock-market-news/30year-treasury-yield-hits-539-a-22year-high-after-hot-pmi-data-93CH-4881227",
+        "value": 56.5
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500002",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-10-23T13:45:00Z",
+      "period": "2026-10-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.spglobal.com/market-intelligence/en/news-insights/research/2026/10/us-flash-pmi-signals-sustained-strong-growth-but-also-further-inflation-uplift-in-october"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "Investing.com",
+        "url": "https://ca.investing.com/news/economic-indicators/us-business-activity-growth-holds-near-fiveyear-high-in-october-4900243",
+        "value": 57.9
+      },
+      "previous": {
+        "name": "Investing.com",
+        "url": "https://ca.investing.com/news/economic-indicators/us-business-activity-growth-holds-near-fiveyear-high-in-october-4900243",
+        "value": 58.8
       }
     },
     {
@@ -151,6 +1433,638 @@
         "url": "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
         "as_of": "2026-11-23T13:31:34Z",
         "value": 55.6
+      },
+      "actual": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/economic-calendar/services-pmi-1062",
+        "value": 54.7
+      },
+      "previous": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/economic-calendar/services-pmi-1062",
+        "value": 56.1
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500002",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-12-03T14:45:00Z",
+      "period": "2026-11-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates"
+      },
+      "stage": "Final",
+      "forecast": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/economic-calendar/services-pmi-1062",
+        "as_of": "2026-11-25T10:31:47Z",
+        "value": 54.7
+      },
+      "previous": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/economic-calendar/services-pmi-1062",
+        "value": 56.1
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500003",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2024-12-16T14:45:00Z",
+      "period": "2024-12-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/8537676804634a8b9243c2911f2243a1"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/8537676804634a8b9243c2911f2243a1",
+        "value": 56.6
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/8537676804634a8b9243c2911f2243a1",
+        "value": 54.9
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500003",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-01-24T14:45:00Z",
+      "period": "2025-01-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/93dcd42e0e5f44d3899605d537b6c350"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/93dcd42e0e5f44d3899605d537b6c350",
+        "value": 52.4
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/93dcd42e0e5f44d3899605d537b6c350",
+        "value": 55.4
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500003",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-02-21T14:45:00Z",
+      "period": "2025-02-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/c3a10cc3461d4d8aa1758082292e7358"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/c3a10cc3461d4d8aa1758082292e7358",
+        "value": 50.4
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/c3a10cc3461d4d8aa1758082292e7358",
+        "value": 52.7
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500003",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-03-24T13:45:00Z",
+      "period": "2025-03-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/a30301f1804041a083e1a0671ee3df46"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/a30301f1804041a083e1a0671ee3df46",
+        "value": 53.5
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/a30301f1804041a083e1a0671ee3df46",
+        "value": 51.6
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500003",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-04-23T13:45:00Z",
+      "period": "2025-04-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/9ee36c52b8a649adada211c1842512be"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/9ee36c52b8a649adada211c1842512be",
+        "value": 51.2
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/9ee36c52b8a649adada211c1842512be",
+        "value": 53.5
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500003",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-05-22T13:45:00Z",
+      "period": "2025-05-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/730109510e164e5489ff0a326463f6ab"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/730109510e164e5489ff0a326463f6ab",
+        "value": 52.1
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/730109510e164e5489ff0a326463f6ab",
+        "value": 50.6
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500003",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-06-23T13:45:00Z",
+      "period": "2025-06-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/39d3680103b24fa69e87a6bd87c758e0"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/39d3680103b24fa69e87a6bd87c758e0",
+        "value": 52.8
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/39d3680103b24fa69e87a6bd87c758e0",
+        "value": 53
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500003",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-07-24T13:45:00Z",
+      "period": "2025-07-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/1af69f9287454749b8cf193c5acae2b0"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/1af69f9287454749b8cf193c5acae2b0",
+        "value": 54.6
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/1af69f9287454749b8cf193c5acae2b0",
+        "value": 52.9
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500003",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-08-21T13:45:00Z",
+      "period": "2025-08-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/970a92b794eb4408b7b0a3df3073d275"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/970a92b794eb4408b7b0a3df3073d275",
+        "value": 55.4
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/970a92b794eb4408b7b0a3df3073d275",
+        "value": 55.1
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500003",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-09-23T13:45:00Z",
+      "period": "2025-09-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/b15622fa46c94d74af2bd879a1f8e72b"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/b15622fa46c94d74af2bd879a1f8e72b",
+        "value": 53.6
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/b15622fa46c94d74af2bd879a1f8e72b",
+        "value": 54.6
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500003",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-10-24T13:45:00Z",
+      "period": "2025-10-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/eb6ffb6222214cbfbb42d44541c5ebbe"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/eb6ffb6222214cbfbb42d44541c5ebbe",
+        "value": 54.8
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/eb6ffb6222214cbfbb42d44541c5ebbe",
+        "value": 53.9
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500003",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-11-21T14:45:00Z",
+      "period": "2025-11-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/7da582e151d74189902319ed1465da03"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/7da582e151d74189902319ed1465da03",
+        "value": 54.8
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/7da582e151d74189902319ed1465da03",
+        "value": 54.6
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500003",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2025-12-16T14:45:00Z",
+      "period": "2025-12-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/7c38539749e84275b30a6c77cf2bc463"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/7c38539749e84275b30a6c77cf2bc463",
+        "value": 53
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/7c38539749e84275b30a6c77cf2bc463",
+        "value": 54.2
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500003",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-01-23T14:45:00Z",
+      "period": "2026-01-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/0a129f6065114f30907f0b169122e1f3"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/0a129f6065114f30907f0b169122e1f3",
+        "value": 52.8
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/0a129f6065114f30907f0b169122e1f3",
+        "value": 52.7
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500003",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-02-20T14:45:00Z",
+      "period": "2026-02-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/de7251a734954460986e49e0ab041b2f"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/de7251a734954460986e49e0ab041b2f",
+        "value": 52.3
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/de7251a734954460986e49e0ab041b2f",
+        "value": 53
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500003",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-03-24T13:45:00Z",
+      "period": "2026-03-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/adc91b5cf42442cbb220d5b66b64ec7d"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/adc91b5cf42442cbb220d5b66b64ec7d",
+        "value": 51.4
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/adc91b5cf42442cbb220d5b66b64ec7d",
+        "value": 51.9
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500003",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-04-23T13:45:00Z",
+      "period": "2026-04-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/8bdf1bb2dddf420e9c0e9d7e22f75c09"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/8bdf1bb2dddf420e9c0e9d7e22f75c09",
+        "value": 52
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/8bdf1bb2dddf420e9c0e9d7e22f75c09",
+        "value": 50.3
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500003",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-05-21T13:45:00Z",
+      "period": "2026-05-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/d7a15ea4f43c4e3493db3814db67ad99"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/d7a15ea4f43c4e3493db3814db67ad99",
+        "value": 51.7
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/d7a15ea4f43c4e3493db3814db67ad99",
+        "value": 51.7
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500003",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-06-23T13:45:00Z",
+      "period": "2026-06-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/0f8762edff954b619d90d12531497919"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/0f8762edff954b619d90d12531497919",
+        "value": 52.2
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease/0f8762edff954b619d90d12531497919",
+        "value": 51.5
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500003",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-07-24T13:45:00Z",
+      "period": "2026-07-01",
+      "schedule": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/news/economic-indicators/us-business-activity-perks-up-in-july-helped-by-world-cup-but-trend-may-not-last-sp-global-says-4812037"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.spglobal.com/market-intelligence/en/news-insights/research/2026/07/us-flash-pmi-shows-faster-growth-but-price-pressures-and-supply-delays-intensify",
+        "value": 53.6
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.spglobal.com/market-intelligence/en/news-insights/research/2026/07/us-flash-pmi-shows-faster-growth-but-price-pressures-and-supply-delays-intensify",
+        "value": 51.9
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500003",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-08-21T13:45:00Z",
+      "period": "2026-08-01",
+      "schedule": {
+        "name": "Investing.com",
+        "url": "https://www.investing.com/news/economic-indicators/us-service-sector-fuels-acceleration-in-business-activity-sp-global-says-4871819"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.spglobal.com/market-intelligence/en/news-insights/research/2026/08/us-flash-pmi-signals-welcome-mix-of-hotter-output-growth-cooler-inflation",
+        "value": 56
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.spglobal.com/market-intelligence/en/news-insights/research/2026/08/us-flash-pmi-signals-welcome-mix-of-hotter-output-growth-cooler-inflation",
+        "value": 54.5
+      }
+    },
+    {
+      "series": {
+        "event_id": "840500003",
+        "country": "US",
+        "currency": "USD",
+        "unit": 0,
+        "multiplier": 0,
+        "digits": 1
+      },
+      "released_at": "2026-09-23T13:45:00Z",
+      "period": "2026-09-01",
+      "schedule": {
+        "name": "S&P Global",
+        "url": "https://www.spglobal.com/market-intelligence/en/news-insights/research/2026/09/us-flash-pmi-signals-fastest-growth-for-over-five-years-in-september"
+      },
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.spglobal.com/market-intelligence/en/news-insights/research/2026/09/us-flash-pmi-signals-fastest-growth-for-over-five-years-in-september",
+        "value": 58.4
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.spglobal.com/market-intelligence/en/news-insights/research/2026/09/us-flash-pmi-signals-fastest-growth-for-over-five-years-in-september",
+        "value": 56
       }
     },
     {
@@ -167,14 +2081,19 @@
       "stage": "Flash",
       "schedule": {
         "name": "S&P Global",
-        "url": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates"
+        "url": "https://www.spglobal.com/market-intelligence/en/news-insights/research/2026/10/us-flash-pmi-signals-sustained-strong-growth-but-also-further-inflation-uplift-in-october"
       },
       "actual": {
         "name": "S&P Global",
         "url": "https://www.spglobal.com/market-intelligence/en/news-insights/research/2026/10/us-flash-pmi-signals-sustained-strong-growth-but-also-further-inflation-uplift-in-october",
         "value": 57.6
       },
-      "importance": "medium"
+      "importance": "medium",
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.spglobal.com/market-intelligence/en/news-insights/research/2026/10/us-flash-pmi-signals-sustained-strong-growth-but-also-further-inflation-uplift-in-october",
+        "value": 58.4
+      }
     },
     {
       "series": {
@@ -191,7 +2110,17 @@
         "name": "S&P Global",
         "url": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates"
       },
-      "stage": "Flash"
+      "stage": "Flash",
+      "actual": {
+        "name": "S&P Global",
+        "url": "https://www.spglobal.com/content/dam/spglobal/mi/en/documents/news-insights/research/2026/11/6328150_6328134_0.1.pdf",
+        "value": 54.6
+      },
+      "previous": {
+        "name": "S&P Global",
+        "url": "https://www.spglobal.com/content/dam/spglobal/mi/en/documents/news-insights/research/2026/11/6328150_6328134_0.1.pdf",
+        "value": 55.9
+      }
     },
     {
       "series": {
@@ -227,13 +2156,23 @@
       "period": "2026-10-01",
       "schedule": {
         "name": "Australian Bureau of Statistics",
-        "url": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia"
+        "url": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/oct-2026"
       },
       "forecast": {
         "name": "Forex Factory",
         "url": "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
         "as_of": "2026-11-23T13:31:34Z",
         "value": 0.4
+      },
+      "actual": {
+        "name": "Australian Bureau of Statistics",
+        "url": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/oct-2026",
+        "value": 0.5
+      },
+      "previous": {
+        "name": "Australian Bureau of Statistics",
+        "url": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/oct-2026",
+        "value": 0.8
       }
     },
     {
@@ -270,13 +2209,23 @@
       "period": "2026-10-01",
       "schedule": {
         "name": "Australian Bureau of Statistics",
-        "url": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia"
+        "url": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/oct-2026"
       },
       "forecast": {
         "name": "Forex Factory",
         "url": "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
         "as_of": "2026-11-23T13:31:34Z",
         "value": 4.8
+      },
+      "actual": {
+        "name": "Australian Bureau of Statistics",
+        "url": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/oct-2026",
+        "value": 4.9
+      },
+      "previous": {
+        "name": "Australian Bureau of Statistics",
+        "url": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/oct-2026",
+        "value": 4.3
       }
     },
     {
@@ -313,12 +2262,22 @@
       "period": "2026-10-01",
       "schedule": {
         "name": "Australian Bureau of Statistics",
-        "url": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia"
+        "url": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/oct-2026"
       },
       "forecast": {
         "name": "Forex Factory",
         "url": "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
         "as_of": "2026-11-23T13:31:34Z",
+        "value": 0.3
+      },
+      "actual": {
+        "name": "Australian Bureau of Statistics",
+        "url": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/oct-2026",
+        "value": 0.5
+      },
+      "previous": {
+        "name": "Australian Bureau of Statistics",
+        "url": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/oct-2026",
         "value": 0.3
       }
     }

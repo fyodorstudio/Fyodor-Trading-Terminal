@@ -32,14 +32,15 @@ The chart header’s **Event icons** button cycles through Off, Wildcards only,
 Inspector only, and All. It starts on Wildcards only and remembers your choice.
 
 MFDI's currency tabs, Fit, lock and lane controls share one toolbar row.
-Choose **A-P Delta** beside Series to color actual releases by Actual minus
-reported Previous. Higher is green, lower is red, and unchanged is gray.
+Choose **A-P Delta** beside Series to compare filled actual and hollow forecast
+markers with the release's reported Previous. Higher is green, lower is red,
+and unchanged is gray.
 **Invert unemployment and jobless claims in A-P Delta** in MFDI settings
 makes lower values green for those series across all currencies. The release
 tooltip shows the signed delta. Each box's color
 continues along the following line until the next actual release. The lane after
-the next forecast box is gray. Missing Previous values and forecast
-markers keep their custom colors. **Custom Color** restores your saved styling.
+the next forecast box is gray. Forecast markers without a comparison are gray.
+**Custom Color** restores your saved styling.
 
 ## News Flow
 
@@ -200,6 +201,8 @@ The window title identifies the currency being edited. Each currency starts with
 essential policy, inflation, labor and growth events and remembers later edits.
 Use **Export selected series** in MFDI settings to save the selection across the
 eight currencies for a calendar audit.
+Use **Copy Prompt** beside Series to ask an agent to update upcoming MFDI releases
+and forecasts for the next 14 days.
 
 **+ Events** opens that currency's searchable calendar. Check or uncheck events
 there; choose a destination category when adding a numerical series. Selected

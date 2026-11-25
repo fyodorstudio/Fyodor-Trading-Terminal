@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "event_id": "392030003",
+  "currency": "JPY",
+  "country": "JP",
+  "releases": [
+    {
+      "value_id": "285004",
+      "source_url": "https://in.investing.com/economic-calendar/national-core-cpi-344",
+      "set": {
+        "previous": 2.1
+      }
+    }
+  ]
+}

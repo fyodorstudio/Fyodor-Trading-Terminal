@@ -10,6 +10,13 @@
       "set": {
         "actual": 55.3
       }
+    },
+    {
+      "value_id": "321874",
+      "source_url": "https://www.procure.ch/magazin/artikel/pmi-oktober-2026-schweiz-legt-im-oktober-zu",
+      "set": {
+        "previous": 55.3
+      }
     }
   ]
 }

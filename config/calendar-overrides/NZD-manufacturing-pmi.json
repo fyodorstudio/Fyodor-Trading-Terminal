@@ -10,6 +10,13 @@
       "set": {
         "actual": 56.5
       }
+    },
+    {
+      "value_id": "317183",
+      "source_url": "https://businessnz.org.nz/pmi/manufacturing-in-poll-position",
+      "set": {
+        "previous": 56.5
+      }
     }
   ]
 }
