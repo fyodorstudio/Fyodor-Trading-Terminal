@@ -34,7 +34,10 @@ export function VolumeSettingsDialog({ preferences, synthetic = false, onSave, o
           !Number.isInteger(draft.averageLength) || draft.averageLength < 1 || draft.averageLength > 200)) {
           setError('Use 5–60 previous sessions, minimum samples from 1 to previous sessions, and an average length from 1 to 200.'); setTab('inputs'); return
         }
-        onSave(synthetic ? { ...preferences, upColor: draft.upColor, downColor: draft.downColor } : { ...draft, enabled: preferences.enabled }); onClose()
+        const { upColor, downColor, totalTicksColor, tickDeltaColor, tickDivergenceColor } = draft
+        onSave(synthetic ? { ...preferences, upColor, downColor, totalTicksColor, tickDeltaColor, tickDivergenceColor }
+          : { ...draft, enabled: preferences.enabled })
+        onClose()
       }}>
       <header><strong id={`${id}-title`}>Volume · Ticks</strong><button type="button" onClick={onClose} aria-label="Close Volume settings">×</button></header>
       <div className="rsi-settings-tabs" role="tablist" aria-label="Volume settings">
@@ -53,7 +56,7 @@ export function VolumeSettingsDialog({ preferences, synthetic = false, onSave, o
         <fieldset><legend>Activity data</legend>
           {synthetic ? <p>Tick Delta uses the Bid moves of the synthetic basket.</p> : <label>Mode<select value={mode} onChange={event => patch({ mode: event.target.value as VolumePreferences['mode'] })}>
             <option value="raw">Raw ticks</option><option value="relative">Relative activity</option><option value="tick-delta">Tick Delta</option></select></label>}
-          {mode === 'tick-delta' ? <p>Visible history loads automatically. Hover a candle to see its upticks and downticks.</p> : <>
+          {mode === 'tick-delta' ? <p>Visible history loads automatically. Hover a candle to see its tick counts.</p> : <>
           <label>Previous sessions<input aria-label="Previous sessions" type="number" min="5" max="60" required value={draft.lookback} onChange={event => patch({ lookback: Number(event.target.value) })} /></label>
           <label>Minimum samples<input aria-label="Minimum samples" type="number" min="1" max={draft.lookback} required value={draft.minimumSamples} onChange={event => patch({ minimumSamples: Number(event.target.value) })} /></label>
           <p>Sessions are automatic, including overlaps and daylight saving. Relative values compare matching candles in earlier sessions; D1 uses earlier daily bars.</p>
@@ -67,6 +70,9 @@ export function VolumeSettingsDialog({ preferences, synthetic = false, onSave, o
         </> : mode === 'tick-delta' ? <fieldset><legend>Tick Delta colours</legend>
           <label>Upticks<input type="color" value={draft.upColor} onChange={event => patch({ upColor: event.target.value })} /></label>
           <label>Downticks<input type="color" value={draft.downColor} onChange={event => patch({ downColor: event.target.value })} /></label>
+          <label>Total Ticks<input type="color" value={draft.totalTicksColor} onChange={event => patch({ totalTicksColor: event.target.value })} /></label>
+          <label>Delta Line<input type="color" value={draft.tickDeltaColor} onChange={event => patch({ tickDeltaColor: event.target.value })} /></label>
+          <label>Divergence<input type="color" value={draft.tickDivergenceColor} onChange={event => patch({ tickDivergenceColor: event.target.value })} /></label>
         </fieldset> : <>
         <fieldset><legend>Pane</legend>
           <label>Right axis<select value={draft.axisTarget} onChange={event => patch({ axisTarget: event.target.value as VolumePreferences['axisTarget'] })}>

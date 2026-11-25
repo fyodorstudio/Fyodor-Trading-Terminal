@@ -1,12 +1,15 @@
 export type TickDeltaView = 'bars' | 'line'
-export type TickDeltaLine = 'up' | 'down' | 'delta'
+export type TickDeltaLine = 'up' | 'down' | 'total' | 'delta'
 export type TickDeltaLines = Record<TickDeltaLine, boolean>
+export type TickDeltaColors = {
+  upColor: string; downColor: string; totalTicksColor: string; tickDeltaColor: string; tickDivergenceColor: string
+}
 
-export type VolumePreferences = {
+export type VolumePreferences = TickDeltaColors & {
   enabled: boolean; mode: 'raw' | 'relative' | 'tick-delta'; axisTarget: 'volume' | 'relative'
   barsVisible: boolean; relativeLineVisible: boolean; relativeLineColor: string
   lookback: number; minimumSamples: number; averageVisible: boolean; averageLength: number
-  upColor: string; downColor: string; averageColor: string
+  averageColor: string
   tickDeltaView: TickDeltaView
   tickDeltaLines: TickDeltaLines
   tickDeltaAxis: TickDeltaLine
@@ -16,8 +19,9 @@ export const defaultVolumePreferences: VolumePreferences = {
   enabled: false, mode: 'raw', axisTarget: 'volume', lookback: 20, minimumSamples: 5,
   barsVisible: true, relativeLineVisible: true, relativeLineColor: '#2962ff',
   averageVisible: false, averageLength: 20, upColor: '#089981', downColor: '#f23645', averageColor: '#b18a00',
+  totalTicksColor: '#38bdf8', tickDeltaColor: '#7e57c2', tickDivergenceColor: '#ffeb3b',
   tickDeltaView: 'bars',
-  tickDeltaLines: { up: true, down: true, delta: true },
+  tickDeltaLines: { up: true, down: true, total: false, delta: true },
   tickDeltaAxis: 'delta',
 }
 const storageKey = 'fyodor.indicators.volume.v1'
@@ -28,7 +32,7 @@ export function readVolumePreferences(): VolumePreferences {
     if (!p || typeof p !== 'object' || Array.isArray(p)) return d
     const integer = (key: 'lookback' | 'minimumSamples' | 'averageLength', min: number, max: number) =>
       Number.isInteger(p[key]) && p[key] >= min && p[key] <= max ? p[key] as number : d[key]
-    const color = (key: 'upColor' | 'downColor' | 'averageColor' | 'relativeLineColor') => typeof p[key] === 'string' && /^#[\da-f]{6}$/i.test(p[key]) ? p[key] as string : d[key]
+    const color = (key: keyof TickDeltaColors | 'averageColor' | 'relativeLineColor') => typeof p[key] === 'string' && /^#[\da-f]{6}$/i.test(p[key]) ? p[key] as string : d[key]
     const flag = (key: 'relativeLineVisible' | 'barsVisible') => typeof p[key] === 'boolean' ? p[key] : d[key]
     const lookback = integer('lookback', 5, 60)
     return { enabled: p.enabled === true, mode: p.mode === 'relative' || p.mode === 'tick-delta' ? p.mode : 'raw', axisTarget: p.axisTarget === 'relative' ? 'relative' : 'volume',
@@ -37,9 +41,10 @@ export function readVolumePreferences(): VolumePreferences {
       minimumSamples: Math.min(integer('minimumSamples', 1, 60), lookback),
       averageVisible: p.averageVisible === true, averageLength: integer('averageLength', 1, 200),
       tickDeltaView: p.tickDeltaView === 'line' ? 'line' : d.tickDeltaView,
-      tickDeltaLines: { up: p.tickDeltaLines?.up !== false, down: p.tickDeltaLines?.down !== false, delta: p.tickDeltaLines?.delta !== false },
-      tickDeltaAxis: p.tickDeltaAxis === 'up' || p.tickDeltaAxis === 'down' ? p.tickDeltaAxis : d.tickDeltaAxis,
-      upColor: color('upColor'), downColor: color('downColor'), averageColor: color('averageColor') }
+      tickDeltaLines: { up: p.tickDeltaLines?.up !== false, down: p.tickDeltaLines?.down !== false, total: p.tickDeltaLines?.total === true, delta: p.tickDeltaLines?.delta !== false },
+      tickDeltaAxis: p.tickDeltaAxis === 'up' || p.tickDeltaAxis === 'down' || p.tickDeltaAxis === 'total' ? p.tickDeltaAxis : d.tickDeltaAxis,
+      upColor: color('upColor'), downColor: color('downColor'), averageColor: color('averageColor'),
+      totalTicksColor: color('totalTicksColor'), tickDeltaColor: color('tickDeltaColor'), tickDivergenceColor: color('tickDivergenceColor') }
   } catch { return d }
 }
 export function saveVolumePreferences(value: VolumePreferences) {

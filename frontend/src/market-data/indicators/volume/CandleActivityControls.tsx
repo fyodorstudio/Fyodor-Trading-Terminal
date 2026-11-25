@@ -6,14 +6,15 @@ import { bridgeRequest } from '../../../system-connectivity/bridge-status/bridge
 import { timeframeToSeconds } from '../../chart-drawings/position-drawing-geometry'
 import type { ChartTimeframe } from '../../contracts/ChartTimeframe'
 import type { OhlcBar } from '../../contracts/OhlcBar'
-import { tickDeltaColor, type TickDeltaPlotOptions, type TickDeltaPoint } from './tick-delta-pane'
-import type { TickDeltaLine, TickDeltaLines, TickDeltaView } from './volume-preferences'
+import type { TickDeltaPlotOptions, TickDeltaPoint } from './tick-delta-pane'
+import type { TickDeltaColors, TickDeltaLine, TickDeltaLines, TickDeltaView } from './volume-preferences'
 import { useTickDeltaHistory, type TickCounts } from './use-tick-delta-history'
 import './candle-activity.css'
 
 type CurrencyActivity = { rows: { currency: string; updates: number | null; missing: string[] }[] }
 const count = new Intl.NumberFormat()
-const tickDeltaLineLabels = [['up', 'Upticks'], ['down', 'Downticks'], ['delta', 'Delta']] as const
+const tickDeltaLineLabels = [['up', 'Upticks'], ['down', 'Downticks'], ['total', 'Total Ticks'], ['delta', 'Delta']] as const
+const totalTicks = ({ up, down, flat, unknown }: TickCounts) => up + down + flat + unknown
 
 function useCandleReading<T>(request: string | null, refreshUntil?: number | null) {
   const [retry, setRetry] = useState(0)
@@ -43,20 +44,20 @@ function useCandleReading<T>(request: string | null, refreshUntil?: number | nul
   return { current: reading?.key === key ? reading : null, retry: () => setRetry(value => value + 1) }
 }
 
-export type CandleActivityProps = {
+export type CandleActivityProps = TickDeltaColors & {
   bars: OhlcBar[]
   symbol: string; timeframe: ChartTimeframe; synthetic: boolean; canRank: boolean; connected: boolean; generation: number
-  upColor: string; downColor: string
   tickDeltaView: TickDeltaView; onTickDeltaViewChange: (view: TickDeltaView) => void
   tickDeltaLines: TickDeltaLines; onToggleTickDeltaLine: (line: TickDeltaLine) => void
   tickDeltaAxis: TickDeltaLine; onTickDeltaAxisChange: (line: TickDeltaLine) => void
 }
 
 export function CandleActivityControls({ chart, bars, symbol, timeframe, synthetic, canRank,
-  connected, upColor, downColor, tickDeltaView, onTickDeltaViewChange, tickDeltaLines, onToggleTickDeltaLine,
+  connected, upColor, downColor, totalTicksColor, tickDeltaColor, tickDivergenceColor,
+  tickDeltaView, onTickDeltaViewChange, tickDeltaLines, onToggleTickDeltaLine,
   tickDeltaAxis, onTickDeltaAxisChange, onPlot }: CandleActivityProps & {
   chart: IChartApi
-  onPlot: (rows: ReadonlyMap<number, TickDeltaPoint>, options: TickDeltaPlotOptions) => void
+  onPlot: (rows: ReadonlyMap<number, TickDeltaPoint>, options: TickDeltaPlotOptions, candles: readonly OhlcBar[]) => void
 }) {
   const clock = useDisplayClock()
   const [showRanking, setShowRanking] = useState(false)
@@ -109,12 +110,16 @@ export function CandleActivityControls({ chart, bars, symbol, timeframe, synthet
   const visiblePoints = useMemo(() => {
     const points = new Map<number, TickDeltaPoint>()
     if (first === undefined || last === undefined) return points
-    for (const [time, counts] of history) if (counts && time >= first && time < last) points.set(time, counts)
-    if (liveTicks) points.set(last, liveTicks)
+    for (const [time, counts] of history) {
+      if (counts && time >= first && time < last) points.set(time, { up: counts.up, down: counts.down, total: totalTicks(counts) })
+    }
+    if (liveTicks) points.set(last, { up: liveTicks.up, down: liveTicks.down, total: totalTicks(liveTicks) })
     return points
   }, [history, first, last, liveTicks])
-  useLayoutEffect(() => onPlot(visiblePoints, { upColor, downColor, view: paneView, lines: tickDeltaLines, axis }),
-    [onPlot, visiblePoints, upColor, downColor, paneView, tickDeltaLines, axis])
+  const plot = useMemo<TickDeltaPlotOptions>(() => ({ upColor, downColor, totalTicksColor, tickDeltaColor, tickDivergenceColor, view: paneView, lines: tickDeltaLines, axis }),
+    [upColor, downColor, totalTicksColor, tickDeltaColor, tickDivergenceColor, paneView, tickDeltaLines, axis])
+  const markerCandles = paneView === 'line' && tickDeltaLines.delta ? bars : undefined
+  useLayoutEffect(() => onPlot(visiblePoints, plot, markerCandles ?? []), [onPlot, visiblePoints, plot, markerCandles])
 
   const current = ranking ? rank : start === last ? live : fallback
   const ticks = !ranking && start !== undefined ? start === last ? liveTicks : history.get(start) ?? recovered : undefined
@@ -125,6 +130,7 @@ export function CandleActivityControls({ chart, bars, symbol, timeframe, synthet
   const lineView = paneView === 'line'
   const showUp = barsView || (lineView && tickDeltaLines.up)
   const showDown = barsView || (lineView && tickDeltaLines.down)
+  const showTotal = lineView && tickDeltaLines.total
   const showDelta = barsView || (lineView && tickDeltaLines.delta)
   return <section className="candle-activity-pane" aria-label="Candle volume">
     <div className="candle-activity-toolbar">
@@ -148,9 +154,10 @@ export function CandleActivityControls({ chart, bars, symbol, timeframe, synthet
     {!connected ? <p role="status">Waiting for MT5.</p> : start !== undefined && !ticks && !ranks && !current.current
       ? <p role="status">Reading candle data…</p> : null}
     {current.current?.error && <div className="volume-controls"><span role="status">{current.current.error}</span><button type="button" onClick={current.retry}>Retry</button></div>}
-    {ticks && delta !== undefined && (showUp || showDown || showDelta) && <dl className="candle-tick-counts" aria-label="Tick Delta">
+    {ticks && delta !== undefined && (showUp || showDown || showTotal || showDelta) && <dl className="candle-tick-counts" aria-label="Tick Delta">
       {showUp && <div><dt>Upticks</dt><dd style={{ color: upColor }}>{count.format(ticks.up)}</dd></div>}
       {showDown && <div><dt>Downticks</dt><dd style={{ color: downColor }}>{count.format(ticks.down)}</dd></div>}
+      {showTotal && <div><dt>Total Ticks</dt><dd style={{ color: totalTicksColor }}>{count.format(totalTicks(ticks))}</dd></div>}
       {barsView && <div><dt>Unchanged</dt><dd>{count.format(ticks.flat)}</dd></div>}
       {showDelta && <div><dt>Tick Delta</dt><dd style={lineView ? { color: tickDeltaColor } : undefined}>{delta > 0 ? '+' : ''}{count.format(delta)}</dd></div>}
       {barsView && ticks.unknown > 0 && <div><dt>Unclassified</dt><dd>{count.format(ticks.unknown)}</dd></div>}

@@ -150,8 +150,8 @@ function MarketCandlestickChartComponent({
   const tickPaneRef = useRef<ReturnType<typeof createTickDeltaPane> | null>(null)
   const [tickLegend, setTickLegend] = useState<HTMLDivElement | null>(null)
   const tickDeltaEnabled = Boolean(tickDelta)
-  const plotTickDelta = useCallback((rows: ReadonlyMap<number, TickDeltaPoint>, options: TickDeltaPlotOptions) => {
-    tickPaneRef.current?.sync(rows, options)
+  const plotTickDelta = useCallback((rows: ReadonlyMap<number, TickDeltaPoint>, options: TickDeltaPlotOptions, candles: readonly OhlcBar[]) => {
+    tickPaneRef.current?.sync(rows, options, candles)
   }, [])
   const rsiPaneRef = useRef<ReturnType<typeof createRsiPane> | null>(null)
   const atrPaneRef = useRef<ReturnType<typeof createAtrPane> | null>(null)
