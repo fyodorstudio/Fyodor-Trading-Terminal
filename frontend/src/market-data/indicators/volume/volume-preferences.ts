@@ -9,6 +9,7 @@ export type VolumePreferences = {
   upColor: string; downColor: string; averageColor: string
   tickDeltaView: TickDeltaView
   tickDeltaLines: TickDeltaLines
+  tickDeltaAxis: TickDeltaLine
 }
 export type VolumeLayer = 'barsVisible' | 'relativeLineVisible' | 'averageVisible'
 export const defaultVolumePreferences: VolumePreferences = {
@@ -17,6 +18,7 @@ export const defaultVolumePreferences: VolumePreferences = {
   averageVisible: false, averageLength: 20, upColor: '#089981', downColor: '#f23645', averageColor: '#b18a00',
   tickDeltaView: 'bars',
   tickDeltaLines: { up: true, down: true, delta: true },
+  tickDeltaAxis: 'delta',
 }
 const storageKey = 'fyodor.indicators.volume.v1'
 export function readVolumePreferences(): VolumePreferences {
@@ -36,6 +38,7 @@ export function readVolumePreferences(): VolumePreferences {
       averageVisible: p.averageVisible === true, averageLength: integer('averageLength', 1, 200),
       tickDeltaView: p.tickDeltaView === 'line' ? 'line' : d.tickDeltaView,
       tickDeltaLines: { up: p.tickDeltaLines?.up !== false, down: p.tickDeltaLines?.down !== false, delta: p.tickDeltaLines?.delta !== false },
+      tickDeltaAxis: p.tickDeltaAxis === 'up' || p.tickDeltaAxis === 'down' ? p.tickDeltaAxis : d.tickDeltaAxis,
       upColor: color('upColor'), downColor: color('downColor'), averageColor: color('averageColor') }
   } catch { return d }
 }

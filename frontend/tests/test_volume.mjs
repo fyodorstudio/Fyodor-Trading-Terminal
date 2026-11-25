@@ -100,8 +100,10 @@ try {
   assert.equal(readVolumePreferences().axisTarget, 'volume', 'Unknown axis targets use the default')
   assert.equal(readVolumePreferences().tickDeltaView, 'bars', 'Existing saved volume settings default to tick bars')
   assert.deepEqual(readVolumePreferences().tickDeltaLines, { up: true, down: true, delta: true })
-  saveVolumePreferences({ ...p, tickDeltaView: 'line', tickDeltaLines: { up: false, down: true, delta: false } })
+  assert.equal(readVolumePreferences().tickDeltaAxis, 'delta')
+  saveVolumePreferences({ ...p, tickDeltaView: 'line', tickDeltaLines: { up: false, down: true, delta: false }, tickDeltaAxis: 'down' })
   assert.equal(readVolumePreferences().tickDeltaView, 'line', 'The delta line view survives reloads')
   assert.deepEqual(readVolumePreferences().tickDeltaLines, { up: false, down: true, delta: false })
+  assert.equal(readVolumePreferences().tickDeltaAxis, 'down')
   console.log('✓ Volume: automatic sessions/overlaps/header parity, session-relative ratios, prior-only baselines, DST/historical clocks, missing/zero data, mutable tail, correction/prepend, 100,000-bar live work = 1')
 } finally { await server.close(); await dom.happyDOM.close(); globalThis.window = oldWindow }

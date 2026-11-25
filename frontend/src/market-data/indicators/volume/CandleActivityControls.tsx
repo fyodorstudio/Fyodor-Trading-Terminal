@@ -13,7 +13,7 @@ import './candle-activity.css'
 
 type CurrencyActivity = { rows: { currency: string; updates: number | null; missing: string[] }[] }
 const count = new Intl.NumberFormat()
-const tickDeltaLineButtons = [['up', 'Upticks'], ['down', 'Downticks'], ['delta', 'Delta']] as const
+const tickDeltaLineLabels = [['up', 'Upticks'], ['down', 'Downticks'], ['delta', 'Delta']] as const
 
 function useCandleReading<T>(request: string | null, refreshUntil?: number | null) {
   const [retry, setRetry] = useState(0)
@@ -49,10 +49,12 @@ export type CandleActivityProps = {
   upColor: string; downColor: string
   tickDeltaView: TickDeltaView; onTickDeltaViewChange: (view: TickDeltaView) => void
   tickDeltaLines: TickDeltaLines; onToggleTickDeltaLine: (line: TickDeltaLine) => void
+  tickDeltaAxis: TickDeltaLine; onTickDeltaAxisChange: (line: TickDeltaLine) => void
 }
 
 export function CandleActivityControls({ chart, bars, symbol, timeframe, synthetic, canRank,
-  connected, upColor, downColor, tickDeltaView, onTickDeltaViewChange, tickDeltaLines, onToggleTickDeltaLine, onPlot }: CandleActivityProps & {
+  connected, upColor, downColor, tickDeltaView, onTickDeltaViewChange, tickDeltaLines, onToggleTickDeltaLine,
+  tickDeltaAxis, onTickDeltaAxisChange, onPlot }: CandleActivityProps & {
   chart: IChartApi
   onPlot: (rows: ReadonlyMap<number, TickDeltaPoint>, options: TickDeltaPlotOptions) => void
 }) {
@@ -62,6 +64,7 @@ export function CandleActivityControls({ chart, bars, symbol, timeframe, synthet
   const [viewport, setViewport] = useState<{ from: number; to: number } | null>(null)
   const ranking = canRank && showRanking
   const paneView = ranking ? 'currency' : tickDeltaView
+  const axis = tickDeltaLines[tickDeltaAxis] ? tickDeltaAxis : tickDeltaLineLabels.find(([line]) => tickDeltaLines[line])?.[0]
   const selectTickView = (view: TickDeltaView) => {
     onTickDeltaViewChange(view)
     setShowRanking(false)
@@ -110,8 +113,8 @@ export function CandleActivityControls({ chart, bars, symbol, timeframe, synthet
     if (liveTicks) points.set(last, liveTicks)
     return points
   }, [history, first, last, liveTicks])
-  useLayoutEffect(() => onPlot(visiblePoints, { upColor, downColor, view: paneView, lines: tickDeltaLines }),
-    [onPlot, visiblePoints, upColor, downColor, paneView, tickDeltaLines])
+  useLayoutEffect(() => onPlot(visiblePoints, { upColor, downColor, view: paneView, lines: tickDeltaLines, axis }),
+    [onPlot, visiblePoints, upColor, downColor, paneView, tickDeltaLines, axis])
 
   const current = ranking ? rank : start === last ? live : fallback
   const ticks = !ranking && start !== undefined ? start === last ? liveTicks : history.get(start) ?? recovered : undefined
@@ -130,9 +133,13 @@ export function CandleActivityControls({ chart, bars, symbol, timeframe, synthet
         <button type="button" aria-pressed={lineView} onClick={() => selectTickView('line')}>Delta Line</button>
         {canRank && <button type="button" aria-pressed={ranking} onClick={() => setShowRanking(true)}>Currency Activity</button>}
       </div>
-      {lineView && <div className="volume-controls tick-delta-line-controls" role="group" aria-label="Tick Delta lines">
-        {tickDeltaLineButtons.map(([line, label]) => <button key={line} type="button" aria-pressed={tickDeltaLines[line]}
-          onClick={() => onToggleTickDeltaLine(line)}>{label}</button>)}
+      {lineView && <div className="volume-controls tick-delta-line-controls" role="group" aria-label="Tick Delta axis and visibility">
+        {tickDeltaLineLabels.map(([line, label]) => <div className="tick-delta-line-control" key={line}>
+          <input type="checkbox" aria-label={`Show ${label.toLowerCase()} line`} checked={tickDeltaLines[line]}
+            onChange={() => onToggleTickDeltaLine(line)} />
+          <button type="button" aria-label={`Resize ${label.toLowerCase()} axis`} title="Select this line, then drag the right y-axis"
+            aria-pressed={axis === line} disabled={!tickDeltaLines[line]} onClick={() => onTickDeltaAxisChange(line)}>{label}</button>
+        </div>)}
       </div>}
       <span className="candle-activity-time" title={ranking ? 'Selected candle' : activitySource}>
         {start === undefined ? 'No candles available' : clock.chart(start * 1000)}

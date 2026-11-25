@@ -262,8 +262,9 @@ left loads more history for comparison. Tick volume counts broker price updates.
 
 Select **Tick Delta** in Volume settings, then turn on **Volume** in the chart header.
 On a synthetic index, **Volume** opens Tick Delta directly in the pane below the
-price chart. Its settings gear controls the uptick and downtick colours. Upticks
-plot above zero and downticks below. Visible history loads automatically as you pan.
+price chart. Its settings gear controls the uptick and downtick colours. In the
+Bars view, upticks plot above zero and downticks below. Visible history loads
+automatically as you pan.
 Hover a candle to see its exact upticks, downticks and unchanged quotes. With the
 pointer away from the chart, the readout follows the latest candle. Broker symbols
 use the Bid/Ask midpoint. Synthetic indices use the basket's
@@ -271,10 +272,12 @@ Bid inputs and group updates that share a millisecond. These counts describe quo
 movement. Trade sizes and aggressor sides are separate data.
 
 Switch between **Uptick / Downtick Bars** and **Delta Line** in the pane. In
-**Delta Line**, use **Upticks**, **Downticks**, and **Delta** to choose which
-lines to display. Downticks plot below zero, and Delta plots upticks minus
-downticks. The y-axis fits the selected lines and includes the dashed zero
-reference. The hover readout follows your selection, which is saved.
+**Delta Line**, both counts plot above zero and Delta plots upticks minus
+downticks. Use the checkboxes to show and hide lines. Choose **Upticks**,
+**Downticks**, or **Delta**, then drag the right y-axis to resize that line.
+Double-click the axis to return the selected line to the shared automatic scale.
+With both count lines on the shared scale, crossings show where their counts
+meet. The pane saves the visibility and axis selection.
 
 On Pepperstone-Demo, **Currency Activity** ranks all eight major currencies by the
 sum of broker ticks in each currency's seven FX pairs over the selected candle.

@@ -310,6 +310,7 @@ function MarketCandlestickChartComponent({
     prevBarSpacingRef.current = appearance.barSpacing
 
     chart.applyOptions(lightweightChartOptions(appearance, timeDisplay, false, clock))
+    tickPaneRef.current?.restoreScaleMargins()
     if (barSpacingChanged) {
       chart.applyOptions({ timeScale: { barSpacing: appearance.barSpacing } })
       const width = chart.timeScale().width?.() || containerRef.current?.clientWidth || 0

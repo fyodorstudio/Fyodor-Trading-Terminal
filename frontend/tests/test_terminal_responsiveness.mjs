@@ -92,15 +92,24 @@ const pricePane = { setStretchFactor() {}, getHeight: () => 420, getHTMLElement:
 const panes = [pricePane]
 const addIndicatorPane = () => {
   count('rsiPaneCreates')
-  const paneSeries = new Set(); let volumePane = false
+  const paneSeries = new Set(), axisScales = new Map(); let volumePane = false
+  const paneScale = (id = 'right') => {
+    if (!axisScales.has(id)) {
+      const options = { autoScale: true }; let range = null
+      axisScales.set(id, { width: () => 0, options: () => options, applyOptions: next => Object.assign(options, next),
+        setAutoScale: enabled => { options.autoScale = enabled }, getVisibleRange: () => range,
+        setVisibleRange: next => { range = next; options.autoScale = false } })
+    }
+    return axisScales.get(id)
+  }
   const pane = { setStretchFactor() {}, paneIndex: () => panes.indexOf(pane), moveTo: index => { const old = panes.indexOf(pane); panes.splice(old, 1); panes.splice(index, 0, pane) }, getHeight: () => 140,
     attachPrimitive: primitive => primitives.add(primitive), detachPrimitive: primitive => primitives.delete(primitive),
-    getHTMLElement: () => ({ offsetTop: 428 }), priceScale: () => ({ width: () => 0, applyOptions() {} }),
+    getHTMLElement: () => ({ offsetTop: 428 }), priceScale: paneScale,
     addSeries: (definition, initialOptions) => {
       if (definition?.type === 'histogram') volumePane = true
       const options = { ...initialOptions }, priceLines = []
       let rows = []
-      const line = { options: () => options, priceLines, applyOptions: next => Object.assign(options, next),
+      const line = { options: () => options, priceLines, applyOptions: next => Object.assign(options, next), priceScale: () => paneScale(options.priceScaleId),
         setData: next => { count(volumePane ? 'volumeSetData' : 'rsiSetData'); rows = [...next] },
         update: row => { count(volumePane ? 'volumeUpdate' : 'rsiUpdate'); if (rows.at(-1)?.time === row.time) rows[rows.length - 1] = row; else rows.push(row) },
         data: () => rows, priceToCoordinate: value => 140 - value,
@@ -656,27 +665,35 @@ try {
   await click([...candleVolume().querySelectorAll('button')].find(button => button.textContent === 'Delta Line')); await flush()
   assert.equal(panes.length, 3, 'Switching visualizations keeps the same native pane')
   assert.deepEqual(tickVisibility(), [false, false, true, true, true])
-  assert.deepEqual(lineSeries.map(line => line.data().at(-1).value), [62, -38, 24])
+  assert.deepEqual(lineSeries.map(line => line.data().at(-1).value), [62, 38, 24])
   assert.equal(deltaLine.priceLines[0].price, 0)
   assert.equal(deltaLine.data().find(bar => bar.time === plotted.at(-4).time).value, -5)
   assert.equal(deltaLine.data().find(bar => bar.time === plotted.at(-3).time).value, 0)
   assert.match(candleVolume().querySelector('dl').textContent, /Upticks11Downticks7Tick Delta\+4/)
-  const lineControls = () => candleVolume().querySelector('[aria-label="Tick Delta lines"]')
-  const lineButton = name => [...lineControls().querySelectorAll('button')].find(button => button.textContent === name)
-  await click(lineButton('Delta')); await flush()
+  const lineControls = () => candleVolume().querySelector('[aria-label="Tick Delta axis and visibility"]')
+  const axisButton = name => lineControls().querySelector(`[aria-label="Resize ${name} axis"]`)
+  const visibilityCheckbox = name => lineControls().querySelector(`[aria-label="Show ${name} line"]`)
+  assert.equal(axisButton('delta').getAttribute('aria-pressed'), 'true')
+  await click(axisButton('downticks')); await flush()
+  assert.equal(axisButton('downticks').getAttribute('aria-pressed'), 'true')
+  assert.equal(downLine.options().priceScaleId, 'right')
+  assert.deepEqual(tickVisibility(), [false, false, true, true, true], 'Selecting an axis leaves all three lines visible')
+  await click(visibilityCheckbox('delta')); await flush()
   assert.deepEqual(tickVisibility(), [false, false, true, true, false])
-  assert.equal(lineButton('Delta').getAttribute('aria-pressed'), 'false')
-  await click(lineButton('Upticks')); await flush()
+  assert.equal(axisButton('delta').disabled, true)
+  await click(visibilityCheckbox('upticks')); await flush()
   assert.deepEqual(tickVisibility(), [false, false, false, true, false])
   assert.equal(candleVolume().querySelector('dl').textContent, 'Downticks7')
-  await click(lineButton('Downticks')); await flush()
+  await click(visibilityCheckbox('downticks')); await flush()
   assert.deepEqual(tickVisibility(), [false, false, false, false, false])
   assert.equal(candleVolume().querySelector('dl'), null)
-  await click(lineButton('Delta')); await flush()
+  await click(visibilityCheckbox('delta')); await flush()
   assert.deepEqual(tickVisibility(), [false, false, false, false, true])
+  assert.equal(axisButton('delta').getAttribute('aria-pressed'), 'true', 'A visible line owns the axis when the preferred line is hidden')
   assert.equal(requests.length, requestsBeforeLine, 'Switching views and lines reuses already loaded tick history')
   assert.equal(JSON.parse(localStorage.getItem('fyodor.indicators.volume.v1')).tickDeltaView, 'line')
   assert.deepEqual(JSON.parse(localStorage.getItem('fyodor.indicators.volume.v1')).tickDeltaLines, { up: false, down: false, delta: true })
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.indicators.volume.v1')).tickDeltaAxis, 'down')
   await click([...candleVolume().querySelectorAll('button')].find(button => button.textContent === 'Uptick / Downtick Bars')); await flush()
   assert.deepEqual(tickVisibility(), [true, true, false, false, false])
   assert.equal(lineControls(), null)

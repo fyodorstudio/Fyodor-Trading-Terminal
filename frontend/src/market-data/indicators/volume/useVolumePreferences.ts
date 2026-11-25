@@ -17,5 +17,11 @@ export function useVolumePreferences() {
     saveVolumePreferences(next)
     return next
   }), [])
-  return { volume, changeVolume, changeTickDeltaView, toggleTickDeltaLine, toggleVolume, volumeSettingsOpen, setVolumeSettingsOpen }
+  const changeTickDeltaAxis = useCallback((tickDeltaAxis: TickDeltaLine) => setVolume(current => {
+    if (current.tickDeltaAxis === tickDeltaAxis) return current
+    const next = { ...current, tickDeltaAxis }
+    saveVolumePreferences(next)
+    return next
+  }), [])
+  return { volume, changeVolume, changeTickDeltaView, toggleTickDeltaLine, changeTickDeltaAxis, toggleVolume, volumeSettingsOpen, setVolumeSettingsOpen }
 }
