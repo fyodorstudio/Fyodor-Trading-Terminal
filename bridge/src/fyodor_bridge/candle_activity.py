@@ -18,8 +18,9 @@ def candle_time(seconds):
     return datetime.fromtimestamp(seconds, timezone.utc)
 
 
-def read_ticks(mt5, symbol, start, end):
-    ticks = mt5.copy_ticks_range(symbol, candle_time(start), candle_time(end), mt5.COPY_TICKS_INFO)
+def read_ticks(mt5, symbol, start, end, kind=None):
+    ticks = mt5.copy_ticks_range(symbol, candle_time(start), candle_time(end),
+                                 mt5.COPY_TICKS_INFO if kind is None else kind)
     code, message = mt5.last_error()
     if ticks is None or code < 0:
         raise RuntimeError(f"Quote ticks unavailable for {symbol}: {message}")

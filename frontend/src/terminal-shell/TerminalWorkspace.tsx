@@ -47,6 +47,7 @@ export function TerminalWorkspace() {
 function TerminalWorkspaceContent() {
   const wildcards = useWildcards()
   const [refocusRequest, setRefocusRequest] = useState(0)
+  const [volumeProfileEnabled, setVolumeProfileEnabled] = useState(false)
   const [rankingTarget, setRankingTarget] = useState<HTMLDivElement | null>(null)
   const { marketStructure, changeMarketStructure, toggleMarketStructure, marketStructureSettingsOpen, setMarketStructureSettingsOpen,
     atr, changeAtr, toggleAtr, atrSettingsOpen, setAtrSettingsOpen, volume, changeVolume, changeTickDeltaView, toggleTickDeltaLine, changeTickDeltaAxis, toggleVolume, volumeSettingsOpen, setVolumeSettingsOpen, rsi, changeRsi, toggleRsi, rsiSettingsOpen, setRsiSettingsOpen,
@@ -137,6 +138,8 @@ function TerminalWorkspaceContent() {
             onSelectTimeframe={selectTimeframe}
             onRefocus={() => setRefocusRequest(request => request + 1)}
             refocusDisabled={!bars.length}
+            volumeProfileEnabled={volumeProfileEnabled}
+            onToggleVolumeProfile={() => setVolumeProfileEnabled(value => !value)}
             marketStructure={marketStructure}
             onChangeMarketStructure={changes => changeMarketStructure({ ...marketStructure, ...changes })}
             onToggleMarketStructure={toggleMarketStructure}
@@ -193,6 +196,12 @@ function TerminalWorkspaceContent() {
                     totalTicksColor: volume.totalTicksColor, tickDeltaColor: volume.tickDeltaColor,
                     redCandleDivergenceColor: volume.redCandleDivergenceColor, greenCandleDivergenceColor: volume.greenCandleDivergenceColor,
                     tickDeltaDotsVisible: volume.tickDeltaDotsVisible, totalTicksDotsVisible: volume.totalTicksDotsVisible,
+                  } : undefined}
+                  volumeProfile={volumeProfileEnabled ? {
+                    symbol: activeSymbol, scope: `${brokerId}:${bridge.generation}:${activeSymbol}`, generation: bridge.generation, precision: quote?.precision ?? 5,
+                    connected: bridge.connected, synthetic: quote?.synthetic === true, brokerOffset: brokerOffsetSeconds,
+                    drawingActive: Boolean(activeDrawingTool || wildcards.placing || wildcards.editor),
+                    onStartDrawing: () => { selectCrosshair(); wildcards.setPlacing(false) },
                   } : undefined}
                   marketStructure={marketStructure}
                   atr={atr}

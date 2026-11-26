@@ -27,6 +27,7 @@ import { timeframeToSeconds } from '../chart-drawings/position-drawing-geometry'
 import { createVolumePane } from '../indicators/volume/volume-pane'
 import { createTickDeltaPane, type TickDeltaPlotOptions, type TickDeltaPoint } from '../indicators/volume/tick-delta-pane'
 import { CandleActivityControls, type CandleActivityProps } from '../indicators/volume/CandleActivityControls'
+import { VolumeProfileOverlay, type VolumeProfileOptions } from '../indicators/volume-profile/VolumeProfileOverlay'
 import type { VolumeLayer, VolumePreferences } from '../indicators/volume/volume-preferences'
 import { createRsiPane } from '../indicators/rsi/rsi-pane'
 import { createAtrPane } from '../indicators/atr/atr-pane'
@@ -54,6 +55,7 @@ type MarketCandlestickChartProps = {
   hasDailyCloseHistory?: boolean
   volume?: VolumePreferences
   tickDelta?: Omit<CandleActivityProps, 'bars'>
+  volumeProfile?: VolumeProfileOptions
   onChangeVolumeAxis?: (target: VolumePreferences['axisTarget']) => void
   onToggleVolumeLayer?: (layer: VolumeLayer) => void
   rsi?: RsiPreferences
@@ -103,6 +105,7 @@ function MarketCandlestickChartComponent({
   hasDailyCloseHistory = false,
   volume,
   tickDelta,
+  volumeProfile,
   onChangeVolumeAxis,
   onToggleVolumeLayer,
   rsi,
@@ -721,6 +724,8 @@ function MarketCandlestickChartComponent({
         tickLegend, `${clock.brokerId}:${tickDelta.generation}:${fitContentKey}`)}
       {chartApi && seriesApi && <PricePaneOverlays chartApi={chartApi} seriesApi={seriesApi} constrained={Boolean(atr?.enabled || rsi?.enabled || volume?.enabled || tickDeltaEnabled || macroEnabled)}>
       {renderChartOverlay?.(chartApi, seriesApi)}
+      {volumeProfile && <VolumeProfileOverlay {...volumeProfile} chart={chartApi} series={seriesApi}
+        bars={candles} step={timeframeToSeconds(timeframe)} />}
       {chartApi && seriesApi && (activeDrawingTool || drawings.length > 0) && (
         <ChartDrawingOverlay
           key={fitContentKey}

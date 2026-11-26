@@ -6,6 +6,7 @@ from typing import Any
 from .candle_activity import CandleTickReader, read_currency_activity
 from .currency_indices import SERVER, SYMBOLS, CurrencyIndexHistory
 from .market_data import read_market_watch, read_ohlc
+from .volume_profile import read_volume_profile
 
 
 def _last_error(mt5: Any, prefix: str) -> str:
@@ -87,6 +88,8 @@ def run_mt5_adapter(
                     result = tick_reader.read(mt5, **arguments)
                 elif operation == "currency-activity":
                     result = read_currency_activity(mt5, arguments["timeframe"], arguments["start"])
+                elif operation == "volume-profile":
+                    result = read_volume_profile(mt5, **arguments)
                 else:
                     raise RuntimeError(f"Unsupported MT5 adapter operation: {operation}")
             except Exception as error:

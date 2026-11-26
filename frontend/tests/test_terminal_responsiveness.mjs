@@ -212,6 +212,8 @@ globalThis.fetch = (url, options = {}) => {
   const u = String(url); requests.push(u)
   if (u.startsWith('/api/v1/candle-ticks?')) return Promise.resolve({ ok: true,
     json: async () => ({ up: 62, down: 38, flat: 7, unknown: 2, synthetic: false }) })
+  if (u.startsWith('/api/v1/volume-profile?')) return Promise.resolve({ ok: true,
+    json: async () => ({ digits: 5, levels: [[110000, 30], [111000, 75], [115000, 10]], missing_minutes: 0, source_generation: generation }) })
   if (u.startsWith('/api/v1/candle-tick-history?')) {
     const starts = new URL(u, 'http://localhost').searchParams.getAll('start').map(Number)
     return Promise.resolve({ ok: true, json: async () => ({ rows: starts.map(time =>
@@ -403,6 +405,65 @@ try {
   const indicatorControls = container.querySelector('[aria-label="Show RSI"]').parentElement
   assert.equal(container.querySelector('[aria-label="Show Volume"]').parentElement.nextElementSibling, indicatorControls, 'Volume sits beside RSI')
   const showMarketStructure = container.querySelector('[aria-label="Show Market Structure"]')
+  const showProfile = container.querySelector('[aria-label="Show Volume Profile"]')
+  assert.equal(showProfile.textContent, 'VP')
+  assert.equal(showProfile.parentElement.nextElementSibling, showMarketStructure.parentElement, 'VP sits immediately left of MS')
+  const profileRequests = () => requests.filter(url => url.startsWith('/api/v1/volume-profile?'))
+  assert.equal(profileRequests().length, 0, 'VP reads no tick history until enabled')
+  const beforeProfilePrimitives = new Set(primitives)
+  const beforeProfileRange = { ...logicalRange }
+  await click(showProfile); await flush()
+  assert.equal(panes.length, 1, 'VP overlays the price pane')
+  await tick('load', 175); await flush()
+  const profileControls = () => container.querySelector('[aria-label="Tick Volume Profile"]')
+  const containsWindow = (from, to) => profileRequests().some(url => {
+    const query = new URL(url, 'http://localhost').searchParams
+    return query.get('symbol') === 'EURUSD' && Number(query.get('start')) === from && Number(query.get('end')) === to
+  })
+  assert.ok(containsWindow(plotted[Math.ceil(logicalRange.from)].time, plotted.at(-1).time + 3600))
+  assert.match(profileControls().textContent, /POC 1\.11/)
+  const fills = []
+  const target = { useMediaCoordinateSpace: draw => draw({ mediaSize: { width: 900, height: 420 }, context: {
+    save() {}, restore() {}, setLineDash() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {}, strokeRect() {},
+    fillRect(x) { fills.push(x) }, fillText() {},
+  } }) }
+  const drawProfile = () => {
+    fills.length = 0
+    for (const primitive of primitives) if (!beforeProfilePrimitives.has(primitive)) {
+      for (const view of primitive.paneViews()) view.renderer().draw(target)
+    }
+    assert.ok(fills.length, 'VP renders price bins in the chart primitive')
+  }
+  drawProfile()
+  assert.ok(fills.every(x => x > 700), 'Right placement starts from the right chart edge')
+  const chooseProfile = async (label, value) => React.act(async () => {
+    const select = container.querySelector(`[aria-label="${label}"]`)
+    select.value = value
+    select.dispatchEvent(new dom.Event('change', { bubbles: true }))
+  })
+  await chooseProfile('Volume profile side', 'left')
+  drawProfile()
+  assert.ok(fills.every(x => x === 4), 'Left placement starts from the left chart edge')
+  await React.act(async () => scale.setVisibleLogicalRange({ from: 787, to: 795 }))
+  await tick('load', 175); await flush()
+  assert.ok(containsWindow(plotted[787].time, plotted[795].time + 3600), 'Visible mode follows horizontal pan and zoom')
+  await chooseProfile('Volume profile range', 'fixed')
+  await click(button('Draw range'))
+  const picker = container.querySelector('[aria-label="Draw volume profile range"]')
+  for (const [type, x, y] of [['pointerdown', 80, 100], ['pointermove', 240, 160], ['pointerup', 240, 160]]) {
+    await React.act(async () => picker.dispatchEvent(new dom.PointerEvent(type, { bubbles: true, button: 0, pointerId: 17, clientX: x, clientY: y })))
+  }
+  assert.equal(container.querySelector('[aria-label="Draw volume profile range"]'), null)
+  await tick('load', 175); await flush()
+  assert.ok(containsWindow(plotted[788].time, plotted[790].time + 3600), 'Fixed mode reads every candle selected by the box')
+  const fixedRequests = profileRequests().length
+  await React.act(async () => scale.setVisibleLogicalRange(beforeProfileRange))
+  await flush()
+  assert.equal(profileRequests().length, fixedRequests)
+  assert.ok(![...timers.values()].some(timer => timer.fn.name === 'load' && timer.ms === 175), 'Fixed mode keeps its range after pan')
+  await click(container.querySelector('[aria-label="Hide Volume Profile"]')); await flush()
+  assert.equal(profileControls(), null)
+  assert.equal(primitives.size, beforeProfilePrimitives.size, 'Hiding VP removes its chart primitives')
   const marketStructureSettings = container.querySelector('[aria-label="Market Structure settings"]')
   const swingSlider = () => container.querySelector('.market-structure-toolbar-slider input')
   const extendMarketStructure = () => container.querySelector('[aria-label="Extend Market Structure lines"]')

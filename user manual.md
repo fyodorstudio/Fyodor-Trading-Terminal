@@ -290,6 +290,18 @@ sum of broker ticks in each currency's seven FX pairs over the selected candle.
 A pair's count contributes to both currencies. A currency with missing pair data
 shows **Unavailable**.
 
+Select **VP** beside **MS** to show the Tick Volume Profile on the price chart.
+**Visible Range** follows the candles on screen as you pan or zoom horizontally.
+For **Fixed Range**, select **Draw range** and drag a box over the candles. Its
+left and right edges set the time window. Choose **Left** or **Right** to place
+the profile against either chart edge.
+
+Each horizontal row counts MT5 ticks in a price band. Bid-based charts use quote
+ticks, including updates where Bid stays flat. Last-based charts use trade
+ticks. **POC** marks the busiest band, while **HVN** and **LVN** mark prominent
+local peaks and dips. Older or incomplete broker tick history can limit the
+profile. Tick profiles are available on broker symbols.
+
 ## Heatmap
 
 Open **Heatmap** in the bottom dock. Daily/Weekly shows one month at a time;

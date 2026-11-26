@@ -26,6 +26,8 @@ type ChartWorkspaceHeaderProps = {
   refocusDisabled?: boolean
   drawingToolbarVisible?: boolean
   onToggleDrawingToolbar?: () => void
+  volumeProfileEnabled?: boolean
+  onToggleVolumeProfile?: () => void
   marketStructure?: MarketStructurePreferences
   onChangeMarketStructure?: (changes: Partial<MarketStructurePreferences>) => void
   onToggleMarketStructure?: () => void
@@ -93,6 +95,8 @@ export function ChartWorkspaceHeader({
   refocusDisabled = false,
   drawingToolbarVisible = true,
   onToggleDrawingToolbar,
+  volumeProfileEnabled = false,
+  onToggleVolumeProfile,
   marketStructure,
   onChangeMarketStructure,
   onToggleMarketStructure,
@@ -184,6 +188,10 @@ export function ChartWorkspaceHeader({
           <span aria-hidden="true">⛶</span>
         </button>}
         <div className="chart-header-actions">
+        {onToggleVolumeProfile && <div className="rsi-header-controls" role="group" aria-label="Volume Profile indicator">
+          <button type="button" aria-pressed={volumeProfileEnabled} onClick={onToggleVolumeProfile}
+            aria-label={volumeProfileEnabled ? 'Hide Volume Profile' : 'Show Volume Profile'} title="Tick Volume Profile">VP</button>
+        </div>}
         {onToggleMarketStructure && <div className="rsi-header-controls" role="group" aria-label="Market Structure indicator">
           {marketStructure?.enabled && onChangeMarketStructure && <>
             <label className="market-structure-toolbar-slider">

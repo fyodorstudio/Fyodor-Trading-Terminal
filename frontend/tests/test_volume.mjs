@@ -12,6 +12,7 @@ const candle = (utc, ticks = 100, high = 2) => ({ time: utc / 1000, open: 1, hig
 try {
   const { createVolumeCalculator } = await server.ssrLoadModule('./src/market-data/indicators/volume/volume-calculation.ts')
   const { defaultVolumePreferences, readVolumePreferences, saveVolumePreferences } = await server.ssrLoadModule('./src/market-data/indicators/volume/volume-preferences.ts')
+  const { buildTickProfile, profileCandleWindow, profilePages } = await server.ssrLoadModule('./src/market-data/indicators/volume-profile/volume-profile.ts')
   const { replaceRecentBars } = await server.ssrLoadModule('./src/market-data/mt5-feed/market-snapshots.ts')
   const { utcToChartClock } = await server.ssrLoadModule('./src/appearance/time-display/chart-clock.ts')
   const clock = { brokerId: null, brokerOffsetSeconds: 0 }, p = { ...defaultVolumePreferences, lookback: 5, minimumSamples: 3, averageLength: 3 }
@@ -118,5 +119,17 @@ try {
   assert.equal(readVolumePreferences().greenCandleDivergenceColor, '#445566')
   assert.equal(readVolumePreferences().tickDeltaDotsVisible, false)
   assert.equal(readVolumePreferences().totalTicksDotsVisible, true)
+  const profileWindow = profileCandleWindow(bars, 3, 0, 3600)
+  assert.deepEqual(profileWindow, { from: bars[0].time, to: bars[3].time + 3600 }, 'Dragging in either direction selects inclusive candles')
+  assert.equal(profileCandleWindow(bars, bars.length + 2, bars.length + 4, 3600), null, 'Future whitespace has no ticks')
+  assert.deepEqual(profilePages({ from: 86_340, to: 172_860 }), [
+    { from: 172_800, to: 172_860 }, { from: 86_400, to: 172_800 }, { from: 86_340, to: 86_400 },
+  ], 'Adjacent days partition the window without duplicate boundary ticks')
+  const profile = buildTickProfile(new Map([[15000, 18], [15001, 2], [15002, 10], [15003, 1]]), 2)
+  assert.equal(profile.count, 31)
+  close((profile.poc.low + profile.poc.high) / 2, 150)
+  assert.deepEqual(profile.rows.map(row => row.node), ['POC', 'LVN', 'HVN', undefined])
+  const tiedProfile = buildTickProfile(new Map([[15002, 10], [15000, 10]]), 2)
+  assert.equal(tiedProfile.poc, tiedProfile.rows[0], 'Equal peaks use the lower band consistently')
   console.log('✓ Volume: automatic sessions/overlaps/header parity, session-relative ratios, prior-only baselines, DST/historical clocks, missing/zero data, mutable tail, correction/prepend, 100,000-bar live work = 1')
 } finally { await server.close(); await dom.happyDOM.close(); globalThis.window = oldWindow }

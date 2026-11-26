@@ -6,6 +6,7 @@ import numpy as np
 
 from fyodor_bridge.candle_activity import CandleTickReader, basket_moves, count_moves, read_currency_activity
 from fyodor_bridge.currency_indices import CURRENCIES
+from fyodor_bridge.volume_profile import read_volume_profile
 
 
 START = 1_795_543_200
@@ -89,6 +90,36 @@ class CandleActivityTest(unittest.TestCase):
         self.assertEqual([row["updates"] for row in rows], [70] * 6 + [None, None])
         self.assertEqual([(row["currency"], row["missing"]) for row in rows[-2:]],
                          [("EUR", ["EURUSD"]), ("USD", ["EURUSD"])])
+
+
+    def test_profile_bins_quote_prices_and_reports_missing_minutes(self):
+        class ProfileMt5(FakeMt5):
+            def copy_rates_range(self, symbol, frame, start, end):
+                return np.array([(START, 3), (START + 60, 1), (START + 120, 2)], dtype=RATES)
+
+        result = read_volume_profile(ProfileMt5(), "EURUSD", START, START + 180)
+        self.assertEqual(result, {"digits": 5, "levels": [(110001, 2), (110002, 1), (120000, 1)], "missing_minutes": 1})
+        early = read_volume_profile(ProfileMt5(), "EURUSD", START, START + 60)
+        self.assertEqual(early["levels"], [(110001, 2), (110002, 1)])
+        self.assertEqual(early["missing_minutes"], 0)
+
+    def test_profile_uses_trade_tick_prices_for_last_based_bars(self):
+        class ExchangeMt5(FakeMt5):
+            COPY_TICKS_TRADE = 2
+
+            def symbol_info(self, symbol):
+                return SimpleNamespace(digits=2, chart_mode=1)
+
+            def copy_ticks_range(self, symbol, start, end, kind):
+                if kind != self.COPY_TICKS_TRADE:
+                    raise AssertionError("Last charts must read trade ticks")
+                return np.array([(START * 1000, 24.99, 25.01, 25.00)], dtype=TICKS + [("last", "f8")])
+
+            def copy_rates_range(self, symbol, frame, start, end):
+                return None
+
+        self.assertEqual(read_volume_profile(ExchangeMt5(), "EXCHANGE", START, START + 60),
+                         {"digits": 2, "levels": [(2500, 1)], "missing_minutes": None})
 
 
 if __name__ == "__main__":

@@ -17,6 +17,7 @@ from .market_data import TIMEFRAME_NAMES
 from .mt5_worker import Mt5UnavailableError, Mt5Worker, SupersededRequest
 from .runtime_activity import ActivityLedger, HeartbeatRegistry, utc_milliseconds
 from .settings import load_settings
+from .volume_profile import MAX_PROFILE_PAGE_SECONDS
 
 API_VERSION = "1"
 BRIDGE_VERSION = "1.0.0"
@@ -193,6 +194,25 @@ async def read_candle_ticks(request, symbol, timeframe, start, history=None):
     except Exception as error:
         raise bridge_error(error) from error
     raise HTTPException(status_code=499, detail="Candle tick read cancelled")
+
+
+@app.get("/api/v1/volume-profile")
+def get_volume_profile(
+    symbol: Annotated[str, Query(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9._#-]+$")],
+    start: CandleStart,
+    end: CandleStart,
+) -> dict[str, object]:
+    if not 0 < end - start <= MAX_PROFILE_PAGE_SECONDS or start % 60 or end % 60:
+        raise HTTPException(status_code=422, detail="Volume profile requires a minute-aligned window of at most one day")
+    generation = mt5_worker.snapshot()["generation"]
+    try:
+        result = mt5_worker.submit("volume-profile", "volume-profile", dict(symbol=symbol, start=start, end=end),
+                                   priority=10, supersede=False)
+        if mt5_worker.snapshot()["generation"] != generation:
+            raise Mt5UnavailableError("MT5 session changed during the volume profile read")
+    except Exception as error:
+        raise bridge_error(error) from error
+    return {**result, "source_generation": generation}
 
 
 @app.get("/api/v1/currency-activity")
