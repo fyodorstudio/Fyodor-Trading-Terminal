@@ -338,12 +338,12 @@ async def get_volume_profile_range(
 
 @app.get("/api/v1/volume-profile/preload")
 async def get_volume_profile_preload():
-    return {"job": profile_preload.status(mt5_worker.snapshot())}
+    return {"job": profile_preload.status(mt5_worker.snapshot()), "automatic_start": True}
 
 
 @app.post("/api/v1/volume-profile/preload")
 async def start_volume_profile_preload(
-    start: CandleStart,
+    start: Annotated[int | None, Query(ge=1, le=253402214399)] = None,
     broker_offset: Annotated[int, Query(ge=-50_400, le=50_400)] = 0,
     symbol: Annotated[str | None, Query(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9._#-]+$")] = None,
 ):
@@ -351,7 +351,7 @@ async def start_volume_profile_preload(
     if not source["connected"] or not source["account_server"] or source["account_login"] is None:
         raise bridge_error(Mt5UnavailableError("Connect MT5 to preload H1 history"))
     stop = (int(time()) + broker_offset) // HOUR * HOUR
-    if start >= stop or start % MAX_PROFILE_PAGE_SECONDS:
+    if start is not None and (start >= stop or start % MAX_PROFILE_PAGE_SECONDS):
         raise HTTPException(status_code=422, detail={"message": "Choose a start date before the current broker hour"})
     try:
         job = profile_preload.start(mt5_worker, source, (symbol,) if symbol else PRELOAD_SYMBOLS, start, stop)

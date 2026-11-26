@@ -6,7 +6,7 @@ from typing import Any
 from .candle_activity import CandleTickReader, read_currency_activity
 from .currency_indices import SERVER, SYMBOLS, CurrencyIndexHistory
 from .market_data import read_market_watch, read_ohlc
-from .hourly_volume_profile import read_hourly_bars, read_hourly_index_reference
+from .hourly_volume_profile import read_hourly_bars, read_hourly_first, read_hourly_index_reference
 from .volume_profile import VolumeProfileReader, volume_profile_days
 
 
@@ -94,6 +94,8 @@ def run_mt5_adapter(
                     result = profile_reader.read(mt5, **arguments)
                 elif operation == "volume-profile-hourly-bars":
                     result = read_hourly_bars(mt5, **arguments)
+                elif operation == "volume-profile-hourly-first":
+                    result = read_hourly_first(mt5, **arguments)
                 elif operation == "volume-profile-hourly-reference":
                     result = read_hourly_index_reference(mt5, index_history, **arguments)
                 elif operation == "volume-profile-days":

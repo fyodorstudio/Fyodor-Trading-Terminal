@@ -297,10 +297,10 @@ Select **VP** beside **MS** to show the Tick Volume Profile on the price chart.
 The last profile stays visible while the new range loads.
 For **Fixed Range**, select **Draw range** and drag a box over the candles. Its
 left and right edges set the time window. Right-click inside the box to clear it.
-For **Right of Line**, select **Place line** and click a candle. Drag the line
-to change the start of the profile. It counts that candle through the latest
-loaded candle. Choose **Left** or **Right** to place the histogram against
-either chart edge.
+For **Vertical Line**, select **Place line** and click a candle. Choose **Left**
+to calculate from the earliest loaded candle up to the line, or **Right** to
+calculate from the marked candle through the latest loaded candle. The marked
+candle belongs to the right side. Drag the line to move the boundary.
 
 Use the gear beside **VP** to open **Inputs** and **Style**. **Inputs** controls
 the range and calculation. **Style** controls placement and the colours of
@@ -317,12 +317,14 @@ indices it uses synchronized constituent closes and combined tick activity.
 The chart labels this profile **H1 estimate**. **POC** marks the busiest band,
 while **HVN** and **LVN** mark prominent local peaks and dips.
 
-Under **VP → Inputs**, choose a start date and preload the current symbol or
-all 36 instruments. The full list contains the 28 major FX crosses, the three
-broker indices, and the five custom indices. Preload runs at low priority in
-the bridge. Close the settings while it runs, or reopen them to check progress,
-pause, resume, or cancel. Completed H1 data stays on disk and can be reused
-after a restart. Start the same preload again after a bridge restart to finish
+Under **VP → Inputs**, preload the current symbol or all 36 instruments.
+Preload starts at the earliest H1 candle available for each MT5 symbol. Custom
+indices start where their constituent histories overlap. The full list contains
+the 28 major FX crosses, the three broker indices, and the five custom indices.
+The status shows which symbols have cached H1 data and which have gaps.
+Preload runs at low priority in the bridge. Close the settings while it runs,
+or reopen them to check progress, pause, resume, or cancel. Completed H1 data
+stays on disk and can be reused after a restart. Start the same preload again to finish
 any remaining batches. The custom indices reuse cached bars from their
 constituent pairs. The current hour refreshes from MT5.
 

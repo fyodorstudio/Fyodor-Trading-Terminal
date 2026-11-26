@@ -2,13 +2,13 @@ import type { ProfileMode, ProfileSide } from './volume-profile'
 
 export type ProfileMethod = 'ticks' | 'hourly'
 export type VolumeProfileStyle = { side: ProfileSide; colors: Record<'bars' | 'POC' | 'HVN' | 'LVN', string> }
-export type VolumeProfilePreferences = VolumeProfileStyle & { mode: ProfileMode; method: ProfileMethod }
+export type VolumeProfilePreferences = VolumeProfileStyle & { mode: ProfileMode; method: ProfileMethod; cutoffSide: ProfileSide }
 
 export const profileModeOptions = [
-  ['visible', 'Visible Range'], ['fixed', 'Fixed Range'], ['cutoff', 'Right of Line'],
+  ['visible', 'Visible Range'], ['fixed', 'Fixed Range'], ['cutoff', 'Vertical Line'],
 ] as const
 export const defaultVolumeProfilePreferences: VolumeProfilePreferences = {
-  mode: 'visible', method: 'ticks', side: 'right',
+  mode: 'visible', method: 'ticks', side: 'right', cutoffSide: 'right',
   colors: { bars: '#5c82cc', POC: '#d49b2d', HVN: '#25a596', LVN: '#8897a9' },
 }
 const storageKey = 'fyodor.indicators.volume-profile.v1'
@@ -24,6 +24,7 @@ export function readVolumeProfilePreferences(): VolumeProfilePreferences {
     return {
       mode: saved?.mode === 'fixed' || saved?.mode === 'cutoff' ? saved.mode : defaults.mode,
       side: saved?.side === 'left' ? 'left' : defaults.side,
+      cutoffSide: saved?.cutoffSide === 'left' ? 'left' : defaults.cutoffSide,
       method: saved?.method === 'hourly' ? 'hourly' : defaults.method,
       colors: { bars: color('bars'), POC: color('POC'), HVN: color('HVN'), LVN: color('LVN') },
     }

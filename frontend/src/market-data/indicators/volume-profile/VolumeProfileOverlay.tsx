@@ -18,22 +18,24 @@ export type VolumeProfileOptions = {
 
 export function VolumeProfileOverlay({ chart, series, bars, step, symbol, scope, generation, precision, connected, brokerOffset,
   drawingActive, onStartDrawing, preferences, onChangePreferences }: Chart & VolumeProfileOptions) {
-  const { mode, side, method } = preferences
+  const { mode, side, method, cutoffSide } = preferences
   const [selected, setSelected] = useState<{ scope: string; window: FixedProfileWindow } | null>(null)
   const [line, setLine] = useState<{ scope: string; time: number } | null>(null)
   const [drawing, setDrawing] = useState<string | null>(null)
   const [visible, setVisible] = useState<LogicalRange | null>(null)
   const overlay = useRef<ReturnType<typeof createVolumeProfileOverlay> | null>(null)
+  const verticalLine = mode === 'cutoff'
   const fixed = mode === 'fixed' && selected?.scope === scope ? selected.window : null
-  const cutoff = mode === 'cutoff' && line?.scope === scope ? line.time : null
+  const cutoff = verticalLine && line?.scope === scope ? line.time : null
   const drawingKey = `${scope}:${mode}`
   const picking = drawing === drawingKey && !drawingActive && connected && mode !== 'visible'
   const range = mode === 'fixed' ? fixed
-    : mode === 'cutoff' ? cutoff === null ? null : profileFromCutoff(bars, cutoff, step)
+    : verticalLine ? cutoff === null ? null : profileFromCutoff(bars, cutoff, step, cutoffSide)
     : visible && profileCandleWindow(bars, visible.from, visible.to, step)
-  const { current, profile: loadedProfile, retry } = useVolumeProfile(symbol, `${scope}:${mode}:${method}`,
+  const profileScope = `${scope}:${mode}:${method}${verticalLine ? `:${cutoffSide}` : ''}`
+  const { current, profile: loadedProfile, retry } = useVolumeProfile(symbol, profileScope,
     generation, brokerOffset, method, connected ? range : null)
-  const profile = connected && (mode === 'visible' || fixed || cutoff !== null) ? loadedProfile : null
+  const profile = connected && (mode === 'visible' || range) ? loadedProfile : null
   if (drawing !== null && (drawingActive || drawing !== drawingKey)) setDrawing(null)
 
   useLayoutEffect(() => {
@@ -72,10 +74,10 @@ export function VolumeProfileOverlay({ chart, series, bars, step, symbol, scope,
 
   const historyLabel = method === 'hourly' ? 'H1' : 'Tick'
   const status = !connected ? 'Waiting for MT5.'
-    : picking ? mode === 'cutoff' ? 'Click a candle to place the cutoff. Esc cancels.' : 'Drag across the candles. Esc cancels.'
+    : picking ? verticalLine ? 'Click a candle to place the line. Esc cancels.' : 'Drag across the candles. Esc cancels.'
     : mode === 'fixed' && !fixed ? 'Draw a range to start.'
-    : mode === 'cutoff' && cutoff === null ? 'Place a line to choose the start.'
-    : !range ? 'No visible candles.'
+    : verticalLine && cutoff === null ? 'Place a line to set the boundary.'
+    : !range ? verticalLine ? 'No candles on this side of the line.' : 'No visible candles.'
     : current?.incomplete && !current.loading ? `${historyLabel} history may be incomplete.`
     : !current || current.loading ? (current?.total ? `${historyLabel} history · ${current.checked}/${current.total} days checked`
       : `${profile ? 'Updating' : 'Reading'} ${method === 'hourly' ? 'H1' : 'tick'} history…`)
@@ -89,13 +91,18 @@ export function VolumeProfileOverlay({ chart, series, bars, step, symbol, scope,
       }}>
         {profileModeOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
       </select>
-      <select aria-label="Volume profile side" value={side}
-        onChange={event => onChangePreferences({ side: event.target.value as ProfileSide })}>
+      <select aria-label={verticalLine ? 'Volume profile calculation side' : 'Volume profile side'}
+        title={verticalLine ? 'Side of the line to calculate' : undefined}
+        value={verticalLine ? cutoffSide : side}
+        onChange={event => {
+          const value = event.target.value as ProfileSide
+          onChangePreferences(verticalLine ? { cutoffSide: value } : { side: value })
+        }}>
         <option value="left">Left</option><option value="right">Right</option>
       </select>
       {mode !== 'visible' && <button type="button" aria-pressed={picking} disabled={!connected || !bars.length}
         onClick={() => { if (!picking) onStartDrawing(); setDrawing(picking ? null : drawingKey) }}>
-        {picking ? 'Cancel' : mode === 'cutoff' ? 'Place line' : 'Draw range'}
+        {picking ? 'Cancel' : verticalLine ? 'Place line' : 'Draw range'}
       </button>}
       {method === 'hourly' && <span>H1 estimate</span>}
       {poc && <span className="volume-profile-poc">POC {((poc.low + poc.high) / 2).toFixed(precision)}</span>}
@@ -104,7 +111,7 @@ export function VolumeProfileOverlay({ chart, series, bars, step, symbol, scope,
     </div>
     {picking && mode === 'fixed' && <FixedProfilePicker chart={chart} series={series} bars={bars} step={step} onCancel={() => setDrawing(null)}
       onSelect={window => { setSelected({ scope, window }); setDrawing(null) }} />}
-    {mode === 'cutoff' && (picking || cutoff !== null) && <VolumeProfileCutoff chart={chart} series={series} bars={bars} step={step}
+    {verticalLine && (picking || cutoff !== null) && <VolumeProfileCutoff chart={chart} series={series} bars={bars} step={step}
       cutoff={cutoff} placing={picking} interactive={connected && !drawingActive} onCancel={() => setDrawing(null)}
       onSelect={time => { setLine({ scope, time }); setDrawing(null) }} />}
   </>

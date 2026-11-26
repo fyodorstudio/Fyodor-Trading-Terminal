@@ -53,7 +53,8 @@ export function VolumeProfileSettingsDialog({ preferences, symbol, connected, br
           </select></label>
           <p>{draft.method === 'hourly' ? 'Estimates activity by weighting hourly closing prices with broker tick counts.'
             : 'Uses individual tick prices where the broker provides tick history.'}</p>
-        </fieldset><VolumeProfilePreloadControls symbol={symbol} connected={connected} brokerOffset={brokerOffset} />
+        </fieldset><VolumeProfilePreloadControls symbol={symbol} connected={connected} brokerOffset={brokerOffset}
+          onUseFastHistorical={draft.method === 'ticks' ? () => patch({ method: 'hourly' }) : undefined} />
         </> : <fieldset><legend>Histogram</legend>
           <label>Placement<select value={draft.side} onChange={event => patch({ side: event.target.value as VolumeProfilePreferences['side'] })}>
             <option value="left">Left</option><option value="right">Right</option>

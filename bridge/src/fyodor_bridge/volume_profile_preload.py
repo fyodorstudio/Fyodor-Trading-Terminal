@@ -16,15 +16,19 @@ PRELOAD_PRIORITY = 20
 class PreloadJob:
     scope: tuple
     symbols: tuple
-    start: int
+    start: int | None
     end: int
-    chunks: tuple
+    chunks: tuple = ()
     state: str = "running"
     completed: int = 0
     chunk: int = 0
-    symbol_has_bars: bool = False
+    symbol_start: int | None = None
+    symbol_first_bar: int | None = None
     symbol_incomplete: bool = False
+    discovered: dict = field(default_factory=dict)
+    first_candles: dict = field(default_factory=dict)
     incomplete_symbols: list = field(default_factory=list)
+    unavailable_symbols: list = field(default_factory=list)
     message: str | None = None
 
     def snapshot(self):
@@ -33,8 +37,24 @@ class PreloadJob:
             "symbol": self.symbols[self.completed] if self.completed < len(self.symbols) else None,
             "completed_symbols": self.completed, "total_symbols": len(self.symbols),
             "completed_chunks": self.chunk, "total_chunks": len(self.chunks),
+            "symbol_start": self.symbol_start, "available_symbols": len(self.first_candles),
+            "first_candles": dict(self.first_candles), "unavailable_symbols": list(self.unavailable_symbols),
             "incomplete_symbols": list(self.incomplete_symbols), "message": self.message,
         }
+
+    def finish_symbol(self, symbol):
+        if self.symbol_first_bar is None:
+            self.unavailable_symbols.append(symbol)
+        else:
+            self.first_candles[symbol] = self.symbol_first_bar
+            if self.symbol_incomplete:
+                self.incomplete_symbols.append(symbol)
+        self.completed += 1
+        self.chunk = 0
+        self.chunks = ()
+        self.symbol_start = None
+        self.symbol_first_bar = None
+        self.symbol_incomplete = False
 
 
 class VolumeProfilePreload:
@@ -53,8 +73,7 @@ class VolumeProfilePreload:
             raise ValueError("A preload is running or finishing its current batch")
         if self.status(source) and self.job.state == "paused":
             raise ValueError("Resume or cancel the paused preload first")
-        chunks = tuple(reversed(chunk_starts(start, end)))
-        self.job = PreloadJob(account_scope(source), symbols, start, end, chunks)
+        self.job = PreloadJob(account_scope(source), symbols, start, end)
         self.task = asyncio.create_task(self.run(worker, self.job))
         return self.job.snapshot()
 
@@ -83,26 +102,39 @@ class VolumeProfilePreload:
                 job.state, job.message = "paused", "MT5 disconnected or switched accounts"
                 return
             symbol = job.symbols[job.completed]
-            first = job.chunks[job.chunk]
             try:
+                if not job.chunks:
+                    start = job.start
+                    if start is None:
+                        start = await run_in_threadpool(self.profiles.earliest, worker, current, symbol, job.end,
+                                                        job.discovered, PRELOAD_PRIORITY)
+                    if start is None or start >= job.end:
+                        job.finish_symbol(symbol)
+                        continue
+                    job.symbol_start = start
+                    job.chunks = tuple(reversed(chunk_starts(start, job.end)))
+                    if job.state != "running":
+                        break
+                first = job.chunks[job.chunk]
                 page = await run_in_threadpool(self.profiles.load_chunk, worker, current, symbol,
                                                first, job.end, PRELOAD_PRIORITY)
-                job.symbol_has_bars |= any(job.start <= bar[0] < job.end for bar in page["bars"])
-                job.symbol_incomplete |= overlaps_gap(page, max(job.start, first), job.end)
+                head = min((at for at, _, _ in page["bars"] if job.symbol_start <= at < job.end), default=None)
+                if head is not None:
+                    job.symbol_first_bar = head if job.symbol_first_bar is None else min(job.symbol_first_bar, head)
+                job.symbol_incomplete |= overlaps_gap(page, max(job.symbol_start, first), job.end)
             except Mt5UnavailableError:
                 if job.state != "cancelled":
                     job.state, job.message = "paused", "MT5 could not finish the current batch. Resume to retry."
                 return
             except Exception:
+                if not job.chunks:
+                    if job.state == "running":
+                        job.state, job.message = "paused", f"Could not find the first H1 candle for {symbol}. Resume to retry."
+                    return
                 job.symbol_incomplete = True
             job.chunk += 1
             if job.chunk == len(job.chunks):
-                if job.symbol_incomplete or not job.symbol_has_bars:
-                    job.incomplete_symbols.append(symbol)
-                job.completed += 1
-                job.chunk = 0
-                job.symbol_has_bars = False
-                job.symbol_incomplete = False
+                job.finish_symbol(symbol)
         if job.state == "running":
             job.state = "complete"
 

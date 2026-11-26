@@ -27,7 +27,7 @@ export function VolumeProfileCutoff({ chart, series, bars, step, cutoff, placing
   function cancel() { pointer.current = null; setDraft(null) }
 
   return <svg ref={svg} className={`volume-profile-cutoff${placing ? ' volume-profile-picker' : ''}`}
-    aria-label={placing ? 'Place volume profile cutoff' : 'Volume profile cutoff line'} tabIndex={placing ? 0 : undefined}
+    aria-label={placing ? 'Place volume profile line' : 'Volume profile vertical line'} tabIndex={placing ? 0 : undefined}
     style={{ width, height }}
     onKeyDown={event => {
       if (event.key === 'Escape') {
@@ -63,6 +63,6 @@ export function VolumeProfileCutoff({ chart, series, bars, step, cutoff, placing
     onLostPointerCapture={cancel} onPointerCancel={cancel}>
     {lineOnScreen && <line className="volume-profile-cutoff-stroke" x1={x} x2={x} y1={0} y2={height} />}
     {lineOnScreen && interactive && !placing && <rect className="volume-profile-cutoff-handle"
-      aria-label="Move volume profile cutoff" tabIndex={0} x={x - 7} y={0} width={14} height={height} />}
+      aria-label="Move volume profile line" tabIndex={0} x={x - 7} y={0} width={14} height={height} />}
   </svg>
 }

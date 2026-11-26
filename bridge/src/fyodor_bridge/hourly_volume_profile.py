@@ -9,6 +9,21 @@ HOUR = STEPS["H1"]
 HOURLY_PROFILE_PAGE_SECONDS = 180 * DAY
 
 
+def read_hourly_first(mt5, symbol, end):
+    account = account_identity(mt5)
+    profile_instrument(mt5, symbol)
+    # A date range returns the available history in one native read, even if
+    # the start predates the symbol. Only send the first timestamp to the bridge.
+    rates = mt5.copy_rates_range(symbol, mt5.TIMEFRAME_H1, candle_time(0), candle_time(end - 1))
+    if rates is None:
+        code, message = mt5.last_error()
+        if code != -4:  # MT5 RES_E_NOT_FOUND
+            raise RuntimeError(f"Unable to find the first H1 candle for {symbol}: {message}")
+    if account_identity(mt5) != account or not getattr(mt5.terminal_info(), "connected", False):
+        raise RuntimeError("MT5 disconnected or switched accounts while finding hourly history")
+    return int(rates["time"].min()) if rates is not None and len(rates) else None
+
+
 def read_hourly_bars(mt5, symbol, start, end):
     account = account_identity(mt5)
     info = profile_instrument(mt5, symbol)

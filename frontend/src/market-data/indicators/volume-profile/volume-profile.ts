@@ -12,9 +12,13 @@ export function profileCandleWindow(bars: readonly OhlcBar[], from: number, to: 
   return first && last && first.time <= last.time ? { from: first.time, to: last.time + step } : null
 }
 
-export function profileFromCutoff(bars: readonly OhlcBar[], cutoff: number, step: number): ProfileWindow | null {
-  const last = bars.at(-1)
-  return last && last.time + step > cutoff ? { from: cutoff, to: last.time + step } : null
+export function profileFromCutoff(bars: readonly OhlcBar[], cutoff: number, step: number, side: ProfileSide): ProfileWindow | null {
+  const first = bars[0], last = bars.at(-1)
+  if (!first || !last) return null
+  const end = last.time + step
+  const from = side === 'left' ? first.time : cutoff
+  const to = side === 'left' ? Math.min(cutoff, end) : end
+  return from < to ? { from, to } : null
 }
 
 export function buildTickProfile(levels: ReadonlyMap<number, number>, digits: number): TickProfile | null {

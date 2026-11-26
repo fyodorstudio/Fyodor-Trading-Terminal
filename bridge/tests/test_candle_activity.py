@@ -6,7 +6,7 @@ import numpy as np
 
 from fyodor_bridge.candle_activity import CandleTickReader, basket_moves, count_moves, read_currency_activity
 from fyodor_bridge.currency_indices import ANCHOR, CURRENCIES, CurrencyIndexHistory
-from fyodor_bridge.hourly_volume_profile import read_hourly_bars, weighted_profile
+from fyodor_bridge.hourly_volume_profile import HOUR, read_hourly_bars, read_hourly_first, weighted_profile
 from fyodor_bridge.volume_profile import VolumeProfileReader, read_volume_profile
 
 
@@ -152,6 +152,21 @@ class CandleActivityTest(unittest.TestCase):
             self.assertIsNone(reader.read(GappedMt5(), "GBPX", START, START + 180, "gapped", leg == 0))
         self.assertEqual(reader.read(GappedMt5(), "GBPX", START, START + 180, "gapped", False),
                          {"digits": 3, "levels": [], "missing_minutes": 1})
+
+    def test_hourly_start_finds_oldest_available_closed_h1_candle(self):
+        class HourlyMt5(FakeMt5):
+            TIMEFRAME_H1 = 60
+
+            def terminal_info(self):
+                return SimpleNamespace(connected=True)
+
+            def copy_rates_range(self, symbol, frame, start, end):
+                self.request = (symbol, frame, int(start.timestamp()), int(end.timestamp()))
+                return np.array([(START, 100), (START - 42 * HOUR, 10)], dtype=RATES)
+
+        mt5 = HourlyMt5()
+        self.assertEqual(read_hourly_first(mt5, "EURUSD", START + HOUR), START - 42 * HOUR)
+        self.assertEqual(mt5.request, ("EURUSD", mt5.TIMEFRAME_H1, 0, START + HOUR - 1))
 
     def test_hourly_volume_profile_weights_closes_and_prorates_partial_hours(self):
         day = START // 86_400 * 86_400

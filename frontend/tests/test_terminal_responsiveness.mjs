@@ -219,14 +219,14 @@ globalThis.fetch = (url, options = {}) => {
       preloadCommands.push(parsed)
       if (parsed.pathname.endsWith('/preload')) {
         const symbol = parsed.searchParams.get('symbol')
-        preloadJob = { state: 'running', start: Number(parsed.searchParams.get('start')), symbol: symbol ?? 'EURGBP',
-          completed_symbols: 0, total_symbols: symbol ? 1 : 36, completed_chunks: 0, total_chunks: 15, incomplete_symbols: [] }
+        preloadJob = { state: 'running', symbol: symbol ?? 'EURGBP', symbol_start: null, available_symbols: 0,
+          completed_symbols: 0, total_symbols: symbol ? 1 : 36, completed_chunks: 0, total_chunks: 0, incomplete_symbols: [] }
       } else {
         const action = parsed.pathname.split('/').at(-1)
         preloadJob = { ...preloadJob, state: { pause: 'paused', resume: 'running', cancel: 'cancelled' }[action] }
       }
     }
-    return Promise.resolve({ ok: true, json: async () => ({ job: preloadJob }) })
+    return Promise.resolve({ ok: true, json: async () => ({ job: preloadJob, automatic_start: true }) })
   }
   if (u.startsWith('/api/v1/candle-ticks?')) return Promise.resolve({ ok: true,
     json: async () => ({ up: 62, down: 38, flat: 7, unknown: 2, synthetic: false }) })
@@ -535,8 +535,10 @@ try {
   assert.doesNotMatch(profileControls().textContent, /POC/)
   assert.match(profileControls().textContent, /Draw a range to start/)
   await chooseProfile('Volume profile range', 'cutoff')
+  assert.equal(profileControls().querySelector('select').selectedOptions[0].textContent, 'Vertical Line')
+  assert.equal(profileControls().querySelector('[aria-label="Volume profile calculation side"]').value, 'right')
   await click(button('Place line'))
-  const placement = container.querySelector('[aria-label="Place volume profile cutoff"]')
+  const placement = container.querySelector('[aria-label="Place volume profile line"]')
   const pointerEvent = async (element, type, x) => React.act(async () =>
     element.dispatchEvent(new dom.PointerEvent(type, { bubbles: true, button: 0, pointerId: 21, clientX: x, clientY: 130 })))
   await pointerEvent(placement, 'pointerdown', 80)
@@ -544,8 +546,8 @@ try {
   await tick('load', 175); await flush()
   const visibleStart = Math.ceil(beforeProfileRange.from)
   assert.ok(containsWindow(plotted[visibleStart + 1].time, plotted.at(-1).time + 3600), 'The line begins the profile at its candle')
-  const cutoffHandle = container.querySelector('[aria-label="Move volume profile cutoff"]')
-  const cutoffLine = container.querySelector('[aria-label="Volume profile cutoff line"]')
+  const cutoffHandle = container.querySelector('[aria-label="Move volume profile line"]')
+  const cutoffLine = container.querySelector('[aria-label="Volume profile vertical line"]')
   const requestsBeforeDrag = profileRequests().length
   await pointerEvent(cutoffHandle, 'pointerdown', 80)
   await pointerEvent(cutoffLine, 'pointermove', 240)
@@ -553,12 +555,27 @@ try {
   await pointerEvent(cutoffLine, 'pointerup', 240)
   await tick('load', 175); await flush()
   assert.ok(containsWindow(plotted[visibleStart + 3].time, plotted.at(-1).time + 3600), 'Dragging updates the start while keeping the latest candle')
+  const beforeCalcSide = requests.length
+  await chooseProfile('Volume profile calculation side', 'left')
+  assert.equal(container.querySelector('[aria-label="Volume profile vertical line"]'), cutoffLine, 'Switching sides keeps the line in place')
+  assert.doesNotMatch(profileControls().textContent, /POC/, 'Switching sides clears levels from the other side')
+  await tick('load', 175); await flush()
+  const leftQueries = requests.slice(beforeCalcSide).filter(url => url.startsWith('/api/v1/volume-profile')).map(url =>
+    new URL(url, 'http://localhost').searchParams)
+  assert.equal(Math.min(...leftQueries.map(query => Number(query.get('start')))), plotted[0].time)
+  assert.equal(Math.max(...leftQueries.map(query => Number(query.get('end')))), plotted[visibleStart + 3].time,
+    'Left calculation excludes the candle at the line')
+  drawProfile()
+  assert.ok(fills.every(x => x === 4), 'Calculation side keeps the configured histogram placement')
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.indicators.volume-profile.v1')).cutoffSide, 'left')
+  await chooseProfile('Volume profile calculation side', 'right')
+  await tick('load', 175); await flush()
   await click(container.querySelector('button[aria-label="Volume Profile settings"]'))
   let profileDialog = container.querySelector('[role="dialog"]')
   await click(button('Preload EURUSD'))
   assert.equal(preloadCommands.at(-1).searchParams.get('symbol'), 'EURUSD')
-  assert.equal(preloadCommands.at(-1).searchParams.get('start'), String(Date.UTC(2022, 0, 1) / 1000))
-  assert.match(profileDialog.textContent, /Preloading · 0\/1 symbols · EURUSD/)
+  assert.equal(preloadCommands.at(-1).searchParams.has('start'), false)
+  assert.match(profileDialog.textContent, /Preloading · 0\/1 symbols · Finding the first H1 candle for EURUSD/)
   await click(button('Pause preload'))
   assert.match(profileDialog.textContent, /Paused · 0\/1 symbols/)
   await click(container.querySelector('[aria-label="Close Volume Profile settings"]'))
@@ -570,15 +587,18 @@ try {
   await click(button('Preload all 36'))
   assert.equal(preloadCommands.at(-1).searchParams.has('symbol'), false)
   assert.match(profileDialog.textContent, /Preloading · 0\/36 symbols/)
-  await click(button('Cancel preload'))
+  preloadJob = { ...preloadJob, state: 'complete', completed_symbols: 36, available_symbols: 36, symbol: null,
+    first_candles: { EURUSD: Date.UTC(2020, 0, 2) / 1000 }, incomplete_symbols: ['GBPX'] }
+  await tick('pollPreload', 1000); await flush()
+  assert.match(profileDialog.textContent, /36 with H1 cached/)
+  assert.match(profileDialog.textContent, /EURUSD cached from 2020-01-02/)
+  assert.match(profileDialog.textContent, /Cached with history gaps for GBPX/)
   const profileTabs = [...profileDialog.querySelectorAll('[role="tab"]')]
   assert.deepEqual(profileTabs.map(tab => tab.textContent), ['Inputs', 'Style'])
   const calculation = profileDialog.querySelector('select')
   assert.equal(calculation.value, 'ticks')
-  await React.act(async () => {
-    calculation.value = 'hourly'
-    calculation.dispatchEvent(new dom.Event('change', { bubbles: true }))
-  })
+  await click(button('Use Fast Historical (H1)'))
+  assert.equal(calculation.value, 'hourly')
   const profileRequestsBeforeSave = profileRequests().length
   await click(profileTabs[1])
   const pocColor = [...profileDialog.querySelectorAll('label')].find(label => label.textContent.trim() === 'Point of control').querySelector('input')

@@ -16,6 +16,7 @@ class Worker:
         self.calls = []
         self.entrance = None
         self.release = None
+        self.first = {}
 
     def snapshot(self):
         return dict(account_server=SERVER, account_login=1, generation=2, connected=True)
@@ -28,11 +29,32 @@ class Worker:
                 raise RuntimeError("The test did not release its batch")
         if operation == "volume-profile-hourly-reference":
             return [(direction / 7, 0) for _, direction in MEMBERS[arguments["symbol"]]]
-        bars = [(at, 1, 10) for at in range(arguments["start"], arguments["end"], HOUR)]
+        earliest = self.first.get(arguments["symbol"], START)
+        if operation == "volume-profile-hourly-first":
+            return earliest
+        bars = [] if earliest is None else [(at, 1, 10) for at in range(max(earliest, arguments["start"]), arguments["end"], HOUR)]
         return dict(digits=5, bars=bars, gaps=[])
 
 
 class VolumeProfilePreloadTest(IsolatedAsyncioTestCase):
+    async def test_automatic_preload_uses_available_h1_per_symbol_and_reuses_basket_probes(self):
+        with TemporaryDirectory() as temp:
+            worker = Worker()
+            worker.first = {"EURUSD": START, "GBPUSD": START + 8 * HOUR, "JPYX": None}
+            source = worker.snapshot()
+            preload = VolumeProfilePreload(HourlyProfiles(Path(temp) / "hourly.sqlite3"))
+            end = START + 48 * HOUR
+            preload.start(worker, source, ("EURUSD", "GBPUSD", "GBPX", "JPYX"), None, end)
+            await preload.task
+            result = preload.status(source)
+            self.assertEqual((result["state"], result["completed_symbols"], result["available_symbols"]), ("complete", 4, 3))
+            self.assertEqual(result["first_candles"], {"EURUSD": START, "GBPUSD": START + 8 * HOUR, "GBPX": START + 8 * HOUR})
+            self.assertEqual(result["unavailable_symbols"], ["JPYX"])
+            probes = [args["symbol"] for op, args, _ in worker.calls if op == "volume-profile-hourly-first"]
+            self.assertEqual(probes.count("GBPUSD"), 1)
+            self.assertTrue(all(pair in probes for pair, _ in MEMBERS["GBPX"]))
+            self.assertFalse(any(op == "volume-profile-hourly-bars" and args["symbol"] == "JPYX" for op, args, _ in worker.calls))
+
     async def test_all_36_reuse_constituents_and_warm_ranges_survive_restart(self):
         with TemporaryDirectory() as temp:
             path = Path(temp) / "hourly.sqlite3"

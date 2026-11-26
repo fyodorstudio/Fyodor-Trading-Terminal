@@ -86,6 +86,18 @@ class HourlyProfiles:
         self.check_source(worker, source)
         return result
 
+    def earliest(self, worker, source, symbol, end, known, priority):
+        members = MEMBERS.get(symbol) if source["account_server"] == SERVER else None
+        pairs = [pair for pair, _ in members] if members else [symbol]
+        starts = []
+        for pair in pairs:
+            if pair not in known:
+                known[pair] = self.read_mt5(worker, source, "volume-profile-hourly-first",
+                                            {"symbol": pair, "end": end}, priority)
+            starts.append(known[pair])
+        # A basket can begin only after every constituent has H1 history.
+        return None if None in starts else max(starts)
+
     def index_reference(self, worker, source, symbol, priority):
         key = (*account_scope(source), symbol)
         with self.database() as db:
