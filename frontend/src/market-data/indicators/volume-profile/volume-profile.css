@@ -40,3 +40,5 @@
 .volume-profile-cutoff-stroke { stroke: #6689df; stroke-width: 1.5; pointer-events: none; }
 .volume-profile-cutoff-handle { fill: transparent; pointer-events: auto; cursor: ew-resize; }
 .volume-profile-cutoff-handle:focus-visible { outline: none; fill: rgb(102 137 223 / 18%); }
+.volume-profile-preload-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.volume-profile-preload-actions button:disabled { opacity: 0.55; cursor: default; }

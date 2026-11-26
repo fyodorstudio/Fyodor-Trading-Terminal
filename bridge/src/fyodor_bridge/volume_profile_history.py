@@ -11,12 +11,19 @@ import zlib
 
 from .volume_profile import MAX_PROFILE_PAGE_SECONDS as DAY
 
+TEMPORARY_TTL = 3_600
+KNOWN_GAP_TTL = 7 * DAY
 
-def profile_windows(start, end):
+
+def profile_windows(start, end, page_seconds=DAY):
     while end > start:
-        first = max(start, (end - 1) // DAY * DAY)
+        first = max(start, (end - 1) // page_seconds * page_seconds)
         yield first, end
         end = first
+
+
+def window_days(start, end):
+    return (end - 1) // DAY - start // DAY + 1
 
 
 class VolumeProfileCache:
@@ -40,6 +47,14 @@ class VolumeProfileCache:
                             PRIMARY KEY (broker, login, symbol, start)
                         ) WITHOUT ROWID
                     """)
+                    with db:
+                        db.execute("BEGIN IMMEDIATE")
+                        if db.execute("PRAGMA user_version").fetchone()[0] == 0:
+                            db.execute("""
+                                UPDATE profile_days_v1 SET expires = expires + ?
+                                WHERE expires > 0 AND missing_minutes > 0 AND levels = ?
+                            """, (KNOWN_GAP_TTL - TEMPORARY_TTL, zlib.compress(b"[]", level=1)))
+                            db.execute("PRAGMA user_version = 1")
                 self.ready = True
         with closing(sqlite3.connect(self.path)) as db:
             yield db
@@ -70,8 +85,10 @@ class VolumeProfileCache:
         if end - start != DAY or start % DAY:
             return
         # Retry empty or incomplete days later as MT5 may still synchronize them.
-        complete = page["missing_minutes"] == 0 and (page["levels"] or confirmed_empty)
-        expires = 0 if complete else int(time()) + 3600
+        missing = page["missing_minutes"]
+        complete = missing == 0 and (page["levels"] or confirmed_empty)
+        ttl = KNOWN_GAP_TTL if missing and not page["levels"] else TEMPORARY_TTL
+        expires = 0 if complete else int(time()) + ttl
         levels = zlib.compress(json.dumps(page["levels"], separators=(",", ":")).encode(), level=1)
         try:
             with self.database() as db, db:
@@ -90,7 +107,7 @@ class VolumeProfileCache:
 
 
 class ProfileHistory:
-    def __init__(self, start, end, cached):
+    def __init__(self, start, end, cached, page_seconds=DAY):
         self.checked = 0
         self.incomplete = False
         self.digits = None
@@ -99,11 +116,11 @@ class ProfileHistory:
         for window, page in cached:
             self.add(page)
             available.add(window)
-        self.pending = [window for window in profile_windows(start, end) if window not in available]
-        self.total = self.checked + len(self.pending)
+        self.pending = [window for window in profile_windows(start, end, page_seconds) if window not in available]
+        self.total = window_days(start, end)
 
-    def add(self, page):
-        self.checked += 1
+    def add(self, page, days=1):
+        self.checked += days
         if page is None or (self.digits is not None and self.digits != page["digits"]):
             self.incomplete = True
             return

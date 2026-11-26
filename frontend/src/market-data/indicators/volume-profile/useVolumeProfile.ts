@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { bridgeRequest, bridgeResponse } from '../../../system-connectivity/bridge-status/bridge-client'
 import { buildTickProfile, type ProfileWindow, type TickProfile } from './volume-profile'
+import type { ProfileMethod } from './volume-profile-preferences'
 
-type TickPage = { digits: number; levels: [number, number][]; missing_minutes: number | null; source_generation: number }
+type TickPage = { digits: number; levels: [number, number][]; missing_minutes: number | null; source_generation: number; method?: ProfileMethod }
 type HistoryFrame = {
   digits: number | null; levels: [number, number][]; source_generation: number
   done: boolean; incomplete: boolean; checked: number; total: number
+  method?: ProfileMethod
 }
 type Reading = { key: string; scope: string; profile: TickProfile | null; loading: boolean; incomplete: boolean; checked: number; total: number }
 const secondsPerDay = 86_400
@@ -28,10 +30,13 @@ async function readHistory(query: URLSearchParams, signal: AbortSignal, onFrame:
         break
       }
     }
+  } catch (error) {
+    if (!signal.aborted) await reader.cancel().catch(() => {})
+    throw error
   } finally { reader.releaseLock() }
 }
 
-export function useVolumeProfile(symbol: string, scope: string, generation: number, offset: number, range: ProfileWindow | null) {
+export function useVolumeProfile(symbol: string, scope: string, generation: number, offset: number, method: ProfileMethod, range: ProfileWindow | null) {
   const [reading, setReading] = useState<Reading | null>(null)
   const [retry, setRetry] = useState({ window: '', version: 0 })
   const [rollover, setRollover] = useState(0)
@@ -55,6 +60,7 @@ export function useVolumeProfile(symbol: string, scope: string, generation: numb
     let historyLoading = from < historyEnd
     let liveLoading = liveFrom < liveEnd && liveFrom < chartNow()
     let historyFailed = false, liveFailed = false
+    let retryLive = attempt > 0
     let timer = 0
 
     function publish() {
@@ -77,10 +83,12 @@ export function useVolumeProfile(symbol: string, scope: string, generation: numb
     async function loadHistory() {
       if (!historyLoading) return
       const query = new URLSearchParams({ symbol, start: String(from), end: String(historyEnd), broker_offset: String(offset) })
+      if (method === 'hourly') query.set('method', method)
       if (attempt) query.set('retry', 'true')
       try {
         await readHistory(query, signal, frame => {
           if (signal.aborted || frame.source_generation !== generation) return
+          if (method === 'hourly' && frame.method !== method) throw new Error('The bridge must be restarted for Fast Historical')
           history = frame
           historyLoading = !frame.done
           publish()
@@ -94,8 +102,14 @@ export function useVolumeProfile(symbol: string, scope: string, generation: numb
       if (liveFrom >= liveEnd || liveFrom >= chartNow()) return
       try {
         const query = new URLSearchParams({ symbol, start: String(liveFrom), end: String(liveEnd) })
+        if (method === 'hourly') {
+          query.set('method', method)
+          query.set('broker_offset', String(offset))
+          if (retryLive) query.set('retry', 'true')
+          retryLive = false
+        }
         const page = await bridgeRequest<TickPage>(`/volume-profile?${query}`, signal)
-        liveFailed = page.source_generation !== generation
+        liveFailed = page.source_generation !== generation || (method === 'hourly' && page.method !== method)
         if (!liveFailed) live = page
       } catch { liveFailed = true }
       liveLoading = false
@@ -117,7 +131,7 @@ export function useVolumeProfile(symbol: string, scope: string, generation: numb
     }
     timer = window.setTimeout(load, 175)
     return () => { controller.abort(); window.clearTimeout(timer) }
-  }, [key, scope, from, to, symbol, generation, offset, attempt])
+  }, [key, scope, from, to, symbol, generation, offset, method, attempt])
 
   return { current: key && reading?.key === key ? reading : null,
     profile: reading?.scope === scope ? reading.profile : null,

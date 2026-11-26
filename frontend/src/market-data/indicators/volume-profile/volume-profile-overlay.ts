@@ -1,6 +1,7 @@
 import type { IChartApi, IPrimitivePaneRenderer, ISeriesApi, ISeriesPrimitive, Logical, Time } from 'lightweight-charts'
 import { drawingTimeToLogical, type DrawingTimeline } from '../../chart-drawings/drawing-coordinates'
-import type { ProfileSide, ProfileWindow, TickProfile } from './volume-profile'
+import type { ProfileWindow, TickProfile } from './volume-profile'
+import { defaultVolumeProfilePreferences, type VolumeProfileStyle } from './volume-profile-preferences'
 
 export type FixedProfileWindow = ProfileWindow & { price1: number; price2: number }
 
@@ -14,12 +15,11 @@ export function profileTimeCoordinate(chart: IChartApi, bars: DrawingTimeline, s
 
 export function createVolumeProfileOverlay(chart: IChartApi, series: ISeriesApi<'Candlestick', Time>) {
   let profile: TickProfile | null = null
-  let side: ProfileSide = 'right'
+  let style: VolumeProfileStyle = defaultVolumeProfilePreferences
   let fixed: FixedProfileWindow | null = null
   let bars: DrawingTimeline = []
   let step = 60
   let requestUpdate: (() => void) | undefined
-  const colors = { POC: '#d49b2d', HVN: '#25a596', LVN: '#8897a9' }
   function fixedBounds() {
     if (!fixed) return null
     const left = profileTimeCoordinate(chart, bars, step, fixed.from, -0.5)
@@ -44,6 +44,7 @@ export function createVolumeProfileOverlay(chart: IChartApi, series: ISeriesApi<
           }
         }
         if (profile) {
+          const { side, colors } = style
           const inset = 4
           const edge = side === 'left' ? inset : width - inset
           const maxWidth = Math.min(168, width * 0.23)
@@ -66,7 +67,7 @@ export function createVolumeProfileOverlay(chart: IChartApi, series: ISeriesApi<
             const span = Math.max(row.node ? 4 : 1, row.count / profile.poc.count * maxWidth)
             const x = side === 'left' ? edge : edge - span
             const y = (upper + lower) / 2
-            context.fillStyle = row.node ? colors[row.node] : '#5c82cc'
+            context.fillStyle = row.node ? colors[row.node] : colors.bars
             context.globalAlpha = row.node ? 0.72 : 0.36
             context.fillRect(x, Math.min(upper, lower), span, Math.max(1, Math.abs(lower - upper) - 1))
             if (row.node && y > 8 && y < height - 8) labels.push({ node: row.node, x: side === 'left' ? x + span + 4 : x - 4, y })
@@ -92,8 +93,8 @@ export function createVolumeProfileOverlay(chart: IChartApi, series: ISeriesApi<
   const primitive: ISeriesPrimitive<Time> = { paneViews: () => views, attached: params => { requestUpdate = params.requestUpdate } }
   series.attachPrimitive(primitive)
   return {
-    sync(next: TickProfile | null, placement: ProfileSide, selection: FixedProfileWindow | null, timeline: DrawingTimeline, interval: number) {
-      profile = next; side = placement; fixed = selection; bars = timeline; step = interval
+    sync(next: TickProfile | null, appearance: VolumeProfileStyle, selection: FixedProfileWindow | null, timeline: DrawingTimeline, interval: number) {
+      profile = next; style = appearance; fixed = selection; bars = timeline; step = interval
       requestUpdate?.()
     },
     containsFixed(x: number, y: number) {

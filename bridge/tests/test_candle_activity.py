@@ -6,6 +6,7 @@ import numpy as np
 
 from fyodor_bridge.candle_activity import CandleTickReader, basket_moves, count_moves, read_currency_activity
 from fyodor_bridge.currency_indices import ANCHOR, CURRENCIES, CurrencyIndexHistory
+from fyodor_bridge.hourly_volume_profile import read_hourly_bars, weighted_profile
 from fyodor_bridge.volume_profile import VolumeProfileReader, read_volume_profile
 
 
@@ -151,6 +152,28 @@ class CandleActivityTest(unittest.TestCase):
             self.assertIsNone(reader.read(GappedMt5(), "GBPX", START, START + 180, "gapped", leg == 0))
         self.assertEqual(reader.read(GappedMt5(), "GBPX", START, START + 180, "gapped", False),
                          {"digits": 3, "levels": [], "missing_minutes": 1})
+
+    def test_hourly_volume_profile_weights_closes_and_prorates_partial_hours(self):
+        day = START // 86_400 * 86_400
+
+        class HourlyMt5(FakeMt5):
+            TIMEFRAME_H1 = 60
+            TIMEFRAME_D1 = 1440
+
+            def copy_rates_range(self, symbol, frame, start, end):
+                if frame == self.TIMEFRAME_D1:
+                    return np.array([(day, 180), (day + 86_400, 180)], dtype=RATES)
+                return np.array([(day, 1.1, 120), (day + 3_600, 1.102, 60)],
+                                dtype=[("time", "i8"), ("close", "f8"), ("tick_volume", "i8")])
+
+        mt5 = HourlyMt5()
+        page = read_hourly_bars(mt5, "EURUSD", day, day + 5_400)
+        historical = weighted_profile(page["bars"], page["digits"], False, day + 1_800, day + 5_400, day + 7_200)
+        self.assertEqual(historical, {"digits": 5, "levels": [(110000, 60), (110200, 30)], "missing_minutes": 0})
+        live = weighted_profile(page["bars"], page["digits"], False, day + 1_800, day + 5_400, day + 4_500)
+        self.assertEqual(live["levels"], [(110000, 60), (110200, 60)])
+        self.assertEqual(read_hourly_bars(mt5, "EURUSD", day, day + 2 * 86_400)["gaps"],
+                         [(day + 86_400, day + 2 * 86_400)])
 
 
 if __name__ == "__main__":

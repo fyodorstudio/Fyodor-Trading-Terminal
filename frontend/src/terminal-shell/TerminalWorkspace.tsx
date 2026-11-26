@@ -1,5 +1,5 @@
 import { DisplayClockProvider } from '../appearance/time-display/DisplayClock'
-import { useCallback, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import { MarketCandlestickChart } from '../market-data/candlestick-chart/MarketCandlestickChart'
 import { MarketChartErrorBoundary } from '../market-data/candlestick-chart/MarketChartErrorBoundary'
 import { FloatingDrawingToolbar } from '../market-data/chart-drawings/FloatingDrawingToolbar'
@@ -22,6 +22,8 @@ import { PriceAlertDeliveryNotice } from '../price-alerts/PriceAlertDeliveryNoti
 import { heatmapNewsSelection } from '../news-flow/date-range'
 import { selectNewsDate } from '../news-flow/settings'
 import { VolumeSettingsDialog } from '../market-data/indicators/volume/VolumeSettingsDialog'
+import { VolumeProfileSettingsDialog } from '../market-data/indicators/volume-profile/VolumeProfileSettingsDialog'
+import { readVolumeProfilePreferences, saveVolumeProfilePreferences, type VolumeProfilePreferences } from '../market-data/indicators/volume-profile/volume-profile-preferences'
 import { AtrSettingsDialog } from '../market-data/indicators/atr/AtrSettingsDialog'
 import { MarketStructureSettingsDialog } from '../market-data/indicators/market-structure/MarketStructureSettingsDialog'
 import { RsiSettingsDialog } from '../market-data/indicators/rsi/RsiSettingsDialog'
@@ -48,6 +50,12 @@ function TerminalWorkspaceContent() {
   const wildcards = useWildcards()
   const [refocusRequest, setRefocusRequest] = useState(0)
   const [volumeProfileEnabled, setVolumeProfileEnabled] = useState(false)
+  const [volumeProfileSettingsOpen, setVolumeProfileSettingsOpen] = useState(false)
+  const [volumeProfile, setVolumeProfile] = useState(readVolumeProfilePreferences)
+  useEffect(() => { saveVolumeProfilePreferences(volumeProfile) }, [volumeProfile])
+  const changeVolumeProfile = useCallback((patch: Partial<VolumeProfilePreferences>) =>
+    setVolumeProfile(current => ({ ...current, ...patch })), [])
+  const closeVolumeProfileSettings = useCallback(() => setVolumeProfileSettingsOpen(false), [])
   const [rankingTarget, setRankingTarget] = useState<HTMLDivElement | null>(null)
   const { marketStructure, changeMarketStructure, toggleMarketStructure, marketStructureSettingsOpen, setMarketStructureSettingsOpen,
     atr, changeAtr, toggleAtr, atrSettingsOpen, setAtrSettingsOpen, volume, changeVolume, changeTickDeltaView, toggleTickDeltaLine, changeTickDeltaAxis, toggleVolume, volumeSettingsOpen, setVolumeSettingsOpen, rsi, changeRsi, toggleRsi, rsiSettingsOpen, setRsiSettingsOpen,
@@ -139,6 +147,7 @@ function TerminalWorkspaceContent() {
             refocusDisabled={!bars.length}
             volumeProfileEnabled={volumeProfileEnabled}
             onToggleVolumeProfile={() => setVolumeProfileEnabled(value => !value)}
+            onOpenVolumeProfileSettings={() => setVolumeProfileSettingsOpen(true)}
             marketStructure={marketStructure}
             onChangeMarketStructure={changes => changeMarketStructure({ ...marketStructure, ...changes })}
             onToggleMarketStructure={toggleMarketStructure}
@@ -201,6 +210,7 @@ function TerminalWorkspaceContent() {
                     connected: bridge.connected, brokerOffset: brokerOffsetSeconds,
                     drawingActive: Boolean(activeDrawingTool || wildcards.placing || wildcards.editor),
                     onStartDrawing: () => { selectCrosshair(); wildcards.setPlacing(false) },
+                    preferences: volumeProfile, onChangePreferences: changeVolumeProfile,
                   } : undefined}
                   marketStructure={marketStructure}
                   atr={atr}
@@ -322,6 +332,9 @@ function TerminalWorkspaceContent() {
         />
       )}
       {volumeSettingsOpen && <VolumeSettingsDialog preferences={volume} synthetic={quote?.synthetic} onSave={changeVolume} onClose={closeVolumeSettings} />}
+      {volumeProfileSettingsOpen && <VolumeProfileSettingsDialog preferences={volumeProfile}
+        symbol={activeSymbol} connected={bridge.connected} brokerOffset={brokerOffsetSeconds}
+        onSave={setVolumeProfile} onClose={closeVolumeProfileSettings} />}
       {marketStructureSettingsOpen && <MarketStructureSettingsDialog preferences={marketStructure} onSave={changeMarketStructure} onClose={closeMarketStructureSettings} />}
       {atrSettingsOpen && <AtrSettingsDialog preferences={atr} onSave={changeAtr} onClose={closeAtrSettings} />}
       {macroSettingsOpen && supportsMacro(activeSymbol) && <MacroSettingsDialog preferences={macroPreferences} onSave={changeMacro} onClose={closeMacroSettings} />}

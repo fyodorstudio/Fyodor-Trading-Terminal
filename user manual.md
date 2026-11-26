@@ -296,21 +296,40 @@ Select **VP** beside **MS** to show the Tick Volume Profile on the price chart.
 **Visible Range** follows the candles on screen as you pan or zoom horizontally.
 The last profile stays visible while the new range loads.
 For **Fixed Range**, select **Draw range** and drag a box over the candles. Its
-left and right edges set the time window. Left-click inside the box to clear it.
+left and right edges set the time window. Right-click inside the box to clear it.
 For **Right of Line**, select **Place line** and click a candle. Drag the line
 to change the start of the profile. It counts that candle through the latest
 loaded candle. Choose **Left** or **Right** to place the histogram against
 either chart edge.
 
-Each horizontal row counts MT5 ticks in a price band. Bid-based charts use quote
+Use the gear beside **VP** to open **Inputs** and **Style**. **Inputs** controls
+the range and calculation. **Style** controls placement and the colours of
+profile bars, **POC**, **HVN**, and **LVN**.
+
+**Exact Ticks** counts MT5 ticks in each price band. Bid-based charts use quote
 ticks, including updates where Bid stays flat. Last-based charts use trade
-ticks. **POC** marks the busiest band, while **HVN** and **LVN** mark prominent
-local peaks and dips. Custom currency indices count changes reconstructed from
-the seven constituent Bid feeds, grouped into one observation per millisecond.
-Older or incomplete broker tick history can limit the profile. Completed day profiles
-are cached locally by broker, account, and pair. The first load of a long range
-shows days checked while MT5 fills the cache. Returning to a pair reuses the
-days already loaded. The current broker day refreshes separately.
+ticks. Custom currency indices count changes reconstructed from the seven
+constituent Bid feeds, grouped into one observation per millisecond.
+
+**Fast Historical (H1)** estimates volume by price using hourly closes weighted
+by broker tick counts. Partial hours receive a proportional weight. For custom
+indices it uses synchronized constituent closes and combined tick activity.
+The chart labels this profile **H1 estimate**. **POC** marks the busiest band,
+while **HVN** and **LVN** mark prominent local peaks and dips.
+
+Under **VP → Inputs**, choose a start date and preload the current symbol or
+all 36 instruments. The full list contains the 28 major FX crosses, the three
+broker indices, and the five custom indices. Preload runs at low priority in
+the bridge. Close the settings while it runs, or reopen them to check progress,
+pause, resume, or cancel. Completed H1 data stays on disk and can be reused
+after a restart. Start the same preload again after a bridge restart to finish
+any remaining batches. The custom indices reuse cached bars from their
+constituent pairs. The current hour refreshes from MT5.
+
+Completed exact day profiles are cached locally by broker, account, and pair.
+Days with minute bars and missing ticks are remembered for seven days. **Retry**
+rechecks incomplete history immediately. Long ranges show days checked, and the
+current broker day refreshes separately in Exact Ticks.
 
 ## Heatmap
 

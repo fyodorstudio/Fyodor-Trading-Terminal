@@ -209,14 +209,35 @@ const health = () => ({ api_version: '1', bridge: { status: 'running', started_a
 const journalFixture = { version: 1, revision: 0, arrows: [], deletedIds: [] }
 let wildcardFixture = { schema: 1, revision: 0, items: [] }
 let holdProfileRange = false, finishProfileRange
+let preloadJob = null
+const preloadCommands = []
 globalThis.fetch = (url, options = {}) => {
   const u = String(url); requests.push(u)
+  if (u.startsWith('/api/v1/volume-profile/preload')) {
+    if (options.method === 'POST') {
+      const parsed = new URL(u, 'http://localhost')
+      preloadCommands.push(parsed)
+      if (parsed.pathname.endsWith('/preload')) {
+        const symbol = parsed.searchParams.get('symbol')
+        preloadJob = { state: 'running', start: Number(parsed.searchParams.get('start')), symbol: symbol ?? 'EURGBP',
+          completed_symbols: 0, total_symbols: symbol ? 1 : 36, completed_chunks: 0, total_chunks: 15, incomplete_symbols: [] }
+      } else {
+        const action = parsed.pathname.split('/').at(-1)
+        preloadJob = { ...preloadJob, state: { pause: 'paused', resume: 'running', cancel: 'cancelled' }[action] }
+      }
+    }
+    return Promise.resolve({ ok: true, json: async () => ({ job: preloadJob }) })
+  }
   if (u.startsWith('/api/v1/candle-ticks?')) return Promise.resolve({ ok: true,
     json: async () => ({ up: 62, down: 38, flat: 7, unknown: 2, synthetic: false }) })
   if (u.startsWith('/api/v1/volume-profile?')) return Promise.resolve({ ok: true,
-    json: async () => ({ digits: 5, levels: [[110000, 30], [111000, 75], [115000, 10]], missing_minutes: 0, source_generation: generation }) })
+    json: async () => ({
+      digits: 5, levels: u.includes('method=hourly') ? [[113000, 100]] : [[110000, 30], [111000, 75], [115000, 10]],
+      missing_minutes: 0, source_generation: generation, method: u.includes('method=hourly') ? 'hourly' : 'ticks',
+    }) })
   if (u.startsWith('/api/v1/volume-profile/range?')) {
-    const frame = { done: false, checked: 1, total: 2, incomplete: false, digits: 5, levels: [[112000, 20]], source_generation: generation }
+    const frame = { done: false, checked: 1, total: 2, incomplete: false, digits: 5, levels: [[112000, 20]],
+      source_generation: generation, method: u.includes('method=hourly') ? 'hourly' : 'ticks' }
     const chunk = JSON.stringify(frame)
     const text = new TextEncoder()
     const body = new ReadableStream({ start(controller) {
@@ -440,13 +461,14 @@ try {
   })
   assert.ok(containsWindow(plotted[Math.ceil(logicalRange.from)].time, plotted.at(-1).time + 3600))
   assert.match(profileControls().textContent, /POC 1\.11/)
-  const fills = []
+  const fills = [], profileStrokes = []
   const target = { useMediaCoordinateSpace: draw => draw({ mediaSize: { width: 900, height: 420 }, context: {
-    save() {}, restore() {}, setLineDash() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {}, strokeRect() {},
+    save() {}, restore() {}, setLineDash() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() { profileStrokes.push(this.strokeStyle) }, strokeRect() {},
     fillRect(x) { fills.push(x) }, fillText() {},
   } }) }
   const drawProfile = () => {
     fills.length = 0
+    profileStrokes.length = 0
     for (const primitive of primitives) if (!beforeProfilePrimitives.has(primitive)) {
       for (const view of primitive.paneViews()) view.renderer().draw(target)
     }
@@ -498,12 +520,18 @@ try {
   await flush()
   assert.equal(profileRequests().length, fixedRequests)
   assert.ok(![...timers.values()].some(timer => timer.fn.name === 'load' && timer.ms === 175), 'Fixed mode keeps its range after pan')
-  const clickPrice = async (x, y) => React.act(async () => {
-    for (const handler of clickListeners) handler({ paneIndex: 0, point: { x, y } })
+  await React.act(async () => {
+    for (const handler of clickListeners) handler({ paneIndex: 0, point: { x: 20, y: 130 } })
   })
-  await clickPrice(20, 300)
-  assert.match(profileControls().textContent, /POC/, 'A click outside the box leaves it selected')
-  await clickPrice(20, 130)
+  assert.match(profileControls().textContent, /POC/, 'A left-click inside the box leaves it selected')
+  const rightClickPrice = async (x, y) => {
+    const event = new dom.MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2, clientX: x, clientY: y })
+    await React.act(async () => chart.chartElement().dispatchEvent(event))
+    return event.defaultPrevented
+  }
+  assert.equal(await rightClickPrice(20, 300), false, 'A right-click outside the box keeps the normal context menu')
+  assert.match(profileControls().textContent, /POC/)
+  assert.equal(await rightClickPrice(20, 130), true, 'A right-click inside the box clears the range')
   assert.doesNotMatch(profileControls().textContent, /POC/)
   assert.match(profileControls().textContent, /Draw a range to start/)
   await chooseProfile('Volume profile range', 'cutoff')
@@ -525,7 +553,54 @@ try {
   await pointerEvent(cutoffLine, 'pointerup', 240)
   await tick('load', 175); await flush()
   assert.ok(containsWindow(plotted[visibleStart + 3].time, plotted.at(-1).time + 3600), 'Dragging updates the start while keeping the latest candle')
+  await click(container.querySelector('button[aria-label="Volume Profile settings"]'))
+  let profileDialog = container.querySelector('[role="dialog"]')
+  await click(button('Preload EURUSD'))
+  assert.equal(preloadCommands.at(-1).searchParams.get('symbol'), 'EURUSD')
+  assert.equal(preloadCommands.at(-1).searchParams.get('start'), String(Date.UTC(2022, 0, 1) / 1000))
+  assert.match(profileDialog.textContent, /Preloading · 0\/1 symbols · EURUSD/)
+  await click(button('Pause preload'))
+  assert.match(profileDialog.textContent, /Paused · 0\/1 symbols/)
+  await click(container.querySelector('[aria-label="Close Volume Profile settings"]'))
+  await click(container.querySelector('button[aria-label="Volume Profile settings"]'))
+  profileDialog = container.querySelector('[role="dialog"]')
+  assert.match(profileDialog.textContent, /Paused · 0\/1 symbols/, 'Closing settings leaves the preload running independently')
+  await click(button('Resume preload'))
+  await click(button('Cancel preload'))
+  await click(button('Preload all 36'))
+  assert.equal(preloadCommands.at(-1).searchParams.has('symbol'), false)
+  assert.match(profileDialog.textContent, /Preloading · 0\/36 symbols/)
+  await click(button('Cancel preload'))
+  const profileTabs = [...profileDialog.querySelectorAll('[role="tab"]')]
+  assert.deepEqual(profileTabs.map(tab => tab.textContent), ['Inputs', 'Style'])
+  const calculation = profileDialog.querySelector('select')
+  assert.equal(calculation.value, 'ticks')
+  await React.act(async () => {
+    calculation.value = 'hourly'
+    calculation.dispatchEvent(new dom.Event('change', { bubbles: true }))
+  })
+  const profileRequestsBeforeSave = profileRequests().length
+  await click(profileTabs[1])
+  const pocColor = [...profileDialog.querySelectorAll('label')].find(label => label.textContent.trim() === 'Point of control').querySelector('input')
+  await React.act(async () => props(pocColor).onChange({ target: { value: '#a16f22' } }))
+  assert.equal(profileRequests().length, profileRequestsBeforeSave, 'Settings are applied only after saving')
+  await click(profileDialog.querySelector('button[type="submit"]'))
+  await tick('load', 175); await flush()
+  const sampledQuery = new URL(profileRequests().at(-1), 'http://localhost').searchParams
+  assert.equal(sampledQuery.get('method'), 'hourly')
+  assert.equal(Number(sampledQuery.get('start')), plotted[visibleStart + 3].time, 'Changing calculation keeps the cutoff')
+  assert.match(profileControls().textContent, /H1 estimate.*POC 1\.13/)
+  drawProfile()
+  assert.ok(profileStrokes.includes('#a16f22'), 'The saved POC style reaches the chart')
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.indicators.volume-profile.v1')).method, 'hourly')
+  await chooseProfile('Volume profile range', 'visible')
+  await React.act(async () => scale.setVisibleLogicalRange({ from: 735, to: 750 }))
+  await tick('load', 175); await flush()
+  assert.ok(requests.some(url => url.startsWith('/api/v1/volume-profile/range?') && url.includes('method=hourly')),
+    'Fast Historical sends older candles to the bulk H1 range')
+  assert.match(profileControls().textContent, /H1 estimate.*POC 1\.12/)
   await click(container.querySelector('[aria-label="Hide Volume Profile"]')); await flush()
+  await React.act(async () => scale.setVisibleLogicalRange(beforeProfileRange))
   assert.equal(profileControls(), null)
   assert.equal(primitives.size, beforeProfilePrimitives.size, 'Hiding VP removes its chart primitives')
   const marketStructureSettings = container.querySelector('[aria-label="Market Structure settings"]')
@@ -1959,7 +2034,7 @@ try {
   await React.act(async () => scale.setVisibleLogicalRange({ from: plotted.length - 6, to: plotted.length }))
   await tick('load', 175); await flush()
   assert.ok(profileRequests().some(url => url.includes('symbol=GBPX')), 'Custom indices request volume profiles')
-  assert.match(profileControls().textContent, /POC/)
+  assert.match(profileControls().textContent, /H1 estimate.*POC/)
   await click(container.querySelector('[aria-label="Hide Volume Profile"]'))
   const regularVolumeMode = JSON.parse(localStorage.getItem('fyodor.indicators.volume.v1')).mode
   await click(container.querySelector('[aria-label="Volume settings"]'))
