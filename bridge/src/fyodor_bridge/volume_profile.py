@@ -9,7 +9,7 @@ MAX_PROFILE_PAGE_SECONDS = 86_400
 CHART_MODE_LAST = 1
 
 
-def read_volume_profile(mt5, symbol, start, end):
+def profile_instrument(mt5, symbol):
     account = account_identity(mt5)
     if account[0] == SERVER and symbol in MEMBERS:
         raise RuntimeError("Tick volume profiles require a broker symbol")
@@ -17,6 +17,22 @@ def read_volume_profile(mt5, symbol, start, end):
     if info is None or not mt5.symbol_select(symbol, True):
         raise RuntimeError(f"Unable to select {symbol} for a tick volume profile")
 
+    return account, info
+
+
+def volume_profile_days(mt5, symbol, start, end):
+    account, info = profile_instrument(mt5, symbol)
+    first = start // MAX_PROFILE_PAGE_SECONDS * MAX_PROFILE_PAGE_SECONDS
+    rates = mt5.copy_rates_range(symbol, mt5.TIMEFRAME_D1, candle_time(first), candle_time(end - 1))
+    if account_identity(mt5) != account:
+        raise RuntimeError("MT5 account changed during the volume profile read")
+    dates = [] if rates is None else sorted(set((rates["time"] // MAX_PROFILE_PAGE_SECONDS
+                                                   * MAX_PROFILE_PAGE_SECONDS).tolist()))
+    return {"days": dates, "digits": int(info.digits)}
+
+
+def read_volume_profile(mt5, symbol, start, end):
+    account, info = profile_instrument(mt5, symbol)
     use_last = getattr(info, "chart_mode", 0) == CHART_MODE_LAST
     ticks = read_ticks(mt5, symbol, start, end, mt5.COPY_TICKS_TRADE if use_last else None)
     quotes = ticks["last" if use_last else "bid"]

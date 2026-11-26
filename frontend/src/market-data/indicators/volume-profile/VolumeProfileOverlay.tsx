@@ -60,7 +60,7 @@ export function VolumeProfileOverlay({ chart, series, bars, step, symbol, scope,
     : mode === 'fixed' && !fixed ? 'Draw a range to start.'
     : !range ? 'No visible candles.'
     : current?.incomplete && !current.loading ? 'Tick history may be incomplete.'
-    : !current || current.loading ? 'Reading tick history…'
+    : !current || current.loading ? (current?.total ? `Tick history · ${current.checked}/${current.total} days checked` : 'Reading tick history…')
     : !current.profile ? 'No ticks in this range.' : null
   const poc = current?.profile?.poc
   return <>

@@ -152,7 +152,7 @@ export function ChartWorkspaceHeader({
           <p className="market-daily-range" title={quote?.synthetic
               ? 'Equal-weight index against seven currencies. Based at 100 on 6 Jan 2025. Candle highs and lows use synchronized one-minute opens and closes.'
               : 'Current price relative to the current Pepperstone D1 candle’s high and low'}>
-            {quote?.synthetic ? (hasDailyCloseHistory ? 'M1-sampled candles · Line shows daily closes' : 'M1-sampled candles')
+            {quote?.synthetic ? (hasDailyCloseHistory ? 'M1-sampled candles · Line shows daily closes' : timeframe === 'D1' ? 'Synthetic daily candles' : 'M1-sampled candles')
               : rangeLabel ?? 'Today: daily range unavailable'}
           </p>
         </div>

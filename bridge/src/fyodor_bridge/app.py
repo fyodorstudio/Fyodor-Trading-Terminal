@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from time import perf_counter
+import json
+from pathlib import Path
+from time import monotonic, perf_counter, time
 from typing import Annotated, Literal
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 from .calendar_ingestion import CalendarStore
 from .candle_activity import MAX_TICK_HISTORY_CANDLES, MAX_TICK_HISTORY_SECONDS
@@ -18,6 +21,7 @@ from .mt5_worker import Mt5UnavailableError, Mt5Worker, SupersededRequest
 from .runtime_activity import ActivityLedger, HeartbeatRegistry, utc_milliseconds
 from .settings import load_settings
 from .volume_profile import MAX_PROFILE_PAGE_SECONDS
+from .volume_profile_history import ProfileHistory, VolumeProfileCache
 
 API_VERSION = "1"
 BRIDGE_VERSION = "1.0.0"
@@ -26,6 +30,7 @@ activity = ActivityLedger()
 heartbeat = HeartbeatRegistry()
 calendar_store = CalendarStore(activity)
 mt5_worker = Mt5Worker(settings, activity)
+volume_profile_cache = VolumeProfileCache(Path(__file__).resolve().parents[3] / "storage" / "data" / "volume-profile.sqlite3")
 started_at = utc_milliseconds()
 
 
@@ -196,6 +201,16 @@ async def read_candle_ticks(request, symbol, timeframe, start, history=None):
     raise HTTPException(status_code=499, detail="Candle tick read cancelled")
 
 
+def read_volume_profile_page(symbol, start, end, generation):
+    if mt5_worker.snapshot()["generation"] != generation:
+        raise Mt5UnavailableError("MT5 session changed during the volume profile read")
+    result = mt5_worker.submit("volume-profile", "volume-profile", dict(symbol=symbol, start=start, end=end),
+                               priority=10, supersede=False)
+    if mt5_worker.snapshot()["generation"] != generation:
+        raise Mt5UnavailableError("MT5 session changed during the volume profile read")
+    return result
+
+
 @app.get("/api/v1/volume-profile")
 def get_volume_profile(
     symbol: Annotated[str, Query(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9._#-]+$")],
@@ -206,13 +221,91 @@ def get_volume_profile(
         raise HTTPException(status_code=422, detail="Volume profile requires a minute-aligned window of at most one day")
     generation = mt5_worker.snapshot()["generation"]
     try:
-        result = mt5_worker.submit("volume-profile", "volume-profile", dict(symbol=symbol, start=start, end=end),
-                                   priority=10, supersede=False)
-        if mt5_worker.snapshot()["generation"] != generation:
-            raise Mt5UnavailableError("MT5 session changed during the volume profile read")
+        result = read_volume_profile_page(symbol, start, end, generation)
     except Exception as error:
         raise bridge_error(error) from error
     return {**result, "source_generation": generation}
+
+
+@app.get("/api/v1/volume-profile/range")
+async def get_volume_profile_range(
+    request: Request,
+    symbol: Annotated[str, Query(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9._#-]+$")],
+    start: CandleStart,
+    end: CandleStart,
+    broker_offset: Annotated[int, Query(ge=-50_400, le=50_400)] = 0,
+    retry: bool = False,
+) -> StreamingResponse:
+    day = MAX_PROFILE_PAGE_SECONDS
+    today = (int(time()) + broker_offset) // day * day
+    if not start < end <= today or start % 60 or end % 60:
+        raise HTTPException(status_code=422, detail="Historical profiles require completed dates and minute-aligned bounds")
+    source = mt5_worker.snapshot()
+    if not source["connected"] or source["account_login"] is None:
+        raise bridge_error(Mt5UnavailableError("MT5 account is unavailable"))
+    generation = source["generation"]
+    scope = (source["account_server"], source["account_login"], symbol)
+
+    def prepare():
+        cached = volume_profile_cache.read(scope, start, end, retry)
+        return ProfileHistory(start, end, cached)
+
+    def read_calendar():
+        return mt5_worker.submit("volume-profile", "volume-profile-days", dict(symbol=symbol, start=start, end=end),
+                                 priority=10, supersede=False)
+
+    def read_and_save(first, stop, known_day, empty_page):
+        if empty_page is None:
+            page = read_volume_profile_page(symbol, first, stop, generation)
+            if known_day and not page["levels"] and page["missing_minutes"] == 0:
+                page["missing_minutes"] = None
+        else:
+            page = empty_page
+        # Commit in the same operation as the read so switching the chart
+        # cannot discard a day that finished loading while the request closed.
+        volume_profile_cache.write_day(scope, first, stop, page, confirmed_empty=empty_page is not None)
+        return page
+
+    def frame(history, done):
+        return json.dumps(history.snapshot(generation, done=done), separators=(",", ":")) + "\n"
+
+    async def stream():
+        history = await run_in_threadpool(prepare)
+        if not history.pending:
+            yield await run_in_threadpool(frame, history, True)
+            return
+        yield await run_in_threadpool(frame, history, False)
+        calendar = None
+        if len(history.pending) >= 7 and not await request.is_disconnected():
+            try:
+                calendar = await run_in_threadpool(read_calendar)
+            except Exception:
+                pass
+        dates = calendar["days"] if calendar else []
+        trading_days = set(dates)
+        empty = dict(digits=calendar["digits"], missing_minutes=0, levels=[]) if dates else None
+        last_update = monotonic() - 1
+        for first, stop in history.pending:
+            if await request.is_disconnected() or mt5_worker.snapshot()["generation"] != generation:
+                return
+            try:
+                closed_day = stop - first == day and dates and dates[0] <= first <= dates[-1] and first not in trading_days
+                known_day = first in trading_days and stop - first == day
+                page = await run_in_threadpool(read_and_save, first, stop, known_day, empty if closed_day else None)
+            except Mt5UnavailableError:
+                # Leave the remaining days unprocessed so a resumed range can retry.
+                history.incomplete = True
+                yield await run_in_threadpool(frame, history, True)
+                return
+            except Exception:
+                page = None
+            history.add(page)
+            if monotonic() - last_update >= 1:
+                yield await run_in_threadpool(frame, history, False)
+                last_update = monotonic()
+        yield await run_in_threadpool(frame, history, True)
+
+    return StreamingResponse(stream(), media_type="application/x-ndjson")
 
 
 @app.get("/api/v1/currency-activity")

@@ -214,6 +214,17 @@ globalThis.fetch = (url, options = {}) => {
     json: async () => ({ up: 62, down: 38, flat: 7, unknown: 2, synthetic: false }) })
   if (u.startsWith('/api/v1/volume-profile?')) return Promise.resolve({ ok: true,
     json: async () => ({ digits: 5, levels: [[110000, 30], [111000, 75], [115000, 10]], missing_minutes: 0, source_generation: generation }) })
+  if (u.startsWith('/api/v1/volume-profile/range?')) {
+    const frame = { done: false, checked: 1, total: 2, incomplete: false, digits: 5, levels: [[112000, 20]], source_generation: generation }
+    const chunk = JSON.stringify(frame)
+    const text = new TextEncoder()
+    const body = new ReadableStream({ start(controller) {
+      controller.enqueue(text.encode(chunk.slice(0, 15)))
+      controller.enqueue(text.encode(chunk.slice(15) + '\n' + JSON.stringify({ ...frame, done: true, checked: 2, levels: [[112000, 40]] }) + '\n'))
+      controller.close()
+    } })
+    return Promise.resolve(new Response(body))
+  }
   if (u.startsWith('/api/v1/candle-tick-history?')) {
     const starts = new URL(u, 'http://localhost').searchParams.getAll('start').map(Number)
     return Promise.resolve({ ok: true, json: async () => ({ rows: starts.map(time =>
@@ -444,6 +455,15 @@ try {
   await chooseProfile('Volume profile side', 'left')
   drawProfile()
   assert.ok(fills.every(x => x === 4), 'Left placement starts from the left chart edge')
+  const beforeHistoric = requests.length
+  await React.act(async () => scale.setVisibleLogicalRange({ from: 735, to: 750 }))
+  await tick('load', 175); await flush()
+  const historicalProfiles = requests.slice(beforeHistoric).filter(url => url.startsWith('/api/v1/volume-profile'))
+  assert.equal(historicalProfiles.length, 1, 'Historical visible ranges use one streamed request')
+  const historicalQuery = new URL(historicalProfiles[0], 'http://localhost').searchParams
+  assert.equal(Number(historicalQuery.get('start')), plotted[735].time)
+  assert.equal(Number(historicalQuery.get('end')), plotted[750].time + 3600)
+  assert.match(profileControls().textContent, /POC 1\.12/, 'The streamed profile updates the price pane')
   await React.act(async () => scale.setVisibleLogicalRange({ from: 787, to: 795 }))
   await tick('load', 175); await flush()
   assert.ok(containsWindow(plotted[787].time, plotted[795].time + 3600), 'Visible mode follows horizontal pan and zoom')

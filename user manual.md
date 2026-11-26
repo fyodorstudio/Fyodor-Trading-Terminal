@@ -8,9 +8,11 @@ With Pepperstone-Demo connected, **Currency indices** includes synthetic
 **GBPX**, **CHFX**, **CADX**, **AUDX**, and **NZDX** alongside the broker's
 **USDX**, **EURX**, and **JPYX**. Each synthetic index tracks its currency
 against the other seven majors with equal geometric weights. Its base is 100
-at the broker session open on 6 January 2025. Candles use synchronized
-one-minute opens and closes. A line shows historical D1 closes where the chart
-has only daily data. Synthetic price alerts monitor the live index level
+at the broker session open on 6 January 2025. Recent candles use synchronized
+one-minute opens and closes. Older D1 candles use the constituent daily opens
+and closes, with wicks sampled from synchronized H4 observations where available.
+With only daily data, the candle shows its open and close as a body.
+Synthetic price alerts monitor the live index level
 calculated from all seven constituent Bid quotes. Alerts wait when any quote is
 missing or stale. Synthetic charts show quote activity in the Volume pane. Inspector icons follow
 the chart's own currency, such as GBP releases on GBPX.
@@ -300,7 +302,10 @@ Each horizontal row counts MT5 ticks in a price band. Bid-based charts use quote
 ticks, including updates where Bid stays flat. Last-based charts use trade
 ticks. **POC** marks the busiest band, while **HVN** and **LVN** mark prominent
 local peaks and dips. Older or incomplete broker tick history can limit the
-profile. Tick profiles are available on broker symbols.
+profile. Tick profiles are available on broker symbols. Completed day profiles
+are cached locally by broker, account, and pair. The first load of a long range
+shows days checked while MT5 fills the cache. Returning to a pair reuses the
+days already loaded. The current broker day refreshes separately.
 
 ## Heatmap
 

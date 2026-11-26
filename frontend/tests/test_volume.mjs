@@ -12,7 +12,7 @@ const candle = (utc, ticks = 100, high = 2) => ({ time: utc / 1000, open: 1, hig
 try {
   const { createVolumeCalculator } = await server.ssrLoadModule('./src/market-data/indicators/volume/volume-calculation.ts')
   const { defaultVolumePreferences, readVolumePreferences, saveVolumePreferences } = await server.ssrLoadModule('./src/market-data/indicators/volume/volume-preferences.ts')
-  const { buildTickProfile, profileCandleWindow, profilePages } = await server.ssrLoadModule('./src/market-data/indicators/volume-profile/volume-profile.ts')
+  const { buildTickProfile, profileCandleWindow } = await server.ssrLoadModule('./src/market-data/indicators/volume-profile/volume-profile.ts')
   const { replaceRecentBars } = await server.ssrLoadModule('./src/market-data/mt5-feed/market-snapshots.ts')
   const { utcToChartClock } = await server.ssrLoadModule('./src/appearance/time-display/chart-clock.ts')
   const clock = { brokerId: null, brokerOffsetSeconds: 0 }, p = { ...defaultVolumePreferences, lookback: 5, minimumSamples: 3, averageLength: 3 }
@@ -122,9 +122,6 @@ try {
   const profileWindow = profileCandleWindow(bars, 3, 0, 3600)
   assert.deepEqual(profileWindow, { from: bars[0].time, to: bars[3].time + 3600 }, 'Dragging in either direction selects inclusive candles')
   assert.equal(profileCandleWindow(bars, bars.length + 2, bars.length + 4, 3600), null, 'Future whitespace has no ticks')
-  assert.deepEqual(profilePages({ from: 86_340, to: 172_860 }), [
-    { from: 172_800, to: 172_860 }, { from: 86_400, to: 172_800 }, { from: 86_340, to: 86_400 },
-  ], 'Adjacent days partition the window without duplicate boundary ticks')
   const profile = buildTickProfile(new Map([[15000, 18], [15001, 2], [15002, 10], [15003, 1]]), 2)
   assert.equal(profile.count, 31)
   close((profile.poc.low + profile.poc.high) / 2, 150)

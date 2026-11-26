@@ -12,17 +12,6 @@ export function profileCandleWindow(bars: readonly OhlcBar[], from: number, to: 
   return first && last && first.time <= last.time ? { from: first.time, to: last.time + step } : null
 }
 
-export function profilePages({ from, to }: ProfileWindow) {
-  const secondsPerDay = 86_400
-  const pages: ProfileWindow[] = []
-  while (to > from) {
-    const start = Math.max(from, Math.floor((to - 1) / secondsPerDay) * secondsPerDay)
-    pages.push({ from: start, to })
-    to = start
-  }
-  return pages
-}
-
 export function buildTickProfile(levels: ReadonlyMap<number, number>, digits: number): TickProfile | null {
   if (!levels.size) return null
   let min = Infinity, max = -Infinity, count = 0

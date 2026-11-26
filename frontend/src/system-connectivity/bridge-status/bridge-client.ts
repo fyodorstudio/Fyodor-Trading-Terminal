@@ -15,10 +15,10 @@ export class BridgeRequestError extends Error {
   }
 }
 
-export async function bridgeRequest<T>(path: string, signal?: AbortSignal): Promise<T> {
+export async function bridgeResponse(path: string, signal?: AbortSignal, accept = 'application/json'): Promise<Response> {
   const response = await fetch(`${apiRoot}${path}`, {
     method: 'GET',
-    headers: { Accept: 'application/json' },
+    headers: { Accept: accept },
     signal,
   })
   if (!response.ok) {
@@ -33,5 +33,9 @@ export async function bridgeRequest<T>(path: string, signal?: AbortSignal): Prom
     }
     throw new BridgeRequestError(message, response.status, code)
   }
-  return response.json() as Promise<T>
+  return response
+}
+
+export async function bridgeRequest<T>(path: string, signal?: AbortSignal): Promise<T> {
+  return (await bridgeResponse(path, signal)).json() as Promise<T>
 }

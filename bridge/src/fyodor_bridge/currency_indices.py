@@ -71,6 +71,27 @@ def sampled_candles(legs, reference, step):
     return candles
 
 
+def fill_daily_candles(mt5, members, reference, candles, count, before):
+    daily = [read_prices(mt5, pair, mt5.TIMEFRAME_D1, count + 1, before) for pair, _ in members]
+    closed = list(synchronized_prices(daily, reference))
+    missing = [(at, prices) for at, prices in closed if at not in candles]
+    if not missing:
+        return
+
+    day = STEPS["D1"]
+    # H4 opens and closes reach beyond M1 history. Use observations shared by
+    # all seven pairs instead of combining highs and lows from different times.
+    stop = missing[-1][0] + day
+    samples = [read_prices(mt5, pair, mt5.TIMEFRAME_H4, (count + 1) * 6, stop) for pair, _ in members]
+    older = sampled_candles(samples, reference, day)
+    for at, (opening, close) in missing:
+        intraday = older.get(at)
+        high, low = max(opening, close), min(opening, close)
+        if intraday:
+            high, low = max(high, intraday["high"]), min(low, intraday["low"])
+        candles[at] = dict(time=at, open=opening, high=high, low=low, close=close)
+
+
 class CurrencyIndexHistory:
     def __init__(self):
         self.account = None
@@ -137,13 +158,7 @@ class CurrencyIndexHistory:
         minutes = [read_prices(mt5, pair, mt5.TIMEFRAME_M1, minute_count, before) for pair, _ in members]
         candles = sampled_candles(minutes, reference, step)
         if timeframe == "D1":
-            daily = [read_prices(mt5, pair, mt5.TIMEFRAME_D1, count + 1, before) for pair, _ in members]
-            closing = list(synchronized_prices(daily, reference))
-            if before is None:
-                closing = closing[:-1]
-            for at, (_, close) in closing:
-                candles.setdefault(at, dict(time=at, open=close, high=close, low=close,
-                                            close=close, close_only=True))
+            fill_daily_candles(mt5, members, reference, candles, count, before)
 
         current = mt5.account_info()
         if current is None or (current.server, current.login) != identity:

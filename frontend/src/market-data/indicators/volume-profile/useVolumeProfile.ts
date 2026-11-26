@@ -1,110 +1,122 @@
-import { useEffect, useRef, useState } from 'react'
-import { bridgeRequest } from '../../../system-connectivity/bridge-status/bridge-client'
-import { buildTickProfile, profilePages, type ProfileWindow, type TickProfile } from './volume-profile'
+import { useEffect, useState } from 'react'
+import { bridgeRequest, bridgeResponse } from '../../../system-connectivity/bridge-status/bridge-client'
+import { buildTickProfile, type ProfileWindow, type TickProfile } from './volume-profile'
 
 type TickPage = { digits: number; levels: [number, number][]; missing_minutes: number | null; source_generation: number }
-type Reading = { key: string; profile: TickProfile | null; loading: boolean; incomplete: boolean }
-const cacheLimit = 120
+type HistoryFrame = {
+  digits: number | null; levels: [number, number][]; source_generation: number
+  done: boolean; incomplete: boolean; checked: number; total: number
+}
+type Reading = { key: string; profile: TickProfile | null; loading: boolean; incomplete: boolean; checked: number; total: number }
+const secondsPerDay = 86_400
+
+async function readHistory(query: URLSearchParams, signal: AbortSignal, onFrame: (frame: HistoryFrame) => void) {
+  const response = await bridgeResponse(`/volume-profile/range?${query}`, signal, 'application/x-ndjson')
+  const reader = response.body?.getReader()
+  if (!reader) throw new Error('Tick history stream unavailable')
+  const decoder = new TextDecoder()
+  let pending = ''
+  try {
+    for (;;) {
+      const { value, done } = await reader.read()
+      pending += decoder.decode(value, { stream: !done })
+      const lines = pending.split('\n')
+      pending = lines.pop() ?? ''
+      for (const line of lines) if (line.trim()) onFrame(JSON.parse(line) as HistoryFrame)
+      if (done) {
+        if (pending.trim()) onFrame(JSON.parse(pending) as HistoryFrame)
+        break
+      }
+    }
+  } finally { reader.releaseLock() }
+}
 
 export function useVolumeProfile(symbol: string, scope: string, generation: number, offset: number, range: ProfileWindow | null) {
   const [reading, setReading] = useState<Reading | null>(null)
-  const [attempt, setAttempt] = useState(0)
-  const cache = useRef({ scope: '', pages: new Map<string, TickPage>() })
+  const [retry, setRetry] = useState({ window: '', version: 0 })
+  const [rollover, setRollover] = useState(0)
   const from = range?.from, to = range?.to
-  const key = range ? `${scope}:${from}:${to}:${attempt}` : ''
+  const windowKey = range ? `${scope}:${from}:${to}` : ''
+  const attempt = windowKey === retry.window ? retry.version : 0
+  const key = windowKey ? `${windowKey}:${attempt}:${rollover}` : ''
 
   useEffect(() => {
     if (from === undefined || to === undefined) return
-    if (cache.current.scope !== scope) cache.current = { scope, pages: new Map() }
-    const { pages } = cache.current
     const controller = new AbortController()
     const { signal } = controller
-    let timer = 0
     const chartNow = () => Date.now() / 1000 + offset
-    const now = chartNow()
-    const windows = profilePages({ from, to })
-    const levels = new Map<number, number>()
-    let digits: number | undefined
-    let historicIncomplete = false
-    let openWindows = windows.filter(window => window.to > now)
-    let activePages: TickPage[] = []
-    let activeIncomplete = false
+    const startOfDay = () => Math.floor(chartNow() / secondsPerDay) * secondsPerDay
+    const today = startOfDay()
+    const historyEnd = Math.min(to, today)
+    const liveFrom = Math.max(from, today)
+    const liveEnd = Math.min(to, today + secondsPerDay)
+    let history: HistoryFrame | undefined
+    let live: TickPage | undefined
+    let historyLoading = from < historyEnd
+    let liveLoading = liveFrom < liveEnd && liveFrom < chartNow()
+    let historyFailed = false, liveFailed = false
+    let timer = 0
 
-    async function read(window: ProfileWindow, closed: boolean) {
-      const pageKey = `${window.from}:${window.to}`
-      const saved = pages.get(pageKey)
-      if (saved) return saved
-      try {
-        const query = new URLSearchParams({ symbol, start: String(window.from), end: String(window.to) })
-        const page = await bridgeRequest<TickPage>(`/volume-profile?${query}`, signal)
-        if (signal.aborted || page.source_generation !== generation) return null
-        if (closed && page.missing_minutes === 0) {
-          pages.set(pageKey, page)
-          if (pages.size > cacheLimit) pages.delete(pages.keys().next().value!)
-        }
-        return page
-      } catch { return null }
-    }
-    function add(target: Map<number, number>, page: TickPage | null) {
-      if (!page || (digits !== undefined && page.digits !== digits)) return false
-      digits = page.digits
-      for (const [level, count] of page.levels) target.set(level, (target.get(level) ?? 0) + count)
-      return page.missing_minutes === 0
-    }
-    function publish(loading: boolean) {
+    function publish() {
       if (signal.aborted) return
-      const combined = activePages.length ? new Map(levels) : levels
-      let incomplete = activeIncomplete || historicIncomplete
-      for (const page of activePages) {
-        if (!add(combined, page)) incomplete = true
+      const digits = history?.digits ?? live?.digits
+      const levels = new Map(history?.levels)
+      const differentPrecision = !!live && live.digits !== digits
+      if (live && !differentPrecision) {
+        for (const [price, count] of live.levels) levels.set(price, (levels.get(price) ?? 0) + count)
       }
-      setReading({ key, profile: digits === undefined ? null : buildTickProfile(combined, digits), loading, incomplete })
+      setReading({
+        key, profile: digits === undefined ? null : buildTickProfile(levels, digits),
+        loading: historyLoading || liveLoading,
+        incomplete: historyFailed || liveFailed || Boolean(history?.incomplete) || differentPrecision || (!!live && live.missing_minutes !== 0),
+        checked: history?.checked ?? 0, total: history?.total ?? 0,
+      })
     }
-    async function readOpenWindows() {
-      activePages = []
-      activeIncomplete = false
-      const pending: ProfileWindow[] = []
-      const at = chartNow()
-      for (const window of openWindows) {
-        if (signal.aborted) return
-        if (window.from >= at) { pending.push(window); continue }
-        const closed = window.to <= at
-        const page = await read(window, closed)
-        if (closed) {
-          if (!add(levels, page)) historicIncomplete = true
-        } else {
-          pending.push(window)
-          if (page) activePages.push(page)
-          else activeIncomplete = true
-        }
-      }
-      openWindows = pending
+    async function loadHistory() {
+      if (!historyLoading) return
+      const query = new URLSearchParams({ symbol, start: String(from), end: String(historyEnd), broker_offset: String(offset) })
+      if (attempt) query.set('retry', 'true')
+      try {
+        await readHistory(query, signal, frame => {
+          if (signal.aborted || frame.source_generation !== generation) return
+          history = frame
+          historyLoading = !frame.done
+          publish()
+        })
+        historyFailed = !history?.done
+      } catch { historyFailed = true }
+      historyLoading = false
+      publish()
+    }
+    async function loadLive() {
+      if (liveFrom >= liveEnd || liveFrom >= chartNow()) return
+      try {
+        const query = new URLSearchParams({ symbol, start: String(liveFrom), end: String(liveEnd) })
+        const page = await bridgeRequest<TickPage>(`/volume-profile?${query}`, signal)
+        liveFailed = page.source_generation !== generation
+        if (!liveFailed) live = page
+      } catch { liveFailed = true }
+      liveLoading = false
+      publish()
     }
     async function refresh() {
-      await readOpenWindows()
-      if (signal.aborted) return
-      publish(false)
-      if (openWindows.length) timer = window.setTimeout(refresh, 20_000)
+      if (startOfDay() !== today) {
+        setRollover(value => value + 1)
+        return
+      }
+      await loadLive()
+      if (!signal.aborted) timer = window.setTimeout(refresh, 20_000)
     }
     async function load() {
-      await readOpenWindows()
-      let lastPublish = performance.now()
-      for (const window of windows) {
-        if (signal.aborted) return
-        if (window.to > now) continue
-        const page = await read(window, true)
-        if (!add(levels, page)) historicIncomplete = true
-        if (performance.now() - lastPublish >= 200) {
-          publish(true)
-          lastPublish = performance.now()
-        }
-      }
-      publish(false)
-      if (openWindows.length && !signal.aborted) timer = window.setTimeout(refresh, 20_000)
+      await Promise.all([loadHistory(), loadLive()])
+      if (signal.aborted) return
+      publish()
+      if (liveFrom < liveEnd) timer = window.setTimeout(refresh, 20_000)
     }
     timer = window.setTimeout(load, 175)
     return () => { controller.abort(); window.clearTimeout(timer) }
-  }, [key, from, to, symbol, scope, generation, offset])
+  }, [key, from, to, symbol, generation, offset, attempt])
 
-  return { current: key && reading?.key === key ? reading : null, retry: () => setAttempt(value => value + 1) }
+  return { current: key && reading?.key === key ? reading : null,
+    retry: () => setRetry({ window: windowKey, version: attempt + 1 }) }
 }
