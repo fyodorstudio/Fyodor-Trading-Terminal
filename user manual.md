@@ -294,15 +294,20 @@ shows **Unavailable**.
 
 Select **VP** beside **MS** to show the Tick Volume Profile on the price chart.
 **Visible Range** follows the candles on screen as you pan or zoom horizontally.
+The last profile stays visible while the new range loads.
 For **Fixed Range**, select **Draw range** and drag a box over the candles. Its
-left and right edges set the time window. Choose **Left** or **Right** to place
-the profile against either chart edge.
+left and right edges set the time window. Left-click inside the box to clear it.
+For **Right of Line**, select **Place line** and click a candle. Drag the line
+to change the start of the profile. It counts that candle through the latest
+loaded candle. Choose **Left** or **Right** to place the histogram against
+either chart edge.
 
 Each horizontal row counts MT5 ticks in a price band. Bid-based charts use quote
 ticks, including updates where Bid stays flat. Last-based charts use trade
 ticks. **POC** marks the busiest band, while **HVN** and **LVN** mark prominent
-local peaks and dips. Older or incomplete broker tick history can limit the
-profile. Tick profiles are available on broker symbols. Completed day profiles
+local peaks and dips. Custom currency indices count changes reconstructed from
+the seven constituent Bid feeds, grouped into one observation per millisecond.
+Older or incomplete broker tick history can limit the profile. Completed day profiles
 are cached locally by broker, account, and pair. The first load of a long range
 shows days checked while MT5 fills the cache. Returning to a pair reuses the
 days already loaded. The current broker day refreshes separately.

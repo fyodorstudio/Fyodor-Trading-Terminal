@@ -133,7 +133,6 @@ function TerminalWorkspaceContent() {
             marketWatch={marketWatch}
             symbol={activeSymbol}
             quote={quote}
-            hasDailyCloseHistory={hasDailyCloseHistory}
             timeframe={timeframe}
             onSelectTimeframe={selectTimeframe}
             onRefocus={() => setRefocusRequest(request => request + 1)}
@@ -199,7 +198,7 @@ function TerminalWorkspaceContent() {
                   } : undefined}
                   volumeProfile={volumeProfileEnabled ? {
                     symbol: activeSymbol, scope: `${brokerId}:${bridge.generation}:${activeSymbol}`, generation: bridge.generation, precision: quote?.precision ?? 5,
-                    connected: bridge.connected, synthetic: quote?.synthetic === true, brokerOffset: brokerOffsetSeconds,
+                    connected: bridge.connected, brokerOffset: brokerOffsetSeconds,
                     drawingActive: Boolean(activeDrawingTool || wildcards.placing || wildcards.editor),
                     onStartDrawing: () => { selectCrosshair(); wildcards.setPlacing(false) },
                   } : undefined}

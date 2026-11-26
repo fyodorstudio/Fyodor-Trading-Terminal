@@ -1,7 +1,7 @@
 import type { OhlcBar } from '../../contracts/OhlcBar'
 
 export type ProfileWindow = { from: number; to: number }
-export type ProfileMode = 'visible' | 'fixed'
+export type ProfileMode = 'visible' | 'fixed' | 'cutoff'
 export type ProfileSide = 'left' | 'right'
 export type ProfileRow = { low: number; high: number; count: number; node?: 'POC' | 'HVN' | 'LVN' }
 export type TickProfile = { rows: ProfileRow[]; poc: ProfileRow; count: number }
@@ -10,6 +10,11 @@ export function profileCandleWindow(bars: readonly OhlcBar[], from: number, to: 
   const first = bars[Math.max(0, Math.ceil(Math.min(from, to)))]
   const last = bars[Math.min(bars.length - 1, Math.floor(Math.max(from, to)))]
   return first && last && first.time <= last.time ? { from: first.time, to: last.time + step } : null
+}
+
+export function profileFromCutoff(bars: readonly OhlcBar[], cutoff: number, step: number): ProfileWindow | null {
+  const last = bars.at(-1)
+  return last && last.time + step > cutoff ? { from: cutoff, to: last.time + step } : null
 }
 
 export function buildTickProfile(levels: ReadonlyMap<number, number>, digits: number): TickProfile | null {

@@ -202,13 +202,16 @@ async def read_candle_ticks(request, symbol, timeframe, start, history=None):
 
 
 def read_volume_profile_page(symbol, start, end, generation):
-    if mt5_worker.snapshot()["generation"] != generation:
-        raise Mt5UnavailableError("MT5 session changed during the volume profile read")
-    result = mt5_worker.submit("volume-profile", "volume-profile", dict(symbol=symbol, start=start, end=end),
-                               priority=10, supersede=False)
-    if mt5_worker.snapshot()["generation"] != generation:
-        raise Mt5UnavailableError("MT5 session changed during the volume profile read")
-    return result
+    arguments = dict(symbol=symbol, start=start, end=end, read_id=uuid4().hex, begin=True)
+    while mt5_worker.snapshot()["generation"] == generation:
+        result = mt5_worker.submit("volume-profile", "volume-profile", arguments, priority=10, supersede=False)
+        if mt5_worker.snapshot()["generation"] != generation:
+            break
+        if result is not None:
+            return result
+        # Synthetic reads yield to higher-priority chart work between legs.
+        arguments = {**arguments, "begin": False}
+    raise Mt5UnavailableError("MT5 session changed during the volume profile read")
 
 
 @app.get("/api/v1/volume-profile")

@@ -4,6 +4,14 @@ import type { ProfileSide, ProfileWindow, TickProfile } from './volume-profile'
 
 export type FixedProfileWindow = ProfileWindow & { price1: number; price2: number }
 
+export function profileTimeCoordinate(chart: IChartApi, bars: DrawingTimeline, step: number, time: number, offset = 0) {
+  const logical = drawingTimeToLogical(time, bars, step)
+  const scale = chart.timeScale()
+  const zero = scale.logicalToCoordinate(0 as Logical), one = scale.logicalToCoordinate(1 as Logical)
+  // Native logical coordinates accept whole bar indices only.
+  return logical === null || zero === null || one === null ? null : zero + (logical + offset) * (one - zero)
+}
+
 export function createVolumeProfileOverlay(chart: IChartApi, series: ISeriesApi<'Candlestick', Time>) {
   let profile: TickProfile | null = null
   let side: ProfileSide = 'right'
@@ -11,29 +19,28 @@ export function createVolumeProfileOverlay(chart: IChartApi, series: ISeriesApi<
   let bars: DrawingTimeline = []
   let step = 60
   let requestUpdate: (() => void) | undefined
-  const scale = chart.timeScale()
   const colors = { POC: '#d49b2d', HVN: '#25a596', LVN: '#8897a9' }
+  function fixedBounds() {
+    if (!fixed) return null
+    const left = profileTimeCoordinate(chart, bars, step, fixed.from, -0.5)
+    const right = profileTimeCoordinate(chart, bars, step, fixed.to, -0.5)
+    const y1 = series.priceToCoordinate(fixed.price1), y2 = series.priceToCoordinate(fixed.price2)
+    return left === null || right === null || y1 === null || y2 === null
+      ? null : { left, right, top: Math.min(y1, y2), bottom: Math.max(y1, y2) }
+  }
   const renderer: IPrimitivePaneRenderer = {
     draw(target) {
       if (!profile && !fixed) return
       target.useMediaCoordinateSpace(({ context, mediaSize: { width, height } }) => {
         context.save()
-        if (fixed) {
-          const from = drawingTimeToLogical(fixed.from, bars, step)
-          const to = drawingTimeToLogical(fixed.to, bars, step)
-          const zero = scale.logicalToCoordinate(0 as Logical), one = scale.logicalToCoordinate(1 as Logical)
-          // Native logical coordinates accept whole bar indices only.
-          const x1 = from === null || zero === null || one === null ? null : zero + (from - 0.5) * (one - zero)
-          const x2 = to === null || zero === null || one === null ? null : zero + (to - 0.5) * (one - zero)
-          const y1 = series.priceToCoordinate(fixed.price1), y2 = series.priceToCoordinate(fixed.price2)
-          if (x1 !== null && x2 !== null && y1 !== null && y2 !== null) {
-            const left = Math.max(0, x1), right = Math.min(width, x2)
-            if (right > left) {
-              context.fillStyle = 'rgba(94, 128, 223, 0.08)'
-              context.strokeStyle = 'rgba(94, 128, 223, 0.50)'
-              context.fillRect(left, Math.min(y1, y2), right - left, Math.abs(y2 - y1))
-              context.strokeRect(left, Math.min(y1, y2), right - left, Math.abs(y2 - y1))
-            }
+        const bounds = fixedBounds()
+        if (bounds) {
+          const left = Math.max(0, bounds.left), right = Math.min(width, bounds.right)
+          if (right > left) {
+            context.fillStyle = 'rgba(94, 128, 223, 0.08)'
+            context.strokeStyle = 'rgba(94, 128, 223, 0.50)'
+            context.fillRect(left, bounds.top, right - left, bounds.bottom - bounds.top)
+            context.strokeRect(left, bounds.top, right - left, bounds.bottom - bounds.top)
           }
         }
         if (profile) {
@@ -88,6 +95,10 @@ export function createVolumeProfileOverlay(chart: IChartApi, series: ISeriesApi<
     sync(next: TickProfile | null, placement: ProfileSide, selection: FixedProfileWindow | null, timeline: DrawingTimeline, interval: number) {
       profile = next; side = placement; fixed = selection; bars = timeline; step = interval
       requestUpdate?.()
+    },
+    containsFixed(x: number, y: number) {
+      const bounds = fixedBounds()
+      return bounds && x >= bounds.left && x <= bounds.right && y >= bounds.top - 2 && y <= bounds.bottom + 2
     },
     destroy() { series.detachPrimitive(primitive) },
   }

@@ -7,7 +7,7 @@ type HistoryFrame = {
   digits: number | null; levels: [number, number][]; source_generation: number
   done: boolean; incomplete: boolean; checked: number; total: number
 }
-type Reading = { key: string; profile: TickProfile | null; loading: boolean; incomplete: boolean; checked: number; total: number }
+type Reading = { key: string; scope: string; profile: TickProfile | null; loading: boolean; incomplete: boolean; checked: number; total: number }
 const secondsPerDay = 86_400
 
 async function readHistory(query: URLSearchParams, signal: AbortSignal, onFrame: (frame: HistoryFrame) => void) {
@@ -65,12 +65,14 @@ export function useVolumeProfile(symbol: string, scope: string, generation: numb
       if (live && !differentPrecision) {
         for (const [price, count] of live.levels) levels.set(price, (levels.get(price) ?? 0) + count)
       }
-      setReading({
-        key, profile: digits === undefined ? null : buildTickProfile(levels, digits),
+      const next: Reading = {
+        key, scope, profile: digits === undefined ? null : buildTickProfile(levels, digits),
         loading: historyLoading || liveLoading,
         incomplete: historyFailed || liveFailed || Boolean(history?.incomplete) || differentPrecision || (!!live && live.missing_minutes !== 0),
         checked: history?.checked ?? 0, total: history?.total ?? 0,
-      })
+      }
+      setReading(previous => !next.profile && next.loading && previous?.scope === scope
+        ? { ...next, profile: previous.profile } : next)
     }
     async function loadHistory() {
       if (!historyLoading) return
@@ -115,8 +117,9 @@ export function useVolumeProfile(symbol: string, scope: string, generation: numb
     }
     timer = window.setTimeout(load, 175)
     return () => { controller.abort(); window.clearTimeout(timer) }
-  }, [key, from, to, symbol, generation, offset, attempt])
+  }, [key, scope, from, to, symbol, generation, offset, attempt])
 
   return { current: key && reading?.key === key ? reading : null,
+    profile: reading?.scope === scope ? reading.profile : null,
     retry: () => setRetry({ window: windowKey, version: attempt + 1 }) }
 }

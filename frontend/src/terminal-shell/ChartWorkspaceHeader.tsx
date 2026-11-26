@@ -2,7 +2,6 @@ import type { ChartTimeframe } from '../market-data/contracts/ChartTimeframe'
 import type { SymbolQuote } from '../market-data/contracts/SymbolQuote'
 import type { MarketWatchDock } from '../workspace-docking/left-dock/useMarketWatchDock'
 import { SessionTimeline } from '../market-data/market-watch/SessionTimeline'
-import { dailyRangeLabel } from '../market-data/market-watch/daily-range'
 import { isNdfSymbol } from '../market-data/market-watch/symbol-classification'
 import { supportsMacro } from '../market-data/indicators/macro/macro-data'
 import { swingStrengthLimits, type MarketStructurePreferences } from '../market-data/indicators/market-structure/market-structure-preferences'
@@ -19,7 +18,6 @@ type ChartWorkspaceHeaderProps = {
   marketWatch?: MarketWatchDock
   symbol: string
   quote: SymbolQuote | null
-  hasDailyCloseHistory?: boolean
   timeframe: ChartTimeframe
   onSelectTimeframe: (timeframe: ChartTimeframe) => void
   onRefocus?: () => void
@@ -88,7 +86,6 @@ export function ChartWorkspaceHeader({
   marketWatch,
   symbol,
   quote,
-  hasDailyCloseHistory = false,
   timeframe,
   onSelectTimeframe,
   onRefocus,
@@ -124,7 +121,6 @@ export function ChartWorkspaceHeader({
   detailOpen = false,
   onToggleDetail,
 }: ChartWorkspaceHeaderProps) {
-  const rangeLabel = quote ? dailyRangeLabel(quote) : null
   const marketStructureEnabled = marketStructure?.enabled ?? false
   const majorTrendlines = !!(marketStructure?.showAutoTrendlines && marketStructure.showMajorTrendlines)
   const minorTrendlines = !!(marketStructure?.showAutoTrendlines && marketStructure.showMinorTrendlines)
@@ -146,14 +142,9 @@ export function ChartWorkspaceHeader({
               </span>
             )}
           </div>
-          <p className="market-subtitle">
+          <p className="market-subtitle" title={quote?.synthetic
+            ? 'Equal-weight index against seven currencies. Based at 100 on 6 Jan 2025.' : undefined}>
             {quote?.description ?? 'Waiting for MT5 broker data'}
-          </p>
-          <p className="market-daily-range" title={quote?.synthetic
-              ? 'Equal-weight index against seven currencies. Based at 100 on 6 Jan 2025. Candle highs and lows use synchronized one-minute opens and closes.'
-              : 'Current price relative to the current Pepperstone D1 candle’s high and low'}>
-            {quote?.synthetic ? (hasDailyCloseHistory ? 'M1-sampled candles · Line shows daily closes' : timeframe === 'D1' ? 'Synthetic daily candles' : 'M1-sampled candles')
-              : rangeLabel ?? 'Today: daily range unavailable'}
           </p>
         </div>
         {marketWatch && (

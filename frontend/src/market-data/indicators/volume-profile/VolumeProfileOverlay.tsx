@@ -1,88 +1,109 @@
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from 'react'
-import type { IChartApi, ISeriesApi, LogicalRange, Time } from 'lightweight-charts'
+import type { IChartApi, ISeriesApi, LogicalRange, MouseEventParams, Time } from 'lightweight-charts'
 import { useDrawingViewport } from '../../chart-drawings/useDrawingViewport'
 import type { OhlcBar } from '../../contracts/OhlcBar'
 import { createVolumeProfileOverlay, type FixedProfileWindow } from './volume-profile-overlay'
-import { profileCandleWindow, type ProfileMode, type ProfileSide } from './volume-profile'
+import { profileCandleWindow, profileFromCutoff, type ProfileMode, type ProfileSide } from './volume-profile'
 import { useVolumeProfile } from './useVolumeProfile'
+import { VolumeProfileCutoff } from './VolumeProfileCutoff'
 import './volume-profile.css'
 
 const storageKey = 'fyodor.indicators.volume-profile.v1'
 function readSettings(): { mode: ProfileMode; side: ProfileSide } {
   try {
     const saved = JSON.parse(window.localStorage.getItem(storageKey) ?? '{}')
-    return { mode: saved?.mode === 'fixed' ? 'fixed' : 'visible', side: saved?.side === 'left' ? 'left' : 'right' }
+    const mode = saved?.mode === 'fixed' || saved?.mode === 'cutoff' ? saved.mode : 'visible'
+    return { mode, side: saved?.side === 'left' ? 'left' : 'right' }
   } catch { return { mode: 'visible', side: 'right' } }
 }
 
 type Chart = { chart: IChartApi; series: ISeriesApi<'Candlestick', Time>; bars: readonly OhlcBar[]; step: number }
 export type VolumeProfileOptions = {
-  symbol: string; scope: string; generation: number; precision: number; connected: boolean; synthetic: boolean; brokerOffset: number
+  symbol: string; scope: string; generation: number; precision: number; connected: boolean; brokerOffset: number
   drawingActive: boolean; onStartDrawing: () => void
 }
 
-export function VolumeProfileOverlay({ chart, series, bars, step, symbol, scope, generation, precision, connected, synthetic, brokerOffset,
+export function VolumeProfileOverlay({ chart, series, bars, step, symbol, scope, generation, precision, connected, brokerOffset,
   drawingActive, onStartDrawing }: Chart & VolumeProfileOptions) {
   const [{ mode, side }, setSettings] = useState(readSettings)
   const [selected, setSelected] = useState<{ scope: string; window: FixedProfileWindow } | null>(null)
+  const [line, setLine] = useState<{ scope: string; time: number } | null>(null)
   const [drawing, setDrawing] = useState<string | null>(null)
   const [visible, setVisible] = useState<LogicalRange | null>(null)
   const overlay = useRef<ReturnType<typeof createVolumeProfileOverlay> | null>(null)
   const fixed = mode === 'fixed' && selected?.scope === scope ? selected.window : null
-  const picking = drawing === scope && !drawingActive && connected && !synthetic && mode === 'fixed'
-  const range = mode === 'fixed' ? fixed : visible && profileCandleWindow(bars, visible.from, visible.to, step)
-  const { current, retry } = useVolumeProfile(symbol, scope, generation, brokerOffset, connected && !synthetic ? range : null)
+  const cutoff = mode === 'cutoff' && line?.scope === scope ? line.time : null
+  const picking = drawing === scope && !drawingActive && connected && mode !== 'visible'
+  const range = mode === 'fixed' ? fixed
+    : mode === 'cutoff' ? cutoff === null ? null : profileFromCutoff(bars, cutoff, step)
+    : visible && profileCandleWindow(bars, visible.from, visible.to, step)
+  const { current, profile: loadedProfile, retry } = useVolumeProfile(symbol, `${scope}:${mode}`, generation, brokerOffset, connected ? range : null)
+  const profile = connected && (mode === 'visible' || fixed || cutoff !== null) ? loadedProfile : null
   if (drawingActive && drawing !== null) setDrawing(null)
 
   useEffect(() => {
     try { window.localStorage.setItem(storageKey, JSON.stringify({ mode, side })) } catch { /* Settings work without storage. */ }
   }, [mode, side])
   useLayoutEffect(() => {
-    if (mode !== 'visible' || synthetic) return
+    if (mode !== 'visible') return
     const scale = chart.timeScale()
     const update = (range: LogicalRange | null) => setVisible(range)
     update(scale.getVisibleLogicalRange())
     scale.subscribeVisibleLogicalRangeChange(update)
     return () => scale.unsubscribeVisibleLogicalRangeChange(update)
-  }, [chart, mode, synthetic])
+  }, [chart, mode])
   useLayoutEffect(() => {
     const pane = createVolumeProfileOverlay(chart, series)
     overlay.current = pane
     return () => { overlay.current = null; pane.destroy() }
   }, [chart, series])
   useLayoutEffect(() => {
-    overlay.current?.sync(current?.profile ?? null, side, fixed, bars, step)
-  }, [current?.profile, side, fixed, bars, step])
+    overlay.current?.sync(profile, side, fixed, bars, step)
+  }, [profile, side, fixed, bars, step])
+  useEffect(() => {
+    if (!fixed || picking || drawingActive) return
+    const clearOnClick = ({ point, paneIndex }: MouseEventParams<Time>) => {
+      if (point && (paneIndex === undefined || paneIndex === 0) && overlay.current?.containsFixed(point.x, point.y)) setSelected(null)
+    }
+    chart.subscribeClick(clearOnClick)
+    return () => chart.unsubscribeClick(clearOnClick)
+  }, [chart, fixed, picking, drawingActive])
 
-  const status = synthetic ? 'Tick history is available for broker symbols.'
-    : !connected ? 'Waiting for MT5.'
-    : picking ? 'Drag across the candles. Esc cancels.'
+  const status = !connected ? 'Waiting for MT5.'
+    : picking ? mode === 'cutoff' ? 'Click a candle to place the cutoff. Esc cancels.' : 'Drag across the candles. Esc cancels.'
     : mode === 'fixed' && !fixed ? 'Draw a range to start.'
+    : mode === 'cutoff' && cutoff === null ? 'Place a line to choose the start.'
     : !range ? 'No visible candles.'
     : current?.incomplete && !current.loading ? 'Tick history may be incomplete.'
-    : !current || current.loading ? (current?.total ? `Tick history · ${current.checked}/${current.total} days checked` : 'Reading tick history…')
-    : !current.profile ? 'No ticks in this range.' : null
-  const poc = current?.profile?.poc
+    : !current || current.loading ? (current?.total ? `Tick history · ${current.checked}/${current.total} days checked`
+      : profile ? 'Updating tick history…' : 'Reading tick history…')
+    : !profile ? 'No ticks in this range.' : null
+  const poc = profile?.poc
   return <>
     <div className="volume-profile-controls" role="group" aria-label="Tick Volume Profile">
       <select aria-label="Volume profile range" value={mode} onChange={event => {
         const mode = event.target.value as ProfileMode
         setSettings(settings => ({ ...settings, mode })); setDrawing(null)
       }}>
-        <option value="visible">Visible Range</option><option value="fixed">Fixed Range</option>
+        <option value="visible">Visible Range</option><option value="fixed">Fixed Range</option><option value="cutoff">Right of Line</option>
       </select>
       <select aria-label="Volume profile side" value={side}
         onChange={event => { const side = event.target.value as ProfileSide; setSettings(settings => ({ ...settings, side })) }}>
         <option value="left">Left</option><option value="right">Right</option>
       </select>
-      {mode === 'fixed' && <button type="button" aria-pressed={picking} disabled={synthetic || !connected || !bars.length}
-        onClick={() => { if (!picking) onStartDrawing(); setDrawing(picking ? null : scope) }}>{picking ? 'Cancel' : 'Draw range'}</button>}
+      {mode !== 'visible' && <button type="button" aria-pressed={picking} disabled={!connected || !bars.length}
+        onClick={() => { if (!picking) onStartDrawing(); setDrawing(picking ? null : scope) }}>
+        {picking ? 'Cancel' : mode === 'cutoff' ? 'Place line' : 'Draw range'}
+      </button>}
       {poc && <span className="volume-profile-poc">POC {((poc.low + poc.high) / 2).toFixed(precision)}</span>}
       {status && <span role="status">{status}</span>}
       {current?.incomplete && !current.loading && <button type="button" onClick={retry}>Retry</button>}
     </div>
-    {picking && <FixedProfilePicker chart={chart} series={series} bars={bars} step={step} onCancel={() => setDrawing(null)}
+    {picking && mode === 'fixed' && <FixedProfilePicker chart={chart} series={series} bars={bars} step={step} onCancel={() => setDrawing(null)}
       onSelect={window => { setSelected({ scope, window }); setDrawing(null) }} />}
+    {mode === 'cutoff' && (picking || cutoff !== null) && <VolumeProfileCutoff chart={chart} series={series} bars={bars} step={step}
+      cutoff={cutoff} placing={picking} interactive={connected && !drawingActive} onCancel={() => setDrawing(null)}
+      onSelect={time => { setLine({ scope, time }); setDrawing(null) }} />}
   </>
 }
 

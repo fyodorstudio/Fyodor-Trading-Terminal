@@ -6,7 +6,7 @@ from typing import Any
 from .candle_activity import CandleTickReader, read_currency_activity
 from .currency_indices import SERVER, SYMBOLS, CurrencyIndexHistory
 from .market_data import read_market_watch, read_ohlc
-from .volume_profile import read_volume_profile, volume_profile_days
+from .volume_profile import VolumeProfileReader, volume_profile_days
 
 
 def _last_error(mt5: Any, prefix: str) -> str:
@@ -49,6 +49,7 @@ def run_mt5_adapter(
         account_info = mt5.account_info()
         index_history = CurrencyIndexHistory()
         tick_reader = CandleTickReader()
+        profile_reader = VolumeProfileReader(index_history)
         response_queue.put(
             {
                 "kind": "ready",
@@ -89,7 +90,7 @@ def run_mt5_adapter(
                 elif operation == "currency-activity":
                     result = read_currency_activity(mt5, arguments["timeframe"], arguments["start"])
                 elif operation == "volume-profile":
-                    result = read_volume_profile(mt5, **arguments)
+                    result = profile_reader.read(mt5, **arguments)
                 elif operation == "volume-profile-days":
                     result = volume_profile_days(mt5, **arguments)
                 else:

@@ -10,6 +10,7 @@ CURRENCIES = ("EUR", "GBP", "AUD", "NZD", "USD", "CAD", "CHF", "JPY")
 SYMBOLS = {currency + "X": currency for currency in ("GBP", "CHF", "CAD", "AUD", "NZD")}
 STEPS = {"M1": 60, "M5": 300, "M15": 900, "M30": 1800, "H1": 3600, "H4": 14400, "D1": 86400}
 ANCHOR = int(datetime(2025, 1, 6, tzinfo=timezone.utc).timestamp())
+INDEX_DIGITS = 3
 
 
 def basket_members(currency):
@@ -120,7 +121,7 @@ class CurrencyIndexHistory:
         rows = []
         for symbol, members in MEMBERS.items():
             row = dict(symbol=symbol, description=f"Synthetic {SYMBOLS[symbol]} index", synthetic=True,
-                       bid=0, ask=0, daily_change=None, precision=3)
+                       bid=0, ask=0, daily_change=None, precision=INDEX_DIGITS)
             rows.append(row)
             legs = [ticks[pair] for pair, _ in members]
             if not all(tick and tick.time > 0 and isfinite(tick.bid) and tick.bid > 0 for tick in legs):

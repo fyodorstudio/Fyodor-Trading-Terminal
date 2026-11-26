@@ -32,7 +32,6 @@ try {
   const { useDailyMarketQuotes, pepperstoneDay } = await server.ssrLoadModule('./src/market-data/mt5-feed/use-daily-market-quotes.ts')
   const { ChartWorkspaceHeader } = await server.ssrLoadModule('./src/terminal-shell/ChartWorkspaceHeader.tsx')
   const { forexSessions } = await server.ssrLoadModule('./src/market-data/market-watch/forex-sessions.ts')
-  const { dailyRangeLabel } = await server.ssrLoadModule('./src/market-data/market-watch/daily-range.ts')
   function Probe({ generation = 1, connected = true, selected = 'EURUSD' }) {
     const data = useDailyMarketQuotes(connected, generation, 'Pepperstone-Demo', selected)
     React.useEffect(() => { latest = data })
@@ -61,7 +60,8 @@ try {
   await reply()
   assert.ok(Math.abs(latest.symbols[0].dailyChange - (1.1088 / 1.105 - 1) * 100) < 1e-10,
     'Maximum excursion uses the daily high, not the current quote or previous close')
-  assert.ok(host.textContent.includes('8 pips below high · 42 pips above low'))
+  assert.doesNotMatch(host.querySelector('.active-market').textContent, /Today:/)
+  assert.match(host.querySelector('.market-title-row').textContent, /EURUSD\+0\.34%/)
   assert.equal(host.querySelector('.quote-summary'), null)
   assert.equal(host.querySelectorAll('.session-timeline-labels span').length, 4)
   const quoteIdentity = latest.symbols, beforeRender = renderCount
@@ -98,10 +98,6 @@ try {
   assert.deepEqual(latest.symbols, [])
   assert.equal(timers.size, 0, 'Disconnect aborts daily requests and clears their timers')
 
-  assert.equal(dailyRangeLabel({ ...raw[0], symbol: 'USDJPY', bid: 150, precision: 3, dailyHigh: 150.08, dailyLow: 149.58 }),
-    'Today: 8 pips below high · 42 pips above low')
-  assert.equal(dailyRangeLabel({ ...raw[0], symbol: 'XAUUSD', bid: 2700, precision: 2, dailyHigh: 2708, dailyLow: 2690 }),
-    'Today: 8.00 price units below high · 10.00 price units above low')
   for (const [at, londonHour, nyHour, sydneyHour] of [
     [Date.UTC(2026, 0, 14, 12), 8, 13, 20], [Date.UTC(2026, 5, 15, 12), 7, 12, 21],
     [Date.UTC(2026, 2, 24, 12), 8, 12, 20], [Date.UTC(2026, 9, 28, 12), 8, 12, 20],

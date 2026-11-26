@@ -208,6 +208,7 @@ const health = () => ({ api_version: '1', bridge: { status: 'running', started_a
   calendar: { status: 'live', instance_id: 'fixture', server_utc_offset_seconds: 10800 }, operations: {} })
 const journalFixture = { version: 1, revision: 0, arrows: [], deletedIds: [] }
 let wildcardFixture = { schema: 1, revision: 0, items: [] }
+let holdProfileRange = false, finishProfileRange
 globalThis.fetch = (url, options = {}) => {
   const u = String(url); requests.push(u)
   if (u.startsWith('/api/v1/candle-ticks?')) return Promise.resolve({ ok: true,
@@ -219,9 +220,15 @@ globalThis.fetch = (url, options = {}) => {
     const chunk = JSON.stringify(frame)
     const text = new TextEncoder()
     const body = new ReadableStream({ start(controller) {
-      controller.enqueue(text.encode(chunk.slice(0, 15)))
-      controller.enqueue(text.encode(chunk.slice(15) + '\n' + JSON.stringify({ ...frame, done: true, checked: 2, levels: [[112000, 40]] }) + '\n'))
-      controller.close()
+      const finish = () => {
+        controller.enqueue(text.encode(chunk.slice(0, 15)))
+        controller.enqueue(text.encode(chunk.slice(15) + '\n' + JSON.stringify({ ...frame, done: true, checked: 2, levels: [[112000, 40]] }) + '\n'))
+        controller.close()
+      }
+      if (holdProfileRange) {
+        controller.enqueue(text.encode(JSON.stringify({ ...frame, digits: null, checked: 0, levels: [] }) + '\n'))
+        finishProfileRange = finish
+      } else finish()
     } })
     return Promise.resolve(new Response(body))
   }
@@ -388,7 +395,7 @@ try {
   assert.equal(container.querySelectorAll('.market-watch-columns > span').length, 1, 'The watchlist has only the Daily % numeric column')
   assert.equal(container.querySelector('.quote-summary'), null, 'Bid/Ask is removed from the chart header')
   assert.equal(container.querySelectorAll('.session-timeline-labels span').length, 4)
-  assert.ok(container.querySelector('.market-daily-range').textContent.includes('1000 pips below high'))
+  assert.doesNotMatch(container.querySelector('.active-market').textContent, /Today:/)
   reset()
   await tick('pollDaily', 5000)
   assertQuiet('Unchanged daily candle poll', true)
@@ -456,18 +463,28 @@ try {
   drawProfile()
   assert.ok(fills.every(x => x === 4), 'Left placement starts from the left chart edge')
   const beforeHistoric = requests.length
-  await React.act(async () => scale.setVisibleLogicalRange({ from: 735, to: 750 }))
+  for (const from of [737, 736, 735]) {
+    await React.act(async () => scale.setVisibleLogicalRange({ from, to: 750 }))
+    drawProfile()
+    assert.match(profileControls().textContent, /POC 1\.11.*Updating tick history/, 'Pan keeps the last profile through the loading debounce')
+  }
+  holdProfileRange = true
   await tick('load', 175); await flush()
   const historicalProfiles = requests.slice(beforeHistoric).filter(url => url.startsWith('/api/v1/volume-profile'))
   assert.equal(historicalProfiles.length, 1, 'Historical visible ranges use one streamed request')
   const historicalQuery = new URL(historicalProfiles[0], 'http://localhost').searchParams
   assert.equal(Number(historicalQuery.get('start')), plotted[735].time)
   assert.equal(Number(historicalQuery.get('end')), plotted[750].time + 3600)
+  drawProfile()
+  assert.match(profileControls().textContent, /POC 1\.11.*0\/2 days checked/, 'An empty progress frame preserves the previous histogram and POC')
+  holdProfileRange = false
+  await React.act(async () => finishProfileRange()); await flush()
   assert.match(profileControls().textContent, /POC 1\.12/, 'The streamed profile updates the price pane')
   await React.act(async () => scale.setVisibleLogicalRange({ from: 787, to: 795 }))
   await tick('load', 175); await flush()
   assert.ok(containsWindow(plotted[787].time, plotted[795].time + 3600), 'Visible mode follows horizontal pan and zoom')
   await chooseProfile('Volume profile range', 'fixed')
+  assert.doesNotMatch(profileControls().textContent, /POC/, 'Fixed mode waits for its own range')
   await click(button('Draw range'))
   const picker = container.querySelector('[aria-label="Draw volume profile range"]')
   for (const [type, x, y] of [['pointerdown', 80, 100], ['pointermove', 240, 160], ['pointerup', 240, 160]]) {
@@ -481,6 +498,33 @@ try {
   await flush()
   assert.equal(profileRequests().length, fixedRequests)
   assert.ok(![...timers.values()].some(timer => timer.fn.name === 'load' && timer.ms === 175), 'Fixed mode keeps its range after pan')
+  const clickPrice = async (x, y) => React.act(async () => {
+    for (const handler of clickListeners) handler({ paneIndex: 0, point: { x, y } })
+  })
+  await clickPrice(20, 300)
+  assert.match(profileControls().textContent, /POC/, 'A click outside the box leaves it selected')
+  await clickPrice(20, 130)
+  assert.doesNotMatch(profileControls().textContent, /POC/)
+  assert.match(profileControls().textContent, /Draw a range to start/)
+  await chooseProfile('Volume profile range', 'cutoff')
+  await click(button('Place line'))
+  const placement = container.querySelector('[aria-label="Place volume profile cutoff"]')
+  const pointerEvent = async (element, type, x) => React.act(async () =>
+    element.dispatchEvent(new dom.PointerEvent(type, { bubbles: true, button: 0, pointerId: 21, clientX: x, clientY: 130 })))
+  await pointerEvent(placement, 'pointerdown', 80)
+  await pointerEvent(placement, 'pointerup', 80)
+  await tick('load', 175); await flush()
+  const visibleStart = Math.ceil(beforeProfileRange.from)
+  assert.ok(containsWindow(plotted[visibleStart + 1].time, plotted.at(-1).time + 3600), 'The line begins the profile at its candle')
+  const cutoffHandle = container.querySelector('[aria-label="Move volume profile cutoff"]')
+  const cutoffLine = container.querySelector('[aria-label="Volume profile cutoff line"]')
+  const requestsBeforeDrag = profileRequests().length
+  await pointerEvent(cutoffHandle, 'pointerdown', 80)
+  await pointerEvent(cutoffLine, 'pointermove', 240)
+  assert.equal(profileRequests().length, requestsBeforeDrag, 'Dragging previews the line without loading a different range')
+  await pointerEvent(cutoffLine, 'pointerup', 240)
+  await tick('load', 175); await flush()
+  assert.ok(containsWindow(plotted[visibleStart + 3].time, plotted.at(-1).time + 3600), 'Dragging updates the start while keeping the latest candle')
   await click(container.querySelector('[aria-label="Hide Volume Profile"]')); await flush()
   assert.equal(profileControls(), null)
   assert.equal(primitives.size, beforeProfilePrimitives.size, 'Hiding VP removes its chart primitives')
@@ -1908,6 +1952,15 @@ try {
   await tick('poll', 2500); await reply('watch'); await flush()
   await change(container.querySelector('[aria-label="Search symbols"]'), 'GBPX')
   await switchSymbol('GBPX')
+  assert.equal(container.querySelector('.market-title-row h1').textContent, 'GBPX')
+  assert.equal(container.querySelectorAll('.active-market p').length, 1, 'Synthetic symbols use the same compact header')
+  await click(container.querySelector('[aria-label="Show Volume Profile"]'))
+  await chooseProfile('Volume profile range', 'visible')
+  await React.act(async () => scale.setVisibleLogicalRange({ from: plotted.length - 6, to: plotted.length }))
+  await tick('load', 175); await flush()
+  assert.ok(profileRequests().some(url => url.includes('symbol=GBPX')), 'Custom indices request volume profiles')
+  assert.match(profileControls().textContent, /POC/)
+  await click(container.querySelector('[aria-label="Hide Volume Profile"]'))
   const regularVolumeMode = JSON.parse(localStorage.getItem('fyodor.indicators.volume.v1')).mode
   await click(container.querySelector('[aria-label="Volume settings"]'))
   assert.match(container.querySelector('[role="dialog"]').textContent, /Bid moves of the synthetic basket/)

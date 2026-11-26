@@ -39,7 +39,7 @@ def quote_prices(ticks, multiplier, midpoint):
     return np.where(valid, prices, np.nan)
 
 
-def quote_series(mt5, symbol, start, end, midpoint, observed_at):
+def quote_series(mt5, symbol, start, end, midpoint, observed_at, *, normalize=False):
     info = mt5.symbol_info(symbol)
     if info is None or not mt5.symbol_select(symbol, True):
         raise RuntimeError(f"Quote history unavailable for {symbol}")
@@ -56,6 +56,8 @@ def quote_series(mt5, symbol, start, end, midpoint, observed_at):
     # A live read can include newer ticks across later legs. Use one observation
     # cutoff for all legs of the same request.
     observed = ticks["time_msc"] <= observed_at
+    if normalize:
+        return ticks["time_msc"][observed], prices[observed] / multiplier, previous / multiplier
     return ticks["time_msc"][observed], prices[observed], previous
 
 

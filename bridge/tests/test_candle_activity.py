@@ -5,8 +5,8 @@ from types import SimpleNamespace
 import numpy as np
 
 from fyodor_bridge.candle_activity import CandleTickReader, basket_moves, count_moves, read_currency_activity
-from fyodor_bridge.currency_indices import CURRENCIES
-from fyodor_bridge.volume_profile import read_volume_profile
+from fyodor_bridge.currency_indices import ANCHOR, CURRENCIES, CurrencyIndexHistory
+from fyodor_bridge.volume_profile import VolumeProfileReader, read_volume_profile
 
 
 START = 1_795_543_200
@@ -120,6 +120,37 @@ class CandleActivityTest(unittest.TestCase):
 
         self.assertEqual(read_volume_profile(ExchangeMt5(), "EXCHANGE", START, START + 60),
                          {"digits": 2, "levels": [(2500, 1)], "missing_minutes": None})
+
+    def test_synthetic_profile_bins_synchronized_index_levels_one_leg_at_a_time(self):
+        class ProfileMt5(FakeMt5):
+            TIMEFRAME_D1 = 1440
+
+            def copy_rates_from(self, symbol, frame, timestamp, count):
+                if frame == self.TIMEFRAME_D1:
+                    return [{"time": ANCHOR, "open": 1.1, "close": 1.1}]
+                return super().copy_rates_from(symbol, frame, timestamp, count)
+
+            def copy_rates_range(self, symbol, frame, start, end):
+                return np.array([(START, 3)], dtype=RATES)
+
+        reader, mt5 = VolumeProfileReader(CurrencyIndexHistory()), ProfileMt5()
+        for leg in range(6):
+            self.assertIsNone(reader.read(mt5, "GBPX", START, START + 60, "profile", leg == 0))
+        page = reader.read(mt5, "GBPX", START, START + 60, "profile", False)
+        self.assertEqual(page, {"digits": 3, "levels": [(100001, 2)], "missing_minutes": 0})
+        self.assertEqual(reader.pending, {})
+
+        class GappedMt5(ProfileMt5):
+            def symbol_info_tick(self, symbol):
+                return SimpleNamespace(time_msc=(START + 160) * 1000)
+
+            def copy_rates_range(self, symbol, frame, start, end):
+                return np.array([(START, 3), (START + 120, 1)], dtype=RATES)
+
+        for leg in range(6):
+            self.assertIsNone(reader.read(GappedMt5(), "GBPX", START, START + 180, "gapped", leg == 0))
+        self.assertEqual(reader.read(GappedMt5(), "GBPX", START, START + 180, "gapped", False),
+                         {"digits": 3, "levels": [], "missing_minutes": 1})
 
 
 if __name__ == "__main__":
