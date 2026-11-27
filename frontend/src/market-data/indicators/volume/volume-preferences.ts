@@ -1,7 +1,7 @@
 export type TickDeltaView = 'bars' | 'line'
 export type TickDeltaLine = 'up' | 'down' | 'total' | 'delta'
 export type TickDeltaLines = Record<TickDeltaLine, boolean>
-export type TickDeltaLabels = { position: 'off' | 'above' | 'below'; positive: string; negative: string }
+export type TickDeltaLabels = { position: 'off' | 'above' | 'below'; display: 'always' | 'hover'; positive: string; negative: string }
 export type TickDeltaStyle = {
   upColor: string; downColor: string; totalTicksColor: string; tickDeltaColor: string
   redCandleDivergenceColor: string; greenCandleDivergenceColor: string
@@ -29,7 +29,7 @@ export const defaultVolumePreferences: VolumePreferences = {
   tickDeltaView: 'bars',
   tickDeltaLines: { up: true, down: true, total: false, delta: true },
   tickDeltaAxis: 'delta',
-  tickDeltaLabels: { position: 'off', positive: '#089981', negative: '#f23645' },
+  tickDeltaLabels: { position: 'off', display: 'always', positive: '#089981', negative: '#f23645' },
 }
 const storageKey = 'fyodor.indicators.volume.v1'
 export function readVolumePreferences(): VolumePreferences {
@@ -56,6 +56,7 @@ export function readVolumePreferences(): VolumePreferences {
       tickDeltaAxis: p.tickDeltaAxis === 'up' || p.tickDeltaAxis === 'down' || p.tickDeltaAxis === 'total' ? p.tickDeltaAxis : d.tickDeltaAxis,
       tickDeltaLabels: {
         position: p.tickDeltaLabels?.position === 'above' || p.tickDeltaLabels?.position === 'below' ? p.tickDeltaLabels.position : 'off',
+        display: p.tickDeltaLabels?.display === 'hover' ? 'hover' : d.tickDeltaLabels.display,
         positive: isColor(p.tickDeltaLabels?.positive) ? p.tickDeltaLabels.positive : d.tickDeltaLabels.positive,
         negative: isColor(p.tickDeltaLabels?.negative) ? p.tickDeltaLabels.negative : d.tickDeltaLabels.negative,
       },

@@ -17,12 +17,13 @@ export function VolumeProfileMovingRange({ chart, series, bars, step, visible, s
   const svg = useRef<SVGSVGElement>(null)
   const drag = useRef<{ id: number; edge: Edge } | null>(null)
   const [draft, setDraft] = useState<Partial<WindowSettings> | null>(null)
-  const { width, height } = useDrawingViewport(chart, series, svg)
+  const { width, height } = useDrawingViewport(chart, series, svg, true)
+  const viewport = chart.timeScale().getVisibleLogicalRange() ?? visible
   const { lookbackMinutes, anchorRatio } = { ...settings, ...draft }
-  const range = movingProfileWindow(bars, visible.from, visible.to, step, lookbackMinutes, anchorRatio)
+  const range = movingProfileWindow(bars, viewport.from, viewport.to, step, lookbackMinutes, anchorRatio)
   const left = range && profileLogicalCoordinate(chart, range.left)
   const right = range && profileLogicalCoordinate(chart, range.right)
-  const span = visible.to - visible.from
+  const span = viewport.to - viewport.from
 
   function change(event: PointerEvent<SVGSVGElement>, edge: Edge): Partial<WindowSettings> | null {
     const scale = chart.timeScale()
@@ -31,7 +32,7 @@ export function VolumeProfileMovingRange({ chart, series, bars, step, visible, s
     const one = scale.logicalToCoordinate(1 as Logical)
     if (zero === null || one === null || zero === one || !range || span <= 0) return null
     const logical = (x - zero) / (one - zero)
-    if (edge === 'anchorRatio') return { anchorRatio: Math.min(1, Math.max(0, (logical - visible.from) / span)) }
+    if (edge === 'anchorRatio') return { anchorRatio: Math.min(1, Math.max(0, (logical - viewport.from - 0.5) / span)) }
     return { lookbackMinutes: Math.max(1, Math.round((range.right - logical) * step / 60)) }
   }
   function clear() { drag.current = null; setDraft(null) }

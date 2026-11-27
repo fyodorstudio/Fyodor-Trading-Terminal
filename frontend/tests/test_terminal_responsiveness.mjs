@@ -121,7 +121,7 @@ const addIndicatorPane = () => {
   pane.fixtureSeries = paneSeries
   panes.push(pane); return pane
 }
-const chart = { options: () => ({ leftPriceScale: { visible: false }, rightPriceScale: { minimumWidth: 0 } }), addSeries: definition => definition.type === 'line' ? timeSeries : series, timeScale: () => scale, priceScale: () => priceScale,
+const chart = { options: () => ({ leftPriceScale: { visible: false }, rightPriceScale: { minimumWidth: 0 }, layout: { textColor: '#555555' } }), addSeries: definition => definition.type === 'line' ? timeSeries : series, timeScale: () => scale, priceScale: () => priceScale,
   applyOptions: () => count('chartOptions'), paneSize: () => ({ width: 900, height: 420 }),
   addPane: addIndicatorPane, panes: () => panes,
   removeSeries: item => { indicatorSeries.delete(item); for (const pane of panes) pane.fixtureSeries?.delete(item) },
@@ -464,14 +464,22 @@ try {
   const profileModes = profileControls().querySelector('[aria-label="Volume profile range"]')
   assert.equal(profileModes.value, 'visible')
   assert.equal(profileModes.querySelector('option[value="visible"]').textContent, 'Follow Mode')
+  assert.match(profileControls().querySelector('[aria-label="Volume profile side"]').parentElement.textContent, /Histogram placement/)
   const containsWindow = (from, to) => profileRequests().some(url => {
     const query = new URL(url, 'http://localhost').searchParams
     return query.get('symbol') === 'EURUSD' && Number(query.get('start')) === from && Number(query.get('end')) === to
   })
-  const movingEnd = () => plotted[Math.min(plotted.length - 1, Math.floor(logicalRange.from + (logicalRange.to - logicalRange.from) * 0.94))].time + 3600
+  const movingEnd = () => plotted[Math.min(plotted.length - 1, Math.round(logicalRange.from + (logicalRange.to - logicalRange.from) * 0.94))].time + 3600
   const chartDay = Math.floor((now / 1000 + clockOffset / 1000) / 86400) * 86400
   assert.ok(containsWindow(Math.max(chartDay, movingEnd() - 6 * 3600), Math.min(chartDay + 86400, movingEnd())))
   assert.ok(container.querySelector('[aria-label="Moving Volume Profile window"]'))
+  const boxX = () => Number(container.querySelector('.volume-profile-moving-box').getAttribute('x'))
+  const boundary = plotted.length - 20 - 10 * 0.94 + 0.5
+  await React.act(async () => scale.setVisibleLogicalRange({ from: boundary - 0.01, to: boundary + 9.99 }))
+  const beforeBoundary = boxX()
+  await React.act(async () => scale.setVisibleLogicalRange({ from: boundary + 0.01, to: boundary + 10.01 }))
+  assert.ok(Math.abs(boxX() - beforeBoundary) < 0.01, 'Follow Mode stays anchored as the viewport crosses a fractional bar boundary')
+  await React.act(async () => scale.setVisibleLogicalRange(beforeProfileRange))
   assert.match(profileControls().textContent, /POC 1\.11/)
   const fills = [], profileStrokes = []
   const target = { useMediaCoordinateSpace: draw => draw({ mediaSize: { width: 900, height: 420 }, context: {
@@ -642,6 +650,21 @@ try {
   const replayDock = container.querySelector('[aria-label="Chart replay"]')
   const playhead = replayDock.querySelector('[aria-label="Replay playhead"]')
   const replayIndex = bars.length - 10
+  const pickReplayStart = replayDock.querySelector('[aria-label="Choose replay start on chart"]')
+  assert.equal(pickReplayStart.textContent, '\u2316')
+  await click(pickReplayStart)
+  assert.equal(pickReplayStart.getAttribute('aria-pressed'), 'true')
+  await React.act(async () => dom.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Escape' })))
+  assert.equal(pickReplayStart.getAttribute('aria-pressed'), 'false')
+  await click(pickReplayStart)
+  const pickCandle = time => React.act(async () => {
+    for (const handler of clickListeners) handler({ paneIndex: 0, time, point: { x: 200, y: 100 }, seriesData: new Map() })
+  })
+  await pickCandle(liveEnd + 3600)
+  assert.equal(pickReplayStart.getAttribute('aria-pressed'), 'true', 'Empty future space cannot become a replay anchor')
+  await pickCandle(bars[replayIndex].time)
+  assert.equal(pickReplayStart.getAttribute('aria-pressed'), 'false')
+  assert.equal(plotted.at(-1).time, bars[replayIndex].time, 'Picking a candle places the paused replay playhead at the anchor')
   await React.act(async () => props(playhead).onChange({ target: { valueAsNumber: replayIndex } }))
   assert.equal(plotted.at(-1).time, bars[replayIndex].time, 'Replay hides candles after the playhead')
   assert.equal(container.querySelector('.macro-legend'), replayMacroLegend, 'MFDI stays mounted after seeking into replay')
@@ -1012,6 +1035,51 @@ try {
   await click(container.querySelector('[aria-label="Hide Volume"]')); await flush()
   assert.equal(candleVolume(), null)
   assert.equal(panes.length, 2, 'Closing Tick Delta preserves the price and RSI panes')
+  const beforeNumbers = new Set(primitives), beforeNumbersRange = { ...range }, beforeNumbersLogical = { ...logicalRange }
+  const setNumbers = async (values) => {
+    await click(container.querySelector('[aria-label="Volume settings"]'))
+    await click(volumeStyleTab())
+    const fieldset = [...container.querySelectorAll('.rsi-settings-dialog fieldset')].find(node => node.querySelector('legend').textContent === 'Candle delta numbers')
+    for (const [index, value] of values) await React.act(async () => {
+      const select = fieldset.querySelectorAll('select')[index]
+      select.value = value
+      select.dispatchEvent(new dom.Event('change', { bubbles: true }))
+    })
+    await click([...container.querySelectorAll('.rsi-settings-dialog button')].find(button => button.textContent === 'OK')); await flush()
+  }
+  await React.act(async () => {
+    scale.setVisibleRange({ from: plotted.at(-8).time, to: plotted.at(-1).time })
+    scale.setVisibleLogicalRange({ from: plotted.length - 8, to: plotted.length - 1 })
+  })
+  const requestsBeforeNumbers = requests.length
+  await setNumbers([[0, 'above'], [1, 'hover']])
+  assert.equal(candleVolume(), null)
+  assert.equal(panes.length, 2, 'Enabling candle numbers by themselves adds no pane')
+  const numbersPrimitive = [...primitives].find(primitive => !beforeNumbers.has(primitive))
+  const drawNumbers = () => {
+    const labels = []
+    numbersPrimitive.paneViews()[0].renderer().draw({ useMediaCoordinateSpace: draw => draw({ mediaSize: { width: 900, height: 420 }, context: {
+      save() {}, restore() {}, measureText: label => ({ width: label.length * 7 }), fillText: label => labels.push(label),
+    } }) })
+    return labels
+  }
+  assert.deepEqual(drawNumbers(), [])
+  assert.equal(requests.slice(requestsBeforeNumbers).filter(url => /candle-tick/.test(url)).length, 0, 'Hover-only labels do no reads until hovering a candle')
+  await React.act(async () => {
+    for (const notify of hoverListeners) notify({ paneIndex: 0, time: plotted.at(-4).time, point: { x: 320, y: 100 } })
+  })
+  await flush()
+  assert.deepEqual(drawNumbers(), ['-5'], 'Only the hovered candle shows its exact delta when the pane is hidden')
+  await React.act(async () => { for (const notify of hoverListeners) notify({}) })
+  assert.deepEqual(drawNumbers(), [])
+  await setNumbers([[1, 'always']])
+  assert.ok(drawNumbers().length > 1, 'Always shows multiple candle numbers with the pointer away and no Volume pane')
+  await setNumbers([[0, 'off']])
+  assert.ok(!primitives.has(numbersPrimitive), 'Turning off candle numbers removes the price overlay')
+  await React.act(async () => {
+    scale.setVisibleRange(beforeNumbersRange)
+    scale.setVisibleLogicalRange(beforeNumbersLogical)
+  })
   assert.deepEqual([...container.querySelectorAll('[aria-label="App features"] button')].map(node => node.textContent.trim().replace(/\s+\d+$/, '')),
     ['Alert', 'Wildcards', 'Ledger', 'Heatmap', 'Inspector', 'Entry Trade', 'Activity', 'Replay', '⚙ Settings'])
   await click(button('Settings'))

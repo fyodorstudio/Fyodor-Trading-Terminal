@@ -287,8 +287,9 @@ Double-click the axis to return the selected line to the shared automatic scale.
 With both count lines on the shared scale, crossings show where their counts
 meet. The pane saves the visibility and axis selection. In
 **Volume → Style → Candle delta numbers**, choose **Above candle** or
-**Below candle** to see signed delta on the price chart. Set the positive and
-negative colours separately. At tight zoom, hover a candle to show its number.
+**Below candle** to see signed delta on the price chart, even with the Volume
+pane hidden. Choose **Always** or **Only on hover** and set the positive and
+negative colours separately.
 
 On Pepperstone-Demo, **Currency Activity** ranks all eight major currencies by the
 sum of broker ticks in each currency's seven FX pairs over the selected candle.
@@ -339,7 +340,9 @@ needs to stay open to monitor armed alerts.
 ## Replay and sessions
 
 Open **Replay** in the bottom dock. Drag the playhead to a completed candle or
-press **Play** to start near the end of the loaded history. Use **Load earlier
+press **⌖** and click a completed candle to mark the start on the chart. Press
+**Play** to start from there. With no selection, **Play** starts near the end of
+the loaded history. Use **Load earlier
 candles** to extend the timeline and **Return to live** to leave replay. Use the
 speed selector for 0.25× through 2×. You can pan, zoom, and hover while replay
 runs. Use **Refocus chart** to follow the playhead again. Candle indicators,

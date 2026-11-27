@@ -32,6 +32,7 @@
 }
 
 .volume-profile-controls button:disabled { opacity: 0.5; cursor: default; }
+.volume-profile-side { display: inline-flex; align-items: center; gap: 4px; }
 .volume-profile-poc { color: var(--text-strong); font-variant-numeric: tabular-nums; }
 .volume-profile-picker { position: absolute; z-index: 8; inset: 0 auto auto 0; pointer-events: auto; cursor: crosshair; touch-action: none; }
 .volume-profile-picker rect { fill: rgba(94, 128, 223, 0.17); stroke: rgba(94, 128, 223, 0.85); pointer-events: none; }

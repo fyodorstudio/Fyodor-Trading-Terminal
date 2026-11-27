@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { IChartApi, LogicalRange, MouseEventParams, Time } from 'lightweight-charts'
 import { chartClockToUtc } from '../../../appearance/time-display/chart-clock'
 import { useDisplayClock } from '../../../appearance/time-display/useDisplayClock'
@@ -7,7 +8,7 @@ import { timeframeToSeconds } from '../../chart-drawings/position-drawing-geomet
 import type { ChartTimeframe } from '../../contracts/ChartTimeframe'
 import type { OhlcBar } from '../../contracts/OhlcBar'
 import type { TickDeltaPlotOptions, TickDeltaPoint } from './tick-delta-pane'
-import type { TickDeltaStyle, TickDeltaLine, TickDeltaLines, TickDeltaView } from './volume-preferences'
+import type { TickDeltaLabels, TickDeltaStyle, TickDeltaLine, TickDeltaLines, TickDeltaView } from './volume-preferences'
 import { useTickDeltaHistory, type TickCounts } from './use-tick-delta-history'
 import './candle-activity.css'
 
@@ -56,15 +57,18 @@ export function CandleActivityControls({ chart, bars, symbol, timeframe, synthet
   connected, upColor, downColor, totalTicksColor, tickDeltaColor, redCandleDivergenceColor, greenCandleDivergenceColor,
   tickDeltaDotsVisible, totalTicksDotsVisible,
   tickDeltaView, onTickDeltaViewChange, tickDeltaLines, onToggleTickDeltaLine,
-  tickDeltaAxis, onTickDeltaAxisChange, onPlot }: CandleActivityProps & {
-  chart: IChartApi
+  tickDeltaAxis, onTickDeltaAxisChange, legend, labelDisplay, onPlot }: CandleActivityProps & {
+  chart: IChartApi; legend: HTMLDivElement | null; labelDisplay?: TickDeltaLabels['display']
   onPlot: (rows: ReadonlyMap<number, TickDeltaPoint>, options: TickDeltaPlotOptions, candles: readonly OhlcBar[]) => void
 }) {
   const clock = useDisplayClock()
   const [showRanking, setShowRanking] = useState(false)
   const [hover, setHover] = useState<number | null>(null)
   const [viewport, setViewport] = useState<{ from: number; to: number } | null>(null)
-  const ranking = canRank && showRanking
+  const paneOpen = legend !== null
+  const ranking = paneOpen && canRank && showRanking
+  const readViewportTicks = (paneOpen && !ranking) || labelDisplay === 'always'
+  const readHoverTicks = labelDisplay === 'hover'
   const paneView = ranking ? 'currency' : tickDeltaView
   const axis = tickDeltaLines[tickDeltaAxis] ? tickDeltaAxis : tickDeltaLineLabels.find(([line]) => tickDeltaLines[line])?.[0]
   const selectTickView = (view: TickDeltaView) => {
@@ -78,34 +82,38 @@ export function CandleActivityControls({ chart, bars, symbol, timeframe, synthet
       const from = Math.floor(range.from), to = Math.ceil(range.to)
       setViewport(current => current?.from === from && current.to === to ? current : { from, to })
     }
-    const follow = (event: MouseEventParams<Time>) => setHover(event.point && typeof event.time === 'number' ? event.time : null)
+    const follow = (event: MouseEventParams<Time>) => setHover(event.point && typeof event.time === 'number'
+      && (paneOpen || event.paneIndex == null || event.paneIndex === 0) ? event.time : null)
     readViewport(scale.getVisibleLogicalRange())
     scale.subscribeVisibleLogicalRangeChange(readViewport)
     chart.subscribeCrosshairMove(follow)
     return () => { scale.unsubscribeVisibleLogicalRangeChange(readViewport); chart.unsubscribeCrosshairMove(follow) }
-  }, [chart])
+  }, [chart, paneOpen])
 
   const last = bars.at(-1)?.time
   const hoverIndex = hover === null ? -1 : bars.findIndex(bar => bar.time === hover)
-  const start = hoverIndex >= 0 ? bars[hoverIndex].time : last
+  const hoveredCandle = hoverIndex >= 0 ? bars[hoverIndex].time : undefined
+  const start = hoveredCandle ?? last
+  const tickTarget = readViewportTicks ? start : readHoverTicks ? hoveredCandle : undefined
   const step = timeframeToSeconds(timeframe)
   const end = last === undefined ? undefined : chartClockToUtc((last + step) * 1000, clock.scope)
   const path = `symbol=${encodeURIComponent(symbol)}&timeframe=${timeframe}`
   const wanted = useMemo(() => {
     const from = Math.max(0, Math.min(viewport?.from ?? bars.length - 32, bars.length - 1) - 8)
     const to = Math.max(from, Math.min(bars.length - 1, (viewport?.to ?? bars.length - 1) + 3))
-    const times = bars.slice(from, to).map(bar => Number(bar.time))
-    if (start !== undefined && start !== last && !times.includes(start)) times.push(start)
+    const times = readViewportTicks ? bars.slice(from, to).map(bar => Number(bar.time)) : []
+    if (tickTarget !== undefined && tickTarget !== last && !times.includes(tickTarget)) times.push(tickTarget)
     return times.sort((a, b) => a - b)
-  }, [bars, viewport, start, last])
-  const { history, save } = useTickDeltaHistory(connected && !ranking ? path : null, wanted, start ?? null, step)
-  const live = useCandleReading<TickCounts>(connected && !ranking && last !== undefined ? `/candle-ticks?${path}&start=${last}` : null, end)
-  const fallback = useCandleReading<TickCounts>(connected && !ranking && start !== undefined && start !== last && history.get(start) === null
-    ? `/candle-ticks?${path}&start=${start}` : null)
+  }, [bars, viewport, readViewportTicks, tickTarget, last])
+  const { history, save } = useTickDeltaHistory(connected && (readViewportTicks || readHoverTicks) ? path : null, wanted, tickTarget ?? null, step)
+  const live = useCandleReading<TickCounts>(connected && last !== undefined && (readViewportTicks || tickTarget === last)
+    ? `/candle-ticks?${path}&start=${last}` : null, end)
+  const fallback = useCandleReading<TickCounts>(connected && tickTarget !== undefined && tickTarget !== last && history.get(tickTarget) === null
+    ? `/candle-ticks?${path}&start=${tickTarget}` : null)
   const rank = useCandleReading<CurrencyActivity>(connected && ranking && start !== undefined
     ? `/currency-activity?timeframe=${timeframe}&start=${start}` : null, start === last ? end : undefined)
   const recovered = fallback.current?.data
-  useEffect(() => { if (start !== undefined && recovered) save(start, recovered) }, [start, recovered, save])
+  useEffect(() => { if (tickTarget !== undefined && recovered) save(tickTarget, recovered) }, [tickTarget, recovered, save])
   const liveTicks = live.current?.data
   const first = bars[0]?.time
   const visiblePoints = useMemo(() => {
@@ -123,8 +131,9 @@ export function CandleActivityControls({ chart, bars, symbol, timeframe, synthet
   }), [upColor, downColor, totalTicksColor, tickDeltaColor, redCandleDivergenceColor, greenCandleDivergenceColor,
     tickDeltaDotsVisible, totalTicksDotsVisible, paneView, tickDeltaLines, axis])
   const markerCandles = paneView === 'line' && tickDeltaLines.delta && tickDeltaDotsVisible ? bars : undefined
-  useLayoutEffect(() => onPlot(visiblePoints, plot, markerCandles ?? []), [onPlot, visiblePoints, plot, markerCandles])
+  useLayoutEffect(() => onPlot(visiblePoints, plot, markerCandles ?? []), [onPlot, visiblePoints, plot, markerCandles, legend])
 
+  if (!legend) return null
   const current = ranking ? rank : start === last ? live : fallback
   const ticks = !ranking && start !== undefined ? start === last ? liveTicks : history.get(start) ?? recovered : undefined
   const ranks = ranking ? rank.current?.data?.rows : undefined
@@ -136,7 +145,7 @@ export function CandleActivityControls({ chart, bars, symbol, timeframe, synthet
   const showDown = barsView || (lineView && tickDeltaLines.down)
   const showTotal = lineView && tickDeltaLines.total
   const showDelta = barsView || (lineView && tickDeltaLines.delta)
-  return <section className="candle-activity-pane" aria-label="Candle volume">
+  return createPortal(<section className="candle-activity-pane" aria-label="Candle volume">
     <div className="candle-activity-toolbar">
       <div className="volume-controls" role="group" aria-label="Volume view">
         <button type="button" aria-pressed={barsView} onClick={() => selectTickView('bars')}>Uptick / Downtick Bars</button>
@@ -173,5 +182,5 @@ export function CandleActivityControls({ chart, bars, symbol, timeframe, synthet
           ? <span title={`Missing ${row.missing.join(', ')}`}>Unavailable</span> : count.format(row.updates)}</td>)}</tr></tbody>
       </table>
     </div>}
-  </section>
+  </section>, legend)
 }

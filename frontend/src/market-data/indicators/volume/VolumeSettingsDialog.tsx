@@ -83,17 +83,6 @@ export function VolumeSettingsDialog({ preferences, synthetic = false, onSave, o
           <label>Show Delta dots<input type="checkbox" checked={draft.tickDeltaDotsVisible} onChange={event => patch({ tickDeltaDotsVisible: event.target.checked })} /></label>
           <label>Show Total Ticks dots<input type="checkbox" checked={draft.totalTicksDotsVisible} onChange={event => patch({ totalTicksDotsVisible: event.target.checked })} /></label>
         </fieldset>
-        <fieldset><legend>Candle delta numbers</legend>
-          <label>Position<select value={labels.position} onChange={event => patch({
-            tickDeltaLabels: { ...labels, position: event.target.value as typeof labels.position },
-          })}><option value="off">Off</option><option value="above">Above candle</option><option value="below">Below candle</option></select></label>
-          <label>Positive delta<input type="color" value={labels.positive} onChange={event => patch({
-            tickDeltaLabels: { ...labels, positive: event.target.value },
-          })} /></label>
-          <label>Negative delta<input type="color" value={labels.negative} onChange={event => patch({
-            tickDeltaLabels: { ...labels, negative: event.target.value },
-          })} /></label>
-        </fieldset>
         </> : <>
         <fieldset><legend>Pane</legend>
           <label>Right axis<select value={draft.axisTarget} onChange={event => patch({ axisTarget: event.target.value as VolumePreferences['axisTarget'] })}>
@@ -114,6 +103,20 @@ export function VolumeSettingsDialog({ preferences, synthetic = false, onSave, o
           <label>Average colour<input type="color" value={draft.averageColor} onChange={event => patch({ averageColor: event.target.value })} /></label>
         </fieldset>
         </>}
+        {tab === 'style' && <fieldset><legend>Candle delta numbers</legend>
+          <label>Position<select value={labels.position} onChange={event => patch({
+            tickDeltaLabels: { ...labels, position: event.target.value as typeof labels.position },
+          })}><option value="off">Off</option><option value="above">Above candle</option><option value="below">Below candle</option></select></label>
+          <label>Show numbers<select value={labels.display} onChange={event => patch({
+            tickDeltaLabels: { ...labels, display: event.target.value as typeof labels.display },
+          })}><option value="always">Always</option><option value="hover">Only on hover</option></select></label>
+          <label>Positive delta<input type="color" value={labels.positive} onChange={event => patch({
+            tickDeltaLabels: { ...labels, positive: event.target.value },
+          })} /></label>
+          <label>Negative delta<input type="color" value={labels.negative} onChange={event => patch({
+            tickDeltaLabels: { ...labels, negative: event.target.value },
+          })} /></label>
+        </fieldset>}
         {error && <p role="alert">{error}</p>}
       </div>
       <footer><button type="button" onClick={() => { setDraft({ ...defaultVolumePreferences, enabled: preferences.enabled }); setError('') }}>Reset defaults</button>

@@ -124,7 +124,7 @@ function TerminalWorkspaceContent() {
   const ledgerCurrencies = chartEventCurrencies(activeSymbol)
   const ledgerSupported = ledgerCurrencies.length === 2
   const openLedgerDetail = useCallback(() => { openDetail() }, [openDetail])
-  const pickerScope = !replaying && (ledgerSupported || detailOpen) && (bottomDockWindow === 'ledger' || detailOpen) && bars.length && brokerClockProfile(brokerId) && !activeDrawingTool && !wildcards.placing && !wildcards.editor
+  const pickerScope = !replaying && !replay.picking && (ledgerSupported || detailOpen) && (bottomDockWindow === 'ledger' || detailOpen) && bars.length && brokerClockProfile(brokerId) && !activeDrawingTool && !wildcards.placing && !wildcards.editor
     ? `${brokerId}:${activeSymbol}:${timeframe}` : null
   const wildcardIconsVisible = eventIconMode === 'wildcards' || eventIconMode === 'all'
   const renderChartWithLedger = useCallback((chartApi: IChartApi, seriesApi: ISeriesApi<'Candlestick', Time>) => <>
@@ -234,6 +234,9 @@ function TerminalWorkspaceContent() {
                   bars={replay.bars}
                   replayEnd={replay.end}
                   replaySeekRevision={replay.seekRevision}
+                  replayAnchor={replay.picking || replay.anchor !== null ? {
+                    anchor: replay.anchor, onPick: replay.picking ? replay.pickAnchor : undefined, onCancel: replay.cancelPicking,
+                  } : undefined}
                   fitContentKey={`${activeSymbol}:${timeframe}`}
                   precision={quote?.precision ?? 5}
                   theme={theme}
@@ -244,7 +247,8 @@ function TerminalWorkspaceContent() {
                   hasDailyCloseHistory={hasDailyCloseHistory}
                   volume={quote?.synthetic || volume.mode === 'tick-delta' ? undefined : volume}
                   tickDeltaLabels={volume.tickDeltaLabels}
-                  tickDelta={tickActivityOpen ? {
+                  tickDelta={tickActivityOpen || volume.tickDeltaLabels.position !== 'off' ? {
+                    showPane: tickActivityOpen,
                     tickDeltaView: volume.tickDeltaView, onTickDeltaViewChange: changeTickDeltaView,
                     tickDeltaLines: volume.tickDeltaLines, onToggleTickDeltaLine: toggleTickDeltaLine,
                     tickDeltaAxis: volume.tickDeltaAxis, onTickDeltaAxisChange: changeTickDeltaAxis,
@@ -257,7 +261,7 @@ function TerminalWorkspaceContent() {
                   volumeProfile={volumeProfileEnabled ? {
                     symbol: activeSymbol, scope: `${brokerId}:${bridge.generation}:${activeSymbol}`, generation: bridge.generation, precision: quote?.precision ?? 5,
                     connected: bridge.connected, brokerOffset: brokerOffsetSeconds, replayEnd: replay.end,
-                    drawingActive: Boolean(activeDrawingTool || wildcards.placing || wildcards.editor),
+                    drawingActive: Boolean(activeDrawingTool || wildcards.placing || wildcards.editor || replay.picking),
                     onStartDrawing: () => { selectCrosshair(); wildcards.setPlacing(false) },
                     preferences: volumeProfile, onChangePreferences: changeVolumeProfile,
                     onArmProfile: !replaying && bridge.connected ? armFromProfile : undefined,
@@ -275,7 +279,7 @@ function TerminalWorkspaceContent() {
                   onSelectMacroMetric={selectMacroSeries}
                   onInspectMacroRelease={inspectMacroRelease}
                   refocusRequest={refocusRequest}
-                  activeDrawingTool={replaying ? null : activeDrawingTool}
+                  activeDrawingTool={replaying || replay.picking ? null : activeDrawingTool}
                   drawings={drawings}
                   selectedDrawingId={selectedDrawingId}
                   onSelectDrawing={setSelectedDrawingId}
@@ -292,7 +296,7 @@ function TerminalWorkspaceContent() {
                   hasOlderData={!marketData.chartHistoryComplete}
                   isLoadingOlderData={marketData.chartHistoryLoading}
                   onRequestOlderData={marketData.requestOlderBars}
-                  renderChartOverlay={replaying ? undefined : renderChartWithLedger}
+                  renderChartOverlay={replaying || replay.picking ? undefined : renderChartWithLedger}
                 />
               </MarketChartErrorBoundary>
               <MarketDataNotice status={marketData.chartStatus} symbol={activeSymbol} timeframe={timeframe} error={marketData.chartError} />
@@ -342,7 +346,9 @@ function TerminalWorkspaceContent() {
           {bottomDockWindow === 'wildcards' && <WildcardsDock />}
           {bottomDockWindow === 'replay' && <ChartReplayDock source={bars} replay={replay}
             historyLoading={marketData.chartHistoryLoading} hasEarlier={!marketData.chartHistoryComplete}
-            loadEarlier={marketData.requestOlderBars} />}
+            loadEarlier={marketData.requestOlderBars} onPickStart={() => {
+              selectCrosshair(); wildcards.setPlacing(false); replay.startPicking()
+            }} />}
           {bottomDockWindow === 'ledger' && <LedgerDock supported={ledgerSupported} broker={brokerId} onOpenDetail={openLedgerDetail} onViewEvent={viewLedgerEvent} />}
           {bottomDockWindow === 'activity' && (
             <ActivityDock timeDisplay={timeDisplay} />

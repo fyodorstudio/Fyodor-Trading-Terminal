@@ -16,12 +16,12 @@ export function createTickDeltaLabels(chart: IChartApi, series: ISeriesApi<'Cand
     draw(target) {
       const scale = chart.timeScale()
       const range = scale.getVisibleLogicalRange()
-      if (!range || options.position === 'off' || !rows.size) return
+      const hoverOnly = options.display === 'hover'
+      if (!range || options.position === 'off' || !rows.size || (hoverOnly && hover === null)) return
       const first = Math.max(0, Math.ceil(range.from))
       const last = Math.min(bars.length - 1, Math.floor(range.to))
       const above = options.position === 'above'
       target.useMediaCoordinateSpace(({ context, mediaSize }) => {
-        const hoverOnly = mediaSize.width / Math.max(1, range.to - range.from) < 22
         context.save()
         context.font = '600 11px Inter, sans-serif'
         context.textBaseline = 'middle'
@@ -53,8 +53,12 @@ export function createTickDeltaLabels(chart: IChartApi, series: ISeriesApi<'Cand
     attached: params => { refresh = params.requestUpdate },
   }
   function follow(event: MouseEventParams<Time>) {
-    const next = event.point && event.point.y < chart.paneSize(0).height && typeof event.time === 'number' ? event.time : null
-    if (next !== hover) { hover = next; refresh?.() }
+    const next = event.point && (event.paneIndex == null || event.paneIndex === 0) && event.point.y >= 0
+      && event.point.y < chart.paneSize(0).height && typeof event.time === 'number' ? event.time : null
+    if (next !== hover) {
+      hover = next
+      if (options.display === 'hover') refresh?.()
+    }
   }
   series.attachPrimitive(primitive)
   chart.subscribeCrosshairMove(follow)

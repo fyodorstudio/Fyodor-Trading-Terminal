@@ -96,15 +96,17 @@ export function VolumeProfileOverlay({ chart, series, bars, step, symbol, scope,
       }}>
         {profileModeOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
       </select>
-      <select aria-label={verticalLine ? 'Volume profile calculation side' : 'Volume profile side'}
-        title={verticalLine ? 'Side of the line to calculate' : undefined}
-        value={verticalLine ? cutoffSide : side}
-        onChange={event => {
-          const value = event.target.value as ProfileSide
-          onChangePreferences(verticalLine ? { cutoffSide: value } : { side: value })
-        }}>
-        <option value="left">Left</option><option value="right">Right</option>
-      </select>
+      <label className="volume-profile-side">{verticalLine ? 'Calculation side' : 'Histogram placement'}
+        <select aria-label={verticalLine ? 'Volume profile calculation side' : 'Volume profile side'}
+          title={verticalLine ? 'Side of the line to calculate' : undefined}
+          value={verticalLine ? cutoffSide : side}
+          onChange={event => {
+            const value = event.target.value as ProfileSide
+            onChangePreferences(verticalLine ? { cutoffSide: value } : { side: value })
+          }}>
+          <option value="left">Left</option><option value="right">Right</option>
+        </select>
+      </label>
       {mode !== 'visible' && <button type="button" aria-pressed={picking} disabled={!connected || !bars.length}
         onClick={() => { if (!picking) onStartDrawing(); setDrawing(picking ? null : drawingKey) }}>
         {picking ? 'Cancel' : verticalLine ? 'Place line' : 'Draw range'}
