@@ -28,6 +28,7 @@ export function VolumeProfilePreloadControls({ symbol, connected, brokerOffset }
   const [error, setError] = useState('')
   const [statusError, setStatusError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [startDate, setStartDate] = useState('')
   const action = useRef<AbortController | null>(null)
   const revision = useRef(0)
 
@@ -82,6 +83,15 @@ export function VolumeProfilePreloadControls({ symbol, connected, brokerOffset }
   function start(all: boolean) {
     const query = new URLSearchParams({ broker_offset: String(brokerOffset) })
     if (!all) query.set('symbol', symbol)
+    if (startDate) {
+      const start = Date.parse(`${startDate}T00:00:00Z`) / 1000
+      const currentMinute = Math.floor((Date.now() / 1000 + brokerOffset) / 60) * 60
+      if (!Number.isFinite(start) || start <= 0 || start >= currentMinute) {
+        setError('Choose a start date before the current broker minute.')
+        return
+      }
+      query.set('start', String(start))
+    }
     void submit(`${endpoint}?${query}`)
   }
 
@@ -93,7 +103,10 @@ export function VolumeProfilePreloadControls({ symbol, connected, brokerOffset }
   const symbolCount = groups.reduce((total, [, symbols]) => total + symbols.length, 0)
   return <fieldset>
     <legend>Preload exact ticks</legend>
-    <p>Checks all available broker history, newest dates first. Completed dates are saved locally.</p>
+    <p>Preloads newest dates first and saves completed dates locally. Leave the start date blank for all available history.</p>
+    <label>Start date (broker time)<input type="date" value={startDate} disabled={active || busy}
+      min="1970-01-02"
+      onChange={event => { setStartDate(event.target.value); setError('') }} /></label>
     <div className="volume-profile-preload-actions">
       {active ? <>
         {job.state === 'running'

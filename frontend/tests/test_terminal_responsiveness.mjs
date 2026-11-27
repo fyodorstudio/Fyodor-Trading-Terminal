@@ -610,8 +610,11 @@ try {
   assert.deepEqual([...preloadList.querySelectorAll('strong')].map(heading => heading.textContent),
     ['Currency indices (8)', 'Forex majors (7)', 'Forex crosses (21)'])
   assert.doesNotMatch(preloadList.textContent, /CNH/)
+  const preloadStart = profileDialog.querySelector('input[type="date"]')
+  await React.act(async () => props(preloadStart).onChange({ target: { value: '2026-09-01' } }))
   await click(button('Preload all 36'))
   assert.equal(preloadCommands.at(-1).searchParams.has('symbol'), false)
+  assert.equal(preloadCommands.at(-1).searchParams.get('start'), String(Date.UTC(2026, 8, 1) / 1000))
   assert.match(profileDialog.textContent, /Preloading · 0\/36 symbols/)
   preloadJob = { ...preloadJob, state: 'complete', completed_symbols: 36, available_symbols: 36, symbol: null,
     first_candles: { EURUSD: Date.UTC(2020, 0, 2) / 1000 }, incomplete_symbols: ['GBPX'] }

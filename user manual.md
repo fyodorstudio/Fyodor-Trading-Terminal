@@ -323,8 +323,9 @@ peaks and dips.
 
 Under **VP → Inputs**, preload the current symbol or all 36 instruments. Open
 **View all 36 preload symbols** for the eight currency indices, seven USD majors,
-and 21 crosses among the eight currencies. The bridge processes broker history
-from newest to oldest. It saves exact
+and 21 crosses among the eight currencies. Set **Start date (broker time)** to
+limit the preload, or leave it blank to use all available history. The bridge
+processes broker history from newest to oldest. It saves exact
 price counts by minute and day, so different historical windows can reuse the
 same cache across symbol changes and restarts. Reopen settings to check
 progress, pause, resume, or cancel. A bridge restart preserves the position
