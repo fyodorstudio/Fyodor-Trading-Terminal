@@ -6,13 +6,13 @@ export const replaySpeeds = [0.25, 0.50, 0.75, 1, 1.25, 1.50, 1.75, 2] as const
 type ReplaySpeed = typeof replaySpeeds[number]
 type ReplayPosition = { scope: string; time: number; playing: boolean; seekRevision: number; anchor?: number }
 
-export function useChartReplay(open: boolean, scope: string, source: OhlcBar[], step: number, offset: number, keepPosition = false) {
+export function useChartReplay(open: boolean, scope: string, source: OhlcBar[], step: number, offset: number) {
   const [position, setPosition] = useState<ReplayPosition | null>(null)
   const [pickerScope, setPickerScope] = useState<string | null>(null)
   const [speed, setSpeed] = useState<ReplaySpeed>(1)
   const [observed, setObserved] = useState(Date.now)
   const now = observed / 1000 + offset
-  const cursor = (open || keepPosition) && position?.scope === scope ? position : null
+  const cursor = position?.scope === scope ? position : null
   if (position && !cursor) setPosition(null)
   const picking = open && pickerScope === scope
   if (pickerScope && !picking) setPickerScope(null)

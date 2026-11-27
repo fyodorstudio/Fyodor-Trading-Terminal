@@ -79,7 +79,7 @@ function TerminalWorkspaceContent() {
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab } = useTerminalWorkspace()
   const brokerOffsetSeconds = bridge.brokerOffsetSeconds
   const replay = useChartReplay(bottomDockWindow === 'replay', `${brokerId}:${bridge.generation}:${activeSymbol}:${timeframe}`,
-    bars, timeframeToSeconds(timeframe), brokerOffsetSeconds, bottomDockWindow === 'inspector')
+    bars, timeframeToSeconds(timeframe), brokerOffsetSeconds)
   const replaying = replay.end !== null
   const pauseReplay = replay.pause
   const inspectMacroRelease = useCallback((reading: Parameters<typeof viewMacroRelease>[0]) => {
