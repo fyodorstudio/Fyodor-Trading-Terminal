@@ -1,12 +1,14 @@
 import { DisplayClockProvider } from '../appearance/time-display/DisplayClock'
 import { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import { MarketCandlestickChart } from '../market-data/candlestick-chart/MarketCandlestickChart'
+import { ChartReplayDock } from '../market-data/candlestick-chart/ChartReplayDock'
+import { useChartReplay } from '../market-data/candlestick-chart/use-chart-replay'
 import { MarketChartErrorBoundary } from '../market-data/candlestick-chart/MarketChartErrorBoundary'
 import { FloatingDrawingToolbar } from '../market-data/chart-drawings/FloatingDrawingToolbar'
 import { ChartSettingsPopover } from '../market-data/chart-settings/ChartSettingsPopover'
 import { CandleHistoryLoadingNotice, MarketDataNotice } from '../market-data/mt5-feed/MarketDataNotice'
 import { BottomDockPanel } from '../workspace-docking/bottom-dock/BottomDockPanel'
-import { LeftDockPanel } from '../workspace-docking/left-dock/LeftDockPanel'
+import { LeftDockPanel, type LeftDockTab } from '../workspace-docking/left-dock/LeftDockPanel'
 import { ChartWorkspaceHeader } from './ChartWorkspaceHeader'
 import { ActivityDock, InspectorDock, LiveTerminalStatusBar } from './LiveTerminalPanels'
 import { useTerminalWorkspace } from './runtime/useTerminalWorkspace'
@@ -23,6 +25,11 @@ import { heatmapNewsSelection } from '../news-flow/date-range'
 import { selectNewsDate } from '../news-flow/settings'
 import { VolumeSettingsDialog } from '../market-data/indicators/volume/VolumeSettingsDialog'
 import { VolumeProfileSettingsDialog } from '../market-data/indicators/volume-profile/VolumeProfileSettingsDialog'
+import { ProfileAlertMonitor } from '../market-data/indicators/volume-profile/ProfileAlertMonitor'
+import { VolumeProfileAlertsDock } from '../market-data/indicators/volume-profile/VolumeProfileAlertsDock'
+import { useProfileAlerts } from '../market-data/indicators/volume-profile/use-profile-alerts'
+import type { ProfileAlert } from '../market-data/indicators/volume-profile/volume-profile-alerts'
+import type { ProfileWindow } from '../market-data/indicators/volume-profile/volume-profile'
 import { readVolumeProfilePreferences, saveVolumeProfilePreferences, type VolumeProfilePreferences } from '../market-data/indicators/volume-profile/volume-profile-preferences'
 import { AtrSettingsDialog } from '../market-data/indicators/atr/AtrSettingsDialog'
 import { MarketStructureSettingsDialog } from '../market-data/indicators/market-structure/MarketStructureSettingsDialog'
@@ -70,11 +77,33 @@ function TerminalWorkspaceContent() {
     recentEventsOpen, toggleRecentEvents, closeRecentEvents, alertFocus, viewReleaseInAlert,
     rankingOpen, toggleRanking, closeRanking, newsOpen, toggleNews, closeNews, openNews, detailOpen, toggleDetail, closeDetail, openDetail, viewLedgerEvent, viewMacroRelease, returnToLedger,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab } = useTerminalWorkspace()
-  const hasDailyCloseHistory = quote?.synthetic === true && timeframe === 'D1' && bars.some(bar => bar.closeOnly)
+  const brokerOffsetSeconds = bridge.brokerOffsetSeconds
+  const replay = useChartReplay(bottomDockWindow === 'replay', `${brokerId}:${bridge.generation}:${activeSymbol}:${timeframe}`,
+    bars, timeframeToSeconds(timeframe), brokerOffsetSeconds)
+  const replaying = replay.end !== null
+  const recordVpAlert = useCallback((message: string) => appendActivity('Chart', 'Volume Profile alert', message), [appendActivity])
+  const vpAlerts = useProfileAlerts(brokerId, recordVpAlert)
+  const [vpAlertFixed, setVpAlertFixed] = useState<{ symbol: string; range: ProfileWindow } | null>(null)
+  const fixedAlert = vpAlertFixed?.symbol === activeSymbol ? vpAlertFixed.range : undefined
+  const selectLeftDockTab = (tab: LeftDockTab) => { setVpAlertFixed(null); setLeftDockTab(tab) }
+  const armFromProfile = (range?: ProfileWindow) => {
+    setVpAlertFixed(range ? { symbol: activeSymbol, range } : null)
+    setLeftDockTab('vp-alerts')
+    marketWatch.open()
+  }
+  const vpGroups = new Map<string, ProfileAlert[]>()
+  for (const rule of vpAlerts.alerts) {
+    if (!rule.armed) continue
+    const key = rule.fixed ? `${rule.symbol}:${rule.fixed.from}:${rule.fixed.to}` : `${rule.symbol}:${rule.lookbackMinutes}`
+    const group = vpGroups.get(key) ?? []
+    group.push(rule)
+    vpGroups.set(key, group)
+  }
+  const hasDailyCloseHistory = quote?.synthetic === true && timeframe === 'D1' && replay.bars.some(bar => bar.closeOnly)
   const tickActivityOpen = volume.enabled && (quote?.synthetic === true || volume.mode === 'tick-delta')
+  const [sessionCursorTime, setSessionCursorTime] = useState<number | null>(null)
   const [heatmapStarted, setHeatmapStarted] = useState(false)
   if ((bottomDockWindow === 'heatmap' || rankingOpen) && !heatmapStarted) setHeatmapStarted(true)
-  const brokerOffsetSeconds = bridge.brokerOffsetSeconds
   const showHeatmapNews = useCallback((date: string) => {
     const selection = heatmapNewsSelection(date, { brokerId, brokerOffsetSeconds })
     if (selection) { selectNewsDate(selection); openNews() }
@@ -90,7 +119,7 @@ function TerminalWorkspaceContent() {
   const ledgerCurrencies = chartEventCurrencies(activeSymbol)
   const ledgerSupported = ledgerCurrencies.length === 2
   const openLedgerDetail = useCallback(() => { openDetail() }, [openDetail])
-  const pickerScope = (ledgerSupported || detailOpen) && (bottomDockWindow === 'ledger' || detailOpen) && bars.length && brokerClockProfile(brokerId) && !activeDrawingTool && !wildcards.placing && !wildcards.editor
+  const pickerScope = !replaying && (ledgerSupported || detailOpen) && (bottomDockWindow === 'ledger' || detailOpen) && bars.length && brokerClockProfile(brokerId) && !activeDrawingTool && !wildcards.placing && !wildcards.editor
     ? `${brokerId}:${activeSymbol}:${timeframe}` : null
   const wildcardIconsVisible = eventIconMode === 'wildcards' || eventIconMode === 'all'
   const renderChartWithLedger = useCallback((chartApi: IChartApi, seriesApi: ISeriesApi<'Candlestick', Time>) => <>
@@ -117,6 +146,10 @@ function TerminalWorkspaceContent() {
     <DisplayClockProvider brokerId={brokerId} brokerOffsetSeconds={brokerOffsetSeconds} preference={timeDisplay}>
     <NewsSoundAlerts />
     <PriceAlertDeliveryNotice controller={priceAlerts} />
+    {bridge.connected && marketData.marketWatchStatus === 'live' && [...vpGroups].map(([key, rules]) =>
+      <ProfileAlertMonitor key={`${brokerId}:${bridge.generation}:${key}`} rules={rules}
+        quote={marketData.symbols.find(item => item.symbol === rules[0].symbol)}
+        generation={bridge.generation} offset={brokerOffsetSeconds} onEvents={vpAlerts.onEvents} />)}
     <LedgerProvider broker={brokerId} enabled={ledgerCurrencies.length > 0 && (detailOpen || bottomDockWindow === 'ledger')} pickerScope={pickerScope} currencies={ledgerCurrencies}>
     <div className={`terminal-shell${bottomDockWindow ? ' bottom-dock-open' : ''}`}
       style={{ '--bottom-dock-height': `${dockSize.height}px` } as CSSProperties}>
@@ -131,13 +164,18 @@ function TerminalWorkspaceContent() {
           marketWatchError={marketData.marketWatchError}
           onSelectSymbol={selectSymbol}
           activeTab={leftDockTab}
-          onSelectTab={setLeftDockTab}
+          onSelectTab={selectLeftDockTab}
           priceAlerts={priceAlerts}
           onCreatePriceAlert={() => chooseDrawingTool('price-alert')}
+          armedVpAlerts={vpAlerts.alerts.filter(alert => alert.armed).length}
+          vpAlerts={<VolumeProfileAlertsDock key={`${activeSymbol}:${fixedAlert?.from}:${fixedAlert?.to}:${volumeProfile.lookbackMinutes}`}
+            controller={vpAlerts} symbol={activeSymbol} lookback={volumeProfile.lookbackMinutes}
+            fixed={fixedAlert} canArm={Boolean(brokerId && bridge.connected)} onSelectSymbol={selectSymbol} />}
         />
 
         <section className="chart-workspace" aria-label={`${activeSymbol} chart workspace`}>
           <ChartWorkspaceHeader
+            sessionCursorTime={chartAppearance.showSessionCursor ? sessionCursorTime : null}
             marketWatch={marketWatch}
             symbol={activeSymbol}
             quote={quote}
@@ -179,6 +217,8 @@ function TerminalWorkspaceContent() {
           />
           <div className="chart-workspace-row">
             <div className="chart-frame">
+              {vpAlerts.notice && <div className="vp-alert-notice" role="status">{vpAlerts.notice}
+                <button type="button" onClick={vpAlerts.dismissNotice} aria-label="Dismiss VP alert">×</button></div>}
               <MarketChartErrorBoundary
                 symbol={activeSymbol}
                 timeframe={timeframe}
@@ -186,15 +226,18 @@ function TerminalWorkspaceContent() {
               >
                 <MarketCandlestickChart
                   symbol={activeSymbol}
-                  bars={bars}
+                  bars={replay.bars}
+                  replayEnd={replay.end}
                   fitContentKey={`${activeSymbol}:${timeframe}`}
                   precision={quote?.precision ?? 5}
                   theme={theme}
                   appearance={chartAppearance}
+                  onSessionCursor={chartAppearance.showSessionCursor ? setSessionCursorTime : undefined}
                   timeDisplay={timeDisplay}
                   timeframe={timeframe}
                   hasDailyCloseHistory={hasDailyCloseHistory}
                   volume={quote?.synthetic || volume.mode === 'tick-delta' ? undefined : volume}
+                  tickDeltaLabels={volume.tickDeltaLabels}
                   tickDelta={tickActivityOpen ? {
                     tickDeltaView: volume.tickDeltaView, onTickDeltaViewChange: changeTickDeltaView,
                     tickDeltaLines: volume.tickDeltaLines, onToggleTickDeltaLine: toggleTickDeltaLine,
@@ -207,17 +250,18 @@ function TerminalWorkspaceContent() {
                   } : undefined}
                   volumeProfile={volumeProfileEnabled ? {
                     symbol: activeSymbol, scope: `${brokerId}:${bridge.generation}:${activeSymbol}`, generation: bridge.generation, precision: quote?.precision ?? 5,
-                    connected: bridge.connected, brokerOffset: brokerOffsetSeconds,
+                    connected: bridge.connected, brokerOffset: brokerOffsetSeconds, replayEnd: replay.end,
                     drawingActive: Boolean(activeDrawingTool || wildcards.placing || wildcards.editor),
                     onStartDrawing: () => { selectCrosshair(); wildcards.setPlacing(false) },
                     preferences: volumeProfile, onChangePreferences: changeVolumeProfile,
+                    onArmProfile: !replaying && bridge.connected ? armFromProfile : undefined,
                   } : undefined}
                   marketStructure={marketStructure}
                   atr={atr}
                   onChangeVolumeAxis={changeVolumeAxis}
                   onToggleVolumeLayer={toggleVolumeLayer}
                   rsi={rsi}
-                  macro={macro}
+                  macro={replaying ? undefined : macro}
                   onToggleMacroMetric={toggleMacroSeries}
                   onToggleMacroForecast={toggleMacroForecastSeries}
                   onToggleMacroNumbers={toggleMacroNumberSeries}
@@ -225,7 +269,7 @@ function TerminalWorkspaceContent() {
                   onSelectMacroMetric={selectMacroSeries}
                   onInspectMacroRelease={viewMacroRelease}
                   refocusRequest={refocusRequest}
-                  activeDrawingTool={activeDrawingTool}
+                  activeDrawingTool={replaying ? null : activeDrawingTool}
                   drawings={drawings}
                   selectedDrawingId={selectedDrawingId}
                   onSelectDrawing={setSelectedDrawingId}
@@ -242,14 +286,14 @@ function TerminalWorkspaceContent() {
                   hasOlderData={!marketData.chartHistoryComplete}
                   isLoadingOlderData={marketData.chartHistoryLoading}
                   onRequestOlderData={marketData.requestOlderBars}
-                  renderChartOverlay={renderChartWithLedger}
+                  renderChartOverlay={replaying ? undefined : renderChartWithLedger}
                 />
               </MarketChartErrorBoundary>
               <MarketDataNotice status={marketData.chartStatus} symbol={activeSymbol} timeframe={timeframe} error={marketData.chartError} />
               {marketData.chartStatus === 'live' && marketData.chartHistoryLoading && (
                 <CandleHistoryLoadingNotice symbol={activeSymbol} timeframe={timeframe} />
               )}
-              {drawingToolbarVisible && (
+              {drawingToolbarVisible && !replaying && (
                 <FloatingDrawingToolbar
                 key={activeSymbol}
                 symbol={activeSymbol}
@@ -266,7 +310,7 @@ function TerminalWorkspaceContent() {
               )}
               <div className="chart-watermark" aria-hidden="true">
                 <strong>{activeSymbol}</strong>
-                <span>{timeframe} · {quote?.synthetic ? 'Synthetic index'
+                <span>{timeframe} · {replaying ? 'Replay' : quote?.synthetic ? 'Synthetic index'
                   : marketData.chartStatus === 'live' ? 'MT5 broker data' : 'Awaiting MT5 data'}</span>
               </div>
             </div>
@@ -290,6 +334,9 @@ function TerminalWorkspaceContent() {
             <HeatmapDock symbols={marketData.symbols} broker={brokerId} generation={bridge.generation} active={bottomDockWindow === 'heatmap' || rankingOpen} dockActive={bottomDockWindow === 'heatmap'} rankingTarget={rankingTarget} onCloseRanking={closeRanking} onOpenNews={showHeatmapNews} onOpenRow={openHeatmapInstrument} connected={bridge.connected} />
           </div>}
           {bottomDockWindow === 'wildcards' && <WildcardsDock />}
+          {bottomDockWindow === 'replay' && <ChartReplayDock source={bars} replay={replay}
+            historyLoading={marketData.chartHistoryLoading} hasEarlier={!marketData.chartHistoryComplete}
+            loadEarlier={marketData.requestOlderBars} />}
           {bottomDockWindow === 'ledger' && <LedgerDock supported={ledgerSupported} broker={brokerId} onOpenDetail={openLedgerDetail} onViewEvent={viewLedgerEvent} />}
           {bottomDockWindow === 'activity' && (
             <ActivityDock timeDisplay={timeDisplay} />

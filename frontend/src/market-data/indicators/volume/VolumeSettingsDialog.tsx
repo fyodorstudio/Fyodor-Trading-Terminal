@@ -25,6 +25,7 @@ export function VolumeSettingsDialog({ preferences, synthetic = false, onSave, o
     return () => { window.removeEventListener('keydown', keydown, true); focus?.focus() }
   }, [onClose])
   const patch = (next: Partial<VolumePreferences>) => { setDraft(current => ({ ...current, ...next })); setError('') }
+  const labels = draft.tickDeltaLabels ?? defaultVolumePreferences.tickDeltaLabels
   return <div className="rsi-dialog-backdrop" onPointerDown={event => { if (event.target === event.currentTarget) onClose() }}>
     <form ref={dialog} className="rsi-settings-dialog" role="dialog" aria-modal="true" aria-labelledby={`${id}-title`}
       onSubmit={event => {
@@ -35,9 +36,9 @@ export function VolumeSettingsDialog({ preferences, synthetic = false, onSave, o
           setError('Use 5–60 previous sessions, minimum samples from 1 to previous sessions, and an average length from 1 to 200.'); setTab('inputs'); return
         }
         const { upColor, downColor, totalTicksColor, tickDeltaColor, redCandleDivergenceColor, greenCandleDivergenceColor,
-          tickDeltaDotsVisible, totalTicksDotsVisible } = draft
+          tickDeltaDotsVisible, totalTicksDotsVisible, tickDeltaLabels } = draft
         onSave(synthetic ? { ...preferences, upColor, downColor, totalTicksColor, tickDeltaColor,
-          redCandleDivergenceColor, greenCandleDivergenceColor, tickDeltaDotsVisible, totalTicksDotsVisible }
+          redCandleDivergenceColor, greenCandleDivergenceColor, tickDeltaDotsVisible, totalTicksDotsVisible, tickDeltaLabels }
           : { ...draft, enabled: preferences.enabled })
         onClose()
       }}>
@@ -81,6 +82,17 @@ export function VolumeSettingsDialog({ preferences, synthetic = false, onSave, o
         <fieldset><legend>Dots</legend>
           <label>Show Delta dots<input type="checkbox" checked={draft.tickDeltaDotsVisible} onChange={event => patch({ tickDeltaDotsVisible: event.target.checked })} /></label>
           <label>Show Total Ticks dots<input type="checkbox" checked={draft.totalTicksDotsVisible} onChange={event => patch({ totalTicksDotsVisible: event.target.checked })} /></label>
+        </fieldset>
+        <fieldset><legend>Candle delta numbers</legend>
+          <label>Position<select value={labels.position} onChange={event => patch({
+            tickDeltaLabels: { ...labels, position: event.target.value as typeof labels.position },
+          })}><option value="off">Off</option><option value="above">Above candle</option><option value="below">Below candle</option></select></label>
+          <label>Positive delta<input type="color" value={labels.positive} onChange={event => patch({
+            tickDeltaLabels: { ...labels, positive: event.target.value },
+          })} /></label>
+          <label>Negative delta<input type="color" value={labels.negative} onChange={event => patch({
+            tickDeltaLabels: { ...labels, negative: event.target.value },
+          })} /></label>
         </fieldset>
         </> : <>
         <fieldset><legend>Pane</legend>

@@ -12,6 +12,18 @@ export function profileCandleWindow(bars: readonly OhlcBar[], from: number, to: 
   return first && last && first.time <= last.time ? { from: first.time, to: last.time + step } : null
 }
 
+export function trailingProfileWindow(end: number, lookbackMinutes: number): ProfileWindow {
+  return { from: Math.max(0, end - lookbackMinutes * 60), to: end }
+}
+
+export function movingProfileWindow(bars: readonly OhlcBar[], from: number, to: number, step: number,
+  lookbackMinutes: number, anchorRatio: number): ProfileWindow | null {
+  if (from > bars.length - 1 || to < 0) return null
+  const index = Math.min(bars.length - 1, Math.floor(from + (to - from) * anchorRatio))
+  const anchor = bars[index]
+  return anchor ? trailingProfileWindow(anchor.time + step, lookbackMinutes) : null
+}
+
 export function profileFromCutoff(bars: readonly OhlcBar[], cutoff: number, step: number, side: ProfileSide): ProfileWindow | null {
   const first = bars[0], last = bars.at(-1)
   if (!first || !last) return null

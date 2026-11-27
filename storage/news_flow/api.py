@@ -147,7 +147,14 @@ def news_router(store, collector, notifier=None):
 
     @router.get('/items')
     def items(scope: dict = Depends(item_scope), start: int | None = None, end: int | None = None,
-              order: Literal['newest', 'oldest'] = 'newest', sort_by: Literal['published', 'collected'] = 'published', offset: int = Query(default=0, ge=0), limit: int = Query(default=100, ge=1, le=200)):
+              order: Literal['newest', 'oldest'] = 'newest', sort_by: Literal['published', 'collected'] = 'published',
+              offset: int = Query(default=0, ge=0), limit: int = Query(default=100, ge=1, le=200), preview: bool = False):
+        if preview:
+            if offset or order != 'newest':
+                raise HTTPException(422, 'Recent headlines preview requires the first page, newest first.')
+            end = int(time.time() * 1000) + 1 if end is None else end
+            recent = end - 6 * 3600_000
+            start = recent if start is None else max(start, recent)
         return store.query(**scope, start=start, end=end, order=order, sort_by=sort_by, offset=offset, limit=limit)
 
     @router.get('/export')

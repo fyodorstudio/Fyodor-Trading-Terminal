@@ -7,11 +7,15 @@ import {
   createChart,
   type IChartApi,
   type ISeriesApi,
+  type MouseEventParams,
   type Time,
 } from 'lightweight-charts'
 import type { ColorTheme } from '../../appearance/color-theme/color-theme-preference'
+import { chartClockToUtc } from '../../appearance/time-display/chart-clock'
+import { createSessionBreaks } from '../market-watch/session-breaks'
 import type { TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
 import { ChartDrawingOverlay } from '../chart-drawings/ChartDrawingOverlay'
+import { drawingTimeToLogical } from '../chart-drawings/drawing-coordinates'
 import type { ChartDrawingPoint, ChartDrawingRecord } from '../chart-drawings/chart-drawing-record'
 import type { DrawingToolId } from '../chart-drawings/drawing-tool'
 import type { ChartAppearance } from '../chart-settings/chart-appearance-preference'
@@ -26,9 +30,10 @@ import { createChartPaneResize, isChartPaneDivider } from './chart-pane-resize'
 import { timeframeToSeconds } from '../chart-drawings/position-drawing-geometry'
 import { createVolumePane } from '../indicators/volume/volume-pane'
 import { createTickDeltaPane, type TickDeltaPlotOptions, type TickDeltaPoint } from '../indicators/volume/tick-delta-pane'
+import { createTickDeltaLabels } from '../indicators/volume/tick-delta-labels'
 import { CandleActivityControls, type CandleActivityProps } from '../indicators/volume/CandleActivityControls'
 import { VolumeProfileOverlay, type VolumeProfileOptions } from '../indicators/volume-profile/VolumeProfileOverlay'
-import type { VolumeLayer, VolumePreferences } from '../indicators/volume/volume-preferences'
+import type { TickDeltaLabels, VolumeLayer, VolumePreferences } from '../indicators/volume/volume-preferences'
 import { createRsiPane } from '../indicators/rsi/rsi-pane'
 import { createAtrPane } from '../indicators/atr/atr-pane'
 import type { AtrPreferences } from '../indicators/atr/atr-preferences'
@@ -46,15 +51,18 @@ import './market-candlestick-chart.css'
 type MarketCandlestickChartProps = {
   symbol?: string
   bars: OhlcBar[]
+  replayEnd?: number | null
   fitContentKey: string
   precision: number
   theme: ColorTheme
   appearance: ChartAppearance
   timeDisplay: TimeDisplayPreference
+  onSessionCursor?: (utcMilliseconds: number | null) => void
   timeframe?: ChartTimeframe
   hasDailyCloseHistory?: boolean
   volume?: VolumePreferences
   tickDelta?: Omit<CandleActivityProps, 'bars'>
+  tickDeltaLabels?: TickDeltaLabels
   volumeProfile?: VolumeProfileOptions
   onChangeVolumeAxis?: (target: VolumePreferences['axisTarget']) => void
   onToggleVolumeLayer?: (layer: VolumeLayer) => void
@@ -96,15 +104,18 @@ type MarketCandlestickChartProps = {
 function MarketCandlestickChartComponent({
   symbol,
   bars,
+  replayEnd,
   fitContentKey,
   precision,
   theme,
   appearance,
   timeDisplay,
+  onSessionCursor,
   timeframe,
   hasDailyCloseHistory = false,
   volume,
   tickDelta,
+  tickDeltaLabels,
   volumeProfile,
   onChangeVolumeAxis,
   onToggleVolumeLayer,
@@ -148,14 +159,21 @@ function MarketCandlestickChartComponent({
   const chartRef = useRef<IChartApi | null>(null)
   const seriesRef = useRef<ISeriesApi<'Candlestick', Time> | null>(null)
   const dailyCloseSeriesRef = useRef<ISeriesApi<'Line', Time> | null>(null)
+  const lastReplayEnd = useRef<number | null>(null)
+  const sessionBreaksRef = useRef<ReturnType<typeof createSessionBreaks> | null>(null)
   const candles = useMemo(() => hasDailyCloseHistory ? bars.filter(bar => !bar.closeOnly) : bars, [bars, hasDailyCloseHistory])
   const volumePaneRef = useRef<ReturnType<typeof createVolumePane> | null>(null)
   const tickPaneRef = useRef<ReturnType<typeof createTickDeltaPane> | null>(null)
+  const tickLabelsRef = useRef<ReturnType<typeof createTickDeltaLabels> | null>(null)
+  const tickRowsRef = useRef<{ key: string; rows: ReadonlyMap<number, TickDeltaPoint> } | null>(null)
   const [tickLegend, setTickLegend] = useState<HTMLDivElement | null>(null)
   const tickDeltaEnabled = Boolean(tickDelta)
+  const tickKey = `${clock.brokerId}:${tickDelta?.generation}:${fitContentKey}`
   const plotTickDelta = useCallback((rows: ReadonlyMap<number, TickDeltaPoint>, options: TickDeltaPlotOptions, candles: readonly OhlcBar[]) => {
     tickPaneRef.current?.sync(rows, options, candles)
-  }, [])
+    tickRowsRef.current = { key: tickKey, rows }
+    if (tickDeltaLabels) tickLabelsRef.current?.update(rows, bars, tickDeltaLabels)
+  }, [tickKey, tickDeltaLabels, bars])
   const rsiPaneRef = useRef<ReturnType<typeof createRsiPane> | null>(null)
   const atrPaneRef = useRef<ReturnType<typeof createAtrPane> | null>(null)
   const marketStructureRef = useRef<ReturnType<typeof createMarketStructureOverlay> | null>(null)
@@ -290,6 +308,10 @@ function MarketCandlestickChartComponent({
       atrPaneRef.current = null
       marketStructureRef.current?.destroy()
       marketStructureRef.current = null
+      sessionBreaksRef.current?.destroy()
+      sessionBreaksRef.current = null
+      tickLabelsRef.current?.destroy()
+      tickLabelsRef.current = null
       priceSpaceRef.current?.destroy()
       priceSpaceRef.current = null
       chart.timeScale().unsubscribeVisibleLogicalRangeChange(handleLogicalRangeChange)
@@ -303,6 +325,45 @@ function MarketCandlestickChartComponent({
       chart.remove()
     }
   }, [])
+
+  useEffect(() => {
+    if (!chartApi || !seriesApi || !onSessionCursor) return
+    let last: number | null = null
+    function hover(event: MouseEventParams<Time>) {
+      const isPricePane = event.point && event.point.y >= 0 && event.point.y < (chartApi?.paneSize(0).height ?? 0)
+      const time = event.time
+      const visibleBars = prevBarsRef.current
+      const index = isPricePane && typeof time === 'number' ? drawingTimeToLogical(time, visibleBars, previousStepRef.current) : null
+      const now = index !== null && typeof time === 'number' && visibleBars[Math.floor(index)]?.time === time
+        ? chartClockToUtc(time * 1000, clock) : null
+      if (now !== last) { last = now; onSessionCursor?.(now) }
+    }
+    chartApi.subscribeCrosshairMove(hover)
+    return () => { chartApi.unsubscribeCrosshairMove(hover); onSessionCursor(null) }
+  }, [chartApi, seriesApi, clock, fitContentKey, onSessionCursor])
+
+  useLayoutEffect(() => {
+    if (!chartApi || !seriesApi) return
+    if (appearance.showSessionBreaks && timeframe !== 'D1') {
+      sessionBreaksRef.current ??= createSessionBreaks(chartApi, seriesApi)
+      sessionBreaksRef.current.update(bars, timeframe, clock)
+    } else {
+      sessionBreaksRef.current?.destroy()
+      sessionBreaksRef.current = null
+    }
+  }, [chartApi, seriesApi, bars, timeframe, clock, appearance.showSessionBreaks])
+
+  useLayoutEffect(() => {
+    if (!chartApi || !seriesApi) return
+    if (tickDeltaEnabled && tickDeltaLabels && tickDeltaLabels.position !== 'off') {
+      tickLabelsRef.current ??= createTickDeltaLabels(chartApi, seriesApi)
+      const snapshot = tickRowsRef.current
+      tickLabelsRef.current.update(snapshot?.key === tickKey ? snapshot.rows : new Map(), bars, tickDeltaLabels)
+    } else {
+      tickLabelsRef.current?.destroy()
+      tickLabelsRef.current = null
+    }
+  }, [chartApi, seriesApi, bars, tickKey, tickDeltaEnabled, tickDeltaLabels])
 
   useLayoutEffect(() => {
     const chart = chartRef.current
@@ -379,6 +440,15 @@ function MarketCandlestickChartComponent({
       dateWindowRef.current = captureDateWindow(previousRange, prevBarsRef.current, previousStepRef.current) ?? dateWindowRef.current
     }
     const prevBars = prevBarsRef.current
+    const nextReplayEnd = replayEnd ?? null
+    const replayMoved = lastReplayEnd.current !== nextReplayEnd
+    lastReplayEnd.current = nextReplayEnd
+    if (replayMoved) {
+      liveFollowingRef.current = true
+      dateWindowRef.current = null
+      pendingWindowRef.current = false
+      setMissingViewportHistory(false)
+    }
     const isNewKey = fittedKeyRef.current !== fitContentKey
     if (isNewKey) paneResizeRef.current?.cancel()
     // Ignore programmatic range notifications during replacement/restoration.
@@ -445,6 +515,12 @@ function MarketCandlestickChartComponent({
         const to = bars.length - 1 + 8
         setLogicalRange({ from: Math.max(0, to - span), to })
       }
+      if (replayMoved) {
+        const span = previousRange ? previousRange.to - previousRange.from : Math.min(120, bars.length + 7)
+        const to = bars.length - 1 + 8
+        chart.priceScale('right').applyOptions({ autoScale: true })
+        setLogicalRange({ from: to - span, to })
+      }
       fittedKeyRef.current = fitContentKey
       prevBarsRef.current = bars
       previousStepRef.current = step
@@ -457,14 +533,14 @@ function MarketCandlestickChartComponent({
       }
       // The hidden horizon is now the library's last point. Retain normal live
       // following when an incrementally appended price candle was in view.
-      if (liveFollowingRef.current && !isNewKey && !replaced && bars.length === prevBars.length + 1 && previousRange &&
+      if (!replayMoved && liveFollowingRef.current && !isNewKey && !replaced && bars.length === prevBars.length + 1 && previousRange &&
         previousRange.from <= prevBars.length - 1 && previousRange.to >= prevBars.length - 1) {
         const followingRange = { from: previousRange.from + 1, to: previousRange.to + 1 }
         dateWindowRef.current = window ? advanceDateWindow(window, prevBars, bars, step) : captureDateWindow(followingRange, bars, step)
         setLogicalRange(followingRange)
       }
     } finally { applyingDataRef.current = false }
-  }, [bars, hasDailyCloseHistory, fitContentKey, symbol, onDataApplied, precision, timeframe, clock.brokerId, readLogicalRange, setLogicalRange])
+  }, [bars, hasDailyCloseHistory, fitContentKey, symbol, onDataApplied, precision, timeframe, clock.brokerId, readLogicalRange, setLogicalRange, replayEnd])
 
   useLayoutEffect(() => {
     const chart = chartRef.current

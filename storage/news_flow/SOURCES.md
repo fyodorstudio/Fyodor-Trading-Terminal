@@ -11,6 +11,10 @@ added a feed under another name, its unique URL prevents a second subscription.
 Browser keyword, visibility, colour and sound preferences are not migrated.
 New entries are visible by default and can be hidden with the provider selector.
 
+FXStreet uses a publisher-scoped Google News RSS feed. The built-in FXStreet
+entry keeps its identity, saved history and provider preferences when upgraded
+from the previous default URL.
+
 ## V3 expansion entries
 
 | Provider ID | Coverage | Live delivery |

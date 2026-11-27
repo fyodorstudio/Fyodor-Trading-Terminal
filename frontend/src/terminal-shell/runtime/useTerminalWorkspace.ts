@@ -15,6 +15,7 @@ import { useBridgeConnection } from '../../system-connectivity/bridge-status/bri
 import { useActivityActions } from '../../system-observability/activity-log/use-activity-log'
 import { useTerminalChartOverlay } from '../chart-overlays/useTerminalChartOverlay'
 import type { BottomDockWindow } from '../../workspace-docking/bottom-dock/bottom-dock-window'
+import type { LeftDockTab } from '../../workspace-docking/left-dock/LeftDockPanel'
 import { useBottomDockSize } from '../../workspace-docking/bottom-dock/useBottomDockSize'
 import { useMarketWatchDock } from '../../workspace-docking/left-dock/useMarketWatchDock'
 import { getPipMultiplier, type PlannedTradeState, type RegisteredTradeArrow, type TradePriceField } from '../../entry-trade/contracts/entry-trade-types'
@@ -62,7 +63,7 @@ export function useTerminalWorkspace() {
   const dockSize = useBottomDockSize(bottomDockWindow)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const marketWatch = useMarketWatchDock()
-  const [leftDockTab, setLeftDockTab] = useState<'market-watch' | 'price-alerts'>('market-watch')
+  const [leftDockTab, setLeftDockTab] = useState<LeftDockTab>('market-watch')
   const { appendActivity } = useActivityActions()
 
   useEffect(() => {

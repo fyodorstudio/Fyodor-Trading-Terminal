@@ -16,14 +16,12 @@ from .calendar_ingestion import CalendarStore
 from .candle_activity import MAX_TICK_HISTORY_CANDLES, MAX_TICK_HISTORY_SECONDS
 from .contracts import CalendarIngestPayload
 from .currency_indices import STEPS
-from .hourly_profile_cache import HourlyProfiles
-from .hourly_volume_profile import HOUR, HOURLY_PROFILE_PAGE_SECONDS
 from .market_data import TIMEFRAME_NAMES
 from .mt5_worker import Mt5UnavailableError, Mt5Worker, SupersededRequest
 from .runtime_activity import ActivityLedger, HeartbeatRegistry, utc_milliseconds
 from .settings import load_settings
 from .volume_profile import MAX_PROFILE_PAGE_SECONDS
-from .volume_profile_history import ProfileHistory, VolumeProfileCache, window_days
+from .volume_profile_history import DAY, ProfileHistory, VolumeProfileCache, fill_profile_slices, slice_profile, window_days
 from .volume_profile_preload import PRELOAD_SYMBOLS, VolumeProfilePreload
 
 API_VERSION = "1"
@@ -35,8 +33,6 @@ calendar_store = CalendarStore(activity)
 mt5_worker = Mt5Worker(settings, activity)
 profile_data = Path(__file__).resolve().parents[3] / "storage" / "data"
 volume_profile_cache = VolumeProfileCache(profile_data / "volume-profile.sqlite3")
-hourly_profiles = HourlyProfiles(profile_data / "volume-profile-hourly.sqlite3")
-profile_preload = VolumeProfilePreload(hourly_profiles)
 started_at = utc_milliseconds()
 
 
@@ -208,19 +204,12 @@ async def read_candle_ticks(request, symbol, timeframe, start, history=None):
     raise HTTPException(status_code=499, detail="Candle tick read cancelled")
 
 
-ProfileMethod = Literal["ticks", "hourly"]
-
-
-def read_volume_profile_page(symbol, start, end, generation, method="ticks", observed_until=None, retry=False):
-    if method == "hourly":
-        source = mt5_worker.snapshot()
-        if (not source["connected"] or source["generation"] != generation
-                or source["account_login"] is None or not source["account_server"]):
-            raise Mt5UnavailableError("MT5 account is unavailable")
-        return hourly_profiles.profile(mt5_worker, source, symbol, start, end, observed_until, retry)
+def read_volume_profile_page(symbol, start, end, generation, *, priority=10, slices=False):
     arguments = dict(symbol=symbol, start=start, end=end, read_id=uuid4().hex, begin=True)
+    if slices:
+        arguments["slices"] = True
     while mt5_worker.snapshot()["generation"] == generation:
-        result = mt5_worker.submit("volume-profile", "volume-profile", arguments, priority=10, supersede=False)
+        result = mt5_worker.submit("volume-profile", "volume-profile", arguments, priority=priority, supersede=False)
         if mt5_worker.snapshot()["generation"] != generation:
             break
         if result is not None:
@@ -230,20 +219,55 @@ def read_volume_profile_page(symbol, start, end, generation, method="ticks", obs
     raise Mt5UnavailableError("MT5 session changed during the volume profile read")
 
 
+profile_preload = VolumeProfilePreload(volume_profile_cache, read_volume_profile_page)
+
+
+def read_exact_window(scope, symbol, start, end, generation, observed_until, retry):
+    cached = volume_profile_cache.read_window(scope, start, end, retry)
+    if cached is not None:
+        return cached
+    day = start // DAY * DAY
+    closed = min(end, observed_until // 60 * 60)
+    if observed_until // DAY * DAY != day or closed <= start or end > day + DAY:
+        return read_volume_profile_page(symbol, start, end, generation)
+    prefix = volume_profile_cache.read_slices(scope, day, retry)
+    if start != day and prefix is None:
+        return read_volume_profile_page(symbol, start, end, generation)
+
+    def load(first, stop):
+        return read_volume_profile_page(symbol, first, stop, generation, slices=True)
+
+    snapshot = fill_profile_slices(volume_profile_cache, scope, day, closed, load, retry=retry)
+    if closed >= end:
+        return slice_profile(snapshot, start, end)
+    history = ProfileHistory(start, end, [((start, closed), slice_profile(snapshot, start, closed))])
+    history.add(read_volume_profile_page(symbol, closed, end, generation))
+    return dict(digits=history.digits, levels=list(history.levels.items()),
+                missing_minutes=None if history.incomplete else 0)
+
+
 @app.get("/api/v1/volume-profile")
 def get_volume_profile(
     symbol: Annotated[str, Query(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9._#-]+$")],
     start: CandleStart,
     end: CandleStart,
-    method: ProfileMethod = "ticks",
+    method: Literal["ticks"] = "ticks",
     broker_offset: Annotated[int, Query(ge=-50_400, le=50_400)] = 0,
     retry: bool = False,
 ) -> dict[str, object]:
     if not 0 < end - start <= MAX_PROFILE_PAGE_SECONDS or start % 60 or end % 60:
         raise HTTPException(status_code=422, detail="Volume profile requires a minute-aligned window of at most one day")
-    generation = mt5_worker.snapshot()["generation"]
+    source = mt5_worker.snapshot()
+    generation = source["generation"]
     try:
-        result = read_volume_profile_page(symbol, start, end, generation, method, int(time()) + broker_offset, retry)
+        result = None
+        if source["account_server"] and source["account_login"] is not None:
+            scope = (source["account_server"], source["account_login"], symbol)
+            result = read_exact_window(scope, symbol, start, end, generation, int(time()) + broker_offset, retry)
+        if result is None:
+            result = read_volume_profile_page(symbol, start, end, generation)
+        if mt5_worker.snapshot()["generation"] != generation:
+            raise Mt5UnavailableError("MT5 session changed during the volume profile read")
     except Exception as error:
         raise bridge_error(error) from error
     return {**result, "source_generation": generation, "method": method}
@@ -257,7 +281,7 @@ async def get_volume_profile_range(
     end: CandleStart,
     broker_offset: Annotated[int, Query(ge=-50_400, le=50_400)] = 0,
     retry: bool = False,
-    method: ProfileMethod = "ticks",
+    method: Literal["ticks"] = "ticks",
 ) -> StreamingResponse:
     day = MAX_PROFILE_PAGE_SECONDS
     chart_now = int(time()) + broker_offset
@@ -271,8 +295,6 @@ async def get_volume_profile_range(
     scope = (source["account_server"], source["account_login"], symbol)
 
     def prepare():
-        if method == "hourly":
-            return ProfileHistory(start, end, (), HOURLY_PROFILE_PAGE_SECONDS)
         cached = volume_profile_cache.read(scope, start, end, retry)
         return ProfileHistory(start, end, cached)
 
@@ -281,8 +303,13 @@ async def get_volume_profile_range(
                                  priority=10, supersede=False)
 
     def read_and_save(first, stop, known_day, empty_page):
-        if method == "hourly":
-            return read_volume_profile_page(symbol, first, stop, generation, method, chart_now, retry)
+        day_start = first // day * day
+        if retry and empty_page is None and volume_profile_cache.read_slices(scope, day_start) is not None:
+            def load(slice_start, slice_stop):
+                return read_volume_profile_page(symbol, slice_start, slice_stop, generation, slices=True)
+
+            snapshot = fill_profile_slices(volume_profile_cache, scope, day_start, day_start + day, load, retry=True)
+            return slice_profile(snapshot, first, stop)
         if empty_page is None:
             page = read_volume_profile_page(symbol, first, stop, generation)
             if known_day and not page["levels"] and page["missing_minutes"] == 0:
@@ -304,7 +331,7 @@ async def get_volume_profile_range(
             return
         yield await run_in_threadpool(frame, history, False)
         calendar = None
-        if method == "ticks" and len(history.pending) >= 7 and not await request.is_disconnected():
+        if len(history.pending) >= 7 and not await request.is_disconnected():
             try:
                 calendar = await run_in_threadpool(read_calendar)
             except Exception:
@@ -338,7 +365,7 @@ async def get_volume_profile_range(
 
 @app.get("/api/v1/volume-profile/preload")
 async def get_volume_profile_preload():
-    return {"job": profile_preload.status(mt5_worker.snapshot()), "automatic_start": True}
+    return {"job": profile_preload.status(mt5_worker.snapshot()), "exact_ticks": True}
 
 
 @app.post("/api/v1/volume-profile/preload")
@@ -349,12 +376,12 @@ async def start_volume_profile_preload(
 ):
     source = mt5_worker.snapshot()
     if not source["connected"] or not source["account_server"] or source["account_login"] is None:
-        raise bridge_error(Mt5UnavailableError("Connect MT5 to preload H1 history"))
-    stop = (int(time()) + broker_offset) // HOUR * HOUR
+        raise bridge_error(Mt5UnavailableError("Connect MT5 to preload exact tick history"))
+    stop = (int(time()) + broker_offset) // 60 * 60
     if start is not None and (start >= stop or start % MAX_PROFILE_PAGE_SECONDS):
-        raise HTTPException(status_code=422, detail={"message": "Choose a start date before the current broker hour"})
+        raise HTTPException(status_code=422, detail={"message": "Choose a start date before the current broker minute"})
     try:
-        job = profile_preload.start(mt5_worker, source, (symbol,) if symbol else PRELOAD_SYMBOLS, start, stop)
+        job = profile_preload.start(mt5_worker, source, (symbol,) if symbol else PRELOAD_SYMBOLS, start, stop, broker_offset)
     except ValueError as error:
         raise HTTPException(status_code=409, detail={"message": str(error)}) from error
     return {"job": job}

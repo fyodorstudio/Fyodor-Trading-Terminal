@@ -1,6 +1,7 @@
 export type TickDeltaView = 'bars' | 'line'
 export type TickDeltaLine = 'up' | 'down' | 'total' | 'delta'
 export type TickDeltaLines = Record<TickDeltaLine, boolean>
+export type TickDeltaLabels = { position: 'off' | 'above' | 'below'; positive: string; negative: string }
 export type TickDeltaStyle = {
   upColor: string; downColor: string; totalTicksColor: string; tickDeltaColor: string
   redCandleDivergenceColor: string; greenCandleDivergenceColor: string
@@ -15,6 +16,7 @@ export type VolumePreferences = TickDeltaStyle & {
   tickDeltaView: TickDeltaView
   tickDeltaLines: TickDeltaLines
   tickDeltaAxis: TickDeltaLine
+  tickDeltaLabels: TickDeltaLabels
 }
 export type VolumeLayer = 'barsVisible' | 'relativeLineVisible' | 'averageVisible'
 export const defaultVolumePreferences: VolumePreferences = {
@@ -27,6 +29,7 @@ export const defaultVolumePreferences: VolumePreferences = {
   tickDeltaView: 'bars',
   tickDeltaLines: { up: true, down: true, total: false, delta: true },
   tickDeltaAxis: 'delta',
+  tickDeltaLabels: { position: 'off', positive: '#089981', negative: '#f23645' },
 }
 const storageKey = 'fyodor.indicators.volume.v1'
 export function readVolumePreferences(): VolumePreferences {
@@ -51,6 +54,11 @@ export function readVolumePreferences(): VolumePreferences {
       tickDeltaView: p.tickDeltaView === 'line' ? 'line' : d.tickDeltaView,
       tickDeltaLines: { up: p.tickDeltaLines?.up !== false, down: p.tickDeltaLines?.down !== false, total: p.tickDeltaLines?.total === true, delta: p.tickDeltaLines?.delta !== false },
       tickDeltaAxis: p.tickDeltaAxis === 'up' || p.tickDeltaAxis === 'down' || p.tickDeltaAxis === 'total' ? p.tickDeltaAxis : d.tickDeltaAxis,
+      tickDeltaLabels: {
+        position: p.tickDeltaLabels?.position === 'above' || p.tickDeltaLabels?.position === 'below' ? p.tickDeltaLabels.position : 'off',
+        positive: isColor(p.tickDeltaLabels?.positive) ? p.tickDeltaLabels.positive : d.tickDeltaLabels.positive,
+        negative: isColor(p.tickDeltaLabels?.negative) ? p.tickDeltaLabels.negative : d.tickDeltaLabels.negative,
+      },
       upColor: color('upColor'), downColor: color('downColor'), averageColor: color('averageColor'),
       totalTicksColor: color('totalTicksColor'), tickDeltaColor: color('tickDeltaColor'),
       redCandleDivergenceColor: color('redCandleDivergenceColor', legacyDivergence),

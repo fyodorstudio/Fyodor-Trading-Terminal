@@ -6,7 +6,6 @@ import numpy as np
 
 from fyodor_bridge.candle_activity import CandleTickReader, basket_moves, count_moves, read_currency_activity
 from fyodor_bridge.currency_indices import ANCHOR, CURRENCIES, CurrencyIndexHistory
-from fyodor_bridge.hourly_volume_profile import HOUR, read_hourly_bars, read_hourly_first, weighted_profile
 from fyodor_bridge.volume_profile import VolumeProfileReader, read_volume_profile
 
 
@@ -153,43 +152,20 @@ class CandleActivityTest(unittest.TestCase):
         self.assertEqual(reader.read(GappedMt5(), "GBPX", START, START + 180, "gapped", False),
                          {"digits": 3, "levels": [], "missing_minutes": 1})
 
-    def test_hourly_start_finds_oldest_available_closed_h1_candle(self):
-        class HourlyMt5(FakeMt5):
-            TIMEFRAME_H1 = 60
-
-            def terminal_info(self):
-                return SimpleNamespace(connected=True)
+    def test_exact_tick_slices_keep_prices_with_their_original_minutes(self):
+        class ProfileMt5(FakeMt5):
+            def symbol_info(self, symbol):
+                return SimpleNamespace(digits=5, chart_mode=0)
 
             def copy_rates_range(self, symbol, frame, start, end):
-                self.request = (symbol, frame, int(start.timestamp()), int(end.timestamp()))
-                return np.array([(START, 100), (START - 42 * HOUR, 10)], dtype=RATES)
+                return np.array([(START, 3), (START + 60, 1)], dtype=RATES)
 
-        mt5 = HourlyMt5()
-        self.assertEqual(read_hourly_first(mt5, "EURUSD", START + HOUR), START - 42 * HOUR)
-        self.assertEqual(mt5.request, ("EURUSD", mt5.TIMEFRAME_H1, 0, START + HOUR - 1))
-
-    def test_hourly_volume_profile_weights_closes_and_prorates_partial_hours(self):
-        day = START // 86_400 * 86_400
-
-        class HourlyMt5(FakeMt5):
-            TIMEFRAME_H1 = 60
-            TIMEFRAME_D1 = 1440
-
-            def copy_rates_range(self, symbol, frame, start, end):
-                if frame == self.TIMEFRAME_D1:
-                    return np.array([(day, 180), (day + 86_400, 180)], dtype=RATES)
-                return np.array([(day, 1.1, 120), (day + 3_600, 1.102, 60)],
-                                dtype=[("time", "i8"), ("close", "f8"), ("tick_volume", "i8")])
-
-        mt5 = HourlyMt5()
-        page = read_hourly_bars(mt5, "EURUSD", day, day + 5_400)
-        historical = weighted_profile(page["bars"], page["digits"], False, day + 1_800, day + 5_400, day + 7_200)
-        self.assertEqual(historical, {"digits": 5, "levels": [(110000, 60), (110200, 30)], "missing_minutes": 0})
-        live = weighted_profile(page["bars"], page["digits"], False, day + 1_800, day + 5_400, day + 4_500)
-        self.assertEqual(live["levels"], [(110000, 60), (110200, 60)])
-        self.assertEqual(read_hourly_bars(mt5, "EURUSD", day, day + 2 * 86_400)["gaps"],
-                         [(day + 86_400, day + 2 * 86_400)])
-
+        page = read_volume_profile(ProfileMt5(), "EURUSD", START, START + 120, slices=True)
+        self.assertEqual(sum(count for _, count in page["levels"]),
+                         sum(count for _, levels in page["slices"] for _, count in levels))
+        self.assertTrue(all(START <= minute < START + 120 and minute % 60 == 0 for minute, _ in page["slices"]))
+        self.assertEqual(page["slices"],
+                         [(START, [(110001, 2), (110002, 1)]), (START + 60, [(120000, 1)])])
 
 if __name__ == "__main__":
     unittest.main()

@@ -17,7 +17,7 @@ import xml.etree.ElementTree as ET
 from storage.news_flow.collector import NewsCollector, retry_delay
 from storage.news_flow.feeds import MAX_FEED_BYTES, fetch_feed, parse_feed, parse_treasury
 from storage.news_flow.store import NewsStore, decision, level
-from storage.news_flow.providers import PROVIDERS, PROVIDER_MIGRATION, TREASURY_URL
+from storage.news_flow.providers import FXSTREET_FEED, FXSTREET_FEED_MIGRATION, FXSTREET_LEGACY_URL, PROVIDERS, PROVIDER_MIGRATION, TREASURY_URL
 from storage.news_flow.rules import matches, patterns, priority_reason
 from storage.news_flow.policy import policy_currencies, policy_details
 from storage.news_flow.history import NewsHistory, historical_url
@@ -48,6 +48,20 @@ class NewsFlowTests(unittest.TestCase):
 
     def ingest(self):
         self.store.success(self.source, self.items, 'version-1', '', self.now)
+
+    def test_fxstreet_upgrade_retains_history_and_collection_preferences(self):
+        with self.store.database() as db:
+            db.execute("DELETE FROM migrations WHERE name=?", (FXSTREET_FEED_MIGRATION,))
+            db.execute("""INSERT INTO sources(id,name,url,etag,poll_seconds,collect_enabled,last_success)
+                          VALUES ('fxstreet','My FX headlines',?,'old-etag',9,0,?)""", (FXSTREET_LEGACY_URL, self.now))
+        old = next(source for source in self.store.sources() if source['id'] == 'fxstreet')
+        self.store.success(old, self.items, 'old-etag', '', self.now)
+        reopened = NewsStore(self.root)
+        source = next(source for source in reopened.sources() if source['id'] == 'fxstreet')
+        self.assertEqual(source['url'], FXSTREET_FEED)
+        self.assertEqual((source['name'], source['poll_seconds'], source['collect_enabled']), ('My FX headlines', 9, 0))
+        self.assertEqual((source['etag'], source['last_success']), ('', None))
+        self.assertEqual(reopened.query(sources=['fxstreet'])['total'], 2)
 
     def test_reader_cache_follows_content_and_preserves_out_of_range_totals(self):
         self.ingest()

@@ -23,7 +23,7 @@ export function ProviderBrowser({ sources, selectedId, date, onDateChange }: { s
   for (const entry of visible) query.append('source', entry.id)
   if (!visible.length) query.append('source', '__none__')
   if (bounds[0] !== null && bounds[1] !== null) { query.set('start', String(bounds[0])); query.set('end', String(bounds[1])) }
-  const { page, error } = useNewsPage(query.toString(), paused)
+  const { page, previewing, error } = useNewsPage(query.toString(), paused)
   const history = useNewsHistory(bounds[0], bounds[1], visible, [])
   return <section className="news-provider-browser" aria-label="Browse provider headlines">
     <div className="news-browse-controls">
@@ -42,9 +42,9 @@ export function ProviderBrowser({ sources, selectedId, date, onDateChange }: { s
       {page && <Headlines items={page.items} dated={!!date} />}
       {page && !page.items.length && <p className="news-message">{history.loading ? 'Searching this date…' : date ? 'No headlines found for this date. Historical coverage may be incomplete.' : 'Waiting for headlines.'}</p>}
     </div>
-    <footer className="news-footer"><div><span>{page?.total ?? 0} headlines</span>
+    <footer className="news-footer"><div><span>{previewing ? 'Recent headlines · Loading history' : `${page?.total ?? 0} headlines`}</span>
       <button type="button" disabled={!offset} onClick={() => setPaging({ scope, offset: Math.max(0, offset - 100) })}>Previous</button>
-      <button type="button" disabled={!page || offset + 100 >= page.total} onClick={() => setPaging({ scope, offset: offset + 100 })}>Next</button>
+      <button type="button" disabled={!page || previewing || offset + 100 >= page.total} onClick={() => setPaging({ scope, offset: offset + 100 })}>Next</button>
       {date && <button type="button" disabled={history.loading} onClick={history.retry}>Retry search</button>}
     </div></footer>
   </section>

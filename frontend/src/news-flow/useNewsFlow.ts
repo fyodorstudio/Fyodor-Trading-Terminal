@@ -41,18 +41,32 @@ export function useNewsSources() {
 
 export function useNewsPage(query: string, paused: RefObject<boolean>) {
   const [snapshot, setSnapshot] = useState<{ query: string; page: NewsPage } | null>(null)
+  const [preview, setPreview] = useState<{ query: string; page: NewsPage } | null>(null)
   const [pending, setPending] = useState<{ query: string; page: NewsPage } | null>(null)
   const [failure, setFailure] = useState<{ query: string; message: string } | null>(null)
   const current = useRef(snapshot)
   useEffect(() => { current.current = snapshot }, [snapshot])
   useEffect(() => {
     const controller = new AbortController()
+    const previewRequest = new AbortController()
+    const params = new URLSearchParams(query)
     let timer = 0
+    const previewTimer = params.get('offset') === '0' && params.get('order') === 'newest' &&
+      params.get('mode') !== 'all' && params.get('mode') !== 'none'
+      ? window.setTimeout(async () => {
+        try {
+          const body = await responseJson(await fetch(`/storage-api/news-flow/items?${query}&preview=true`, { signal: previewRequest.signal }))
+          if (!previewRequest.signal.aborted && validNewsPage(body) && body.items.length) setPreview({ query, page: body })
+        } catch { /* The archive request reports errors. */ }
+      }, 250) : 0
     async function poll() {
       try {
         const body: unknown = await responseJson(await fetch(`/storage-api/news-flow/items?${query}`, { signal: controller.signal }))
         if (!validNewsPage(body)) throw new Error('Invalid News Flow headlines')
         if (!controller.signal.aborted) {
+          window.clearTimeout(previewTimer)
+          previewRequest.abort()
+          setPreview(null)
           const previous = current.current?.query === query ? current.current.page : null
           if (JSON.stringify(previous) !== JSON.stringify(body)) {
             if (paused.current && previous) setPending({ query, page: body })
@@ -64,9 +78,12 @@ export function useNewsPage(query: string, paused: RefObject<boolean>) {
       finally { if (!controller.signal.aborted) timer = window.setTimeout(poll, 1000) }
     }
     void poll()
-    return () => { controller.abort(); window.clearTimeout(timer) }
+    return () => { controller.abort(); previewRequest.abort(); window.clearTimeout(timer); window.clearTimeout(previewTimer) }
   }, [query, paused])
-  return { page: snapshot?.query === query ? snapshot.page : null, pending: pending?.query === query ? pending.page : null, error: failure?.query === query ? failure.message : '',
+  const archive = snapshot?.query === query ? snapshot.page : null
+  const recent = preview?.query === query ? preview.page : null
+  return { page: archive ?? recent, previewing: !archive && Boolean(recent),
+    pending: pending?.query === query ? pending.page : null, error: failure?.query === query ? failure.message : '',
     reveal: () => { if (pending?.query === query) { setSnapshot(pending); setPending(null) } } }
 }
 

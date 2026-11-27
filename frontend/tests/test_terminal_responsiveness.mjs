@@ -226,18 +226,18 @@ globalThis.fetch = (url, options = {}) => {
         preloadJob = { ...preloadJob, state: { pause: 'paused', resume: 'running', cancel: 'cancelled' }[action] }
       }
     }
-    return Promise.resolve({ ok: true, json: async () => ({ job: preloadJob, automatic_start: true }) })
+    return Promise.resolve({ ok: true, json: async () => ({ job: preloadJob, exact_ticks: true }) })
   }
   if (u.startsWith('/api/v1/candle-ticks?')) return Promise.resolve({ ok: true,
     json: async () => ({ up: 62, down: 38, flat: 7, unknown: 2, synthetic: false }) })
   if (u.startsWith('/api/v1/volume-profile?')) return Promise.resolve({ ok: true,
     json: async () => ({
-      digits: 5, levels: u.includes('method=hourly') ? [[113000, 100]] : [[110000, 30], [111000, 75], [115000, 10]],
-      missing_minutes: 0, source_generation: generation, method: u.includes('method=hourly') ? 'hourly' : 'ticks',
+      digits: 5, levels: [[110000, 30], [111000, 75], [115000, 10]],
+      missing_minutes: 0, source_generation: generation, method: 'ticks',
     }) })
   if (u.startsWith('/api/v1/volume-profile/range?')) {
     const frame = { done: false, checked: 1, total: 2, incomplete: false, digits: 5, levels: [[112000, 20]],
-      source_generation: generation, method: u.includes('method=hourly') ? 'hourly' : 'ticks' }
+      source_generation: generation, method: 'ticks' }
     const chunk = JSON.stringify(frame)
     const text = new TextEncoder()
     const body = new ReadableStream({ start(controller) {
@@ -459,21 +459,24 @@ try {
     const query = new URL(url, 'http://localhost').searchParams
     return query.get('symbol') === 'EURUSD' && Number(query.get('start')) === from && Number(query.get('end')) === to
   })
-  assert.ok(containsWindow(plotted[Math.ceil(logicalRange.from)].time, plotted.at(-1).time + 3600))
+  const movingEnd = () => plotted[Math.min(plotted.length - 1, Math.floor(logicalRange.from + (logicalRange.to - logicalRange.from) * 0.94))].time + 3600
+  const chartDay = Math.floor((now / 1000 + clockOffset / 1000) / 86400) * 86400
+  assert.ok(containsWindow(Math.max(chartDay, movingEnd() - 6 * 3600), Math.min(chartDay + 86400, movingEnd())))
+  assert.ok(container.querySelector('[aria-label="Moving Volume Profile window"]'))
   assert.match(profileControls().textContent, /POC 1\.11/)
   const fills = [], profileStrokes = []
   const target = { useMediaCoordinateSpace: draw => draw({ mediaSize: { width: 900, height: 420 }, context: {
     save() {}, restore() {}, setLineDash() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() { profileStrokes.push(this.strokeStyle) }, strokeRect() {},
     fillRect(x) { fills.push(x) }, fillText() {},
   } }) }
-  const drawProfile = () => {
+  const drawProfile = () => React.act(() => {
     fills.length = 0
     profileStrokes.length = 0
     for (const primitive of primitives) if (!beforeProfilePrimitives.has(primitive)) {
       for (const view of primitive.paneViews()) view.renderer().draw(target)
     }
     assert.ok(fills.length, 'VP renders price bins in the chart primitive')
-  }
+  })
   drawProfile()
   assert.ok(fills.every(x => x > 700), 'Right placement starts from the right chart edge')
   const chooseProfile = async (label, value) => React.act(async () => {
@@ -495,8 +498,8 @@ try {
   const historicalProfiles = requests.slice(beforeHistoric).filter(url => url.startsWith('/api/v1/volume-profile'))
   assert.equal(historicalProfiles.length, 1, 'Historical visible ranges use one streamed request')
   const historicalQuery = new URL(historicalProfiles[0], 'http://localhost').searchParams
-  assert.equal(Number(historicalQuery.get('start')), plotted[735].time)
-  assert.equal(Number(historicalQuery.get('end')), plotted[750].time + 3600)
+  assert.equal(Number(historicalQuery.get('start')), movingEnd() - 6 * 3600)
+  assert.equal(Number(historicalQuery.get('end')), movingEnd())
   drawProfile()
   assert.match(profileControls().textContent, /POC 1\.11.*0\/2 days checked/, 'An empty progress frame preserves the previous histogram and POC')
   holdProfileRange = false
@@ -504,7 +507,7 @@ try {
   assert.match(profileControls().textContent, /POC 1\.12/, 'The streamed profile updates the price pane')
   await React.act(async () => scale.setVisibleLogicalRange({ from: 787, to: 795 }))
   await tick('load', 175); await flush()
-  assert.ok(containsWindow(plotted[787].time, plotted[795].time + 3600), 'Visible mode follows horizontal pan and zoom')
+  assert.ok(containsWindow(Math.max(chartDay, movingEnd() - 6 * 3600), movingEnd()), 'The moving window keeps its lookback while the chart moves')
   await chooseProfile('Volume profile range', 'fixed')
   assert.doesNotMatch(profileControls().textContent, /POC/, 'Fixed mode waits for its own range')
   await click(button('Draw range'))
@@ -575,7 +578,7 @@ try {
   await click(button('Preload EURUSD'))
   assert.equal(preloadCommands.at(-1).searchParams.get('symbol'), 'EURUSD')
   assert.equal(preloadCommands.at(-1).searchParams.has('start'), false)
-  assert.match(profileDialog.textContent, /Preloading · 0\/1 symbols · Finding the first H1 candle for EURUSD/)
+  assert.match(profileDialog.textContent, /Preloading · 0\/1 symbols · Checking available history for EURUSD/)
   await click(button('Pause preload'))
   assert.match(profileDialog.textContent, /Paused · 0\/1 symbols/)
   await click(container.querySelector('[aria-label="Close Volume Profile settings"]'))
@@ -590,39 +593,67 @@ try {
   preloadJob = { ...preloadJob, state: 'complete', completed_symbols: 36, available_symbols: 36, symbol: null,
     first_candles: { EURUSD: Date.UTC(2020, 0, 2) / 1000 }, incomplete_symbols: ['GBPX'] }
   await tick('pollPreload', 1000); await flush()
-  assert.match(profileDialog.textContent, /36 with H1 cached/)
+  assert.match(profileDialog.textContent, /36 with cached ticks/)
   assert.match(profileDialog.textContent, /EURUSD cached from 2020-01-02/)
   assert.match(profileDialog.textContent, /Cached with history gaps for GBPX/)
   const profileTabs = [...profileDialog.querySelectorAll('[role="tab"]')]
   assert.deepEqual(profileTabs.map(tab => tab.textContent), ['Inputs', 'Style'])
-  const calculation = profileDialog.querySelector('select')
-  assert.equal(calculation.value, 'ticks')
-  await click(button('Use Fast Historical (H1)'))
-  assert.equal(calculation.value, 'hourly')
+  assert.match(profileDialog.textContent, /Uses exact tick prices/)
   const profileRequestsBeforeSave = profileRequests().length
   await click(profileTabs[1])
   const pocColor = [...profileDialog.querySelectorAll('label')].find(label => label.textContent.trim() === 'Point of control').querySelector('input')
   await React.act(async () => props(pocColor).onChange({ target: { value: '#a16f22' } }))
   assert.equal(profileRequests().length, profileRequestsBeforeSave, 'Settings are applied only after saving')
   await click(profileDialog.querySelector('button[type="submit"]'))
-  await tick('load', 175); await flush()
-  const sampledQuery = new URL(profileRequests().at(-1), 'http://localhost').searchParams
-  assert.equal(sampledQuery.get('method'), 'hourly')
-  assert.equal(Number(sampledQuery.get('start')), plotted[visibleStart + 3].time, 'Changing calculation keeps the cutoff')
-  assert.match(profileControls().textContent, /H1 estimate.*POC 1\.13/)
+  await flush()
+  assert.equal(profileRequests().length, profileRequestsBeforeSave, 'Style changes reuse the exact profile')
   drawProfile()
   assert.ok(profileStrokes.includes('#a16f22'), 'The saved POC style reaches the chart')
-  assert.equal(JSON.parse(localStorage.getItem('fyodor.indicators.volume-profile.v1')).method, 'hourly')
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.indicators.volume-profile.v1')).cutoffSide, 'right')
   await chooseProfile('Volume profile range', 'visible')
   await React.act(async () => scale.setVisibleLogicalRange({ from: 735, to: 750 }))
   await tick('load', 175); await flush()
-  assert.ok(requests.some(url => url.startsWith('/api/v1/volume-profile/range?') && url.includes('method=hourly')),
-    'Fast Historical sends older candles to the bulk H1 range')
-  assert.match(profileControls().textContent, /H1 estimate.*POC 1\.12/)
+  assert.ok(requests.some(url => url.startsWith('/api/v1/volume-profile/range?') && !url.includes('method=')))
+  assert.match(profileControls().textContent, /POC 1\.12/)
   await click(container.querySelector('[aria-label="Hide Volume Profile"]')); await flush()
   await React.act(async () => scale.setVisibleLogicalRange(beforeProfileRange))
   assert.equal(profileControls(), null)
   assert.equal(primitives.size, beforeProfilePrimitives.size, 'Hiding VP removes its chart primitives')
+  const liveEnd = plotted.at(-1).time
+  await click(button('Replay'))
+  const replayDock = container.querySelector('[aria-label="Chart replay"]')
+  const playhead = replayDock.querySelector('[aria-label="Replay playhead"]')
+  const replayIndex = bars.length - 10
+  await React.act(async () => props(playhead).onChange({ target: { valueAsNumber: replayIndex } }))
+  assert.equal(plotted.at(-1).time, bars[replayIndex].time, 'Replay hides candles after the playhead')
+  await click(replayDock.querySelector('[aria-label="Previous candle"]'))
+  assert.equal(plotted.at(-1).time, bars[replayIndex - 1].time, 'Replay can step backward')
+  assert.deepEqual([...replayDock.querySelector('select').options].map(option => Number(option.value)), [.25, .5, .75, 1, 1.25, 1.5, 1.75, 2])
+  await React.act(async () => {
+    const speed = replayDock.querySelector('select')
+    speed.value = '2'
+    speed.dispatchEvent(new dom.Event('change', { bubbles: true }))
+  })
+  const beforePlaying = new Set(timers.keys())
+  await click(button('Play'))
+  const advance = [...timers].find(([id, timer]) => !beforePlaying.has(id) && timer.ms === 500)
+  assert.ok(advance, 'At 2× the next candle is scheduled after half a second')
+  timers.delete(advance[0])
+  await React.act(async () => advance[1].fn())
+  assert.equal(plotted.at(-1).time, bars[replayIndex].time)
+  await click(button('Pause'))
+  await click(button('Return to live'))
+  assert.equal(plotted.at(-1).time, liveEnd, 'Return to live restores the newest candle')
+  await click(button('Replay'))
+  await React.act(async () => scale.setVisibleLogicalRange(beforeProfileRange))
+  await click(button('VP Alerts'))
+  await click(button('Arm VP alert'))
+  const savedVp = JSON.parse(localStorage.getItem('fyodor.volume-profile-alerts.v1'))
+  assert.equal(savedVp[0].symbol, 'EURUSD')
+  assert.equal(savedVp[0].broker, broker)
+  await click(button('Disarm'))
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.volume-profile-alerts.v1'))[0].armed, false)
+  await click(button('Market Watch'))
   const marketStructureSettings = container.querySelector('[aria-label="Market Structure settings"]')
   const swingSlider = () => container.querySelector('.market-structure-toolbar-slider input')
   const extendMarketStructure = () => container.querySelector('[aria-label="Extend Market Structure lines"]')
@@ -953,7 +984,27 @@ try {
   assert.equal(candleVolume(), null)
   assert.equal(panes.length, 2, 'Closing Tick Delta preserves the price and RSI panes')
   assert.deepEqual([...container.querySelectorAll('[aria-label="App features"] button')].map(node => node.textContent.trim().replace(/\s+\d+$/, '')),
-    ['Alert', 'Wildcards', 'Ledger', 'Heatmap', 'Inspector', 'Entry Trade', 'Activity', '⚙ Settings'])
+    ['Alert', 'Wildcards', 'Ledger', 'Heatmap', 'Inspector', 'Entry Trade', 'Activity', 'Replay', '⚙ Settings'])
+  await click(button('Settings'))
+  const sessionSetting = title => [...container.querySelectorAll('.chart-settings-popover label')]
+    .find(label => label.querySelector('strong')?.textContent === title)?.querySelector('input')
+  const changeSessionSetting = (title, checked) => React.act(async () => props(sessionSetting(title)).onChange({ target: { checked } }))
+  await changeSessionSetting('Session cursor', true)
+  const focusCandle = plotted.at(-2)
+  await React.act(async () => {
+    for (const notify of hoverListeners) notify({ point: { x: 80, y: 100 }, time: focusCandle.time, seriesData: new Map([[series, focusCandle]]) })
+  })
+  assert.ok(container.querySelector('.session-timeline-cursor'), 'The hovered candle drives the dashed session marker')
+  assert.ok(container.querySelector('.session-timeline-now'), 'Hover preserves the real-time session line')
+  await changeSessionSetting('Session cursor', false)
+  assert.equal(container.querySelector('.session-timeline-cursor'), null)
+  const beforeBreaks = primitives.size
+  await changeSessionSetting('Session breaks', true)
+  assert.equal(primitives.size, beforeBreaks + 1, 'Session breaks use a chart primitive independent of the normal grid')
+  await changeSessionSetting('Session breaks', false)
+  assert.equal(primitives.size, beforeBreaks)
+  await click(button('Settings'))
+  await flush()
   reset()
   const ledgerRequests = requests.length
   await click(button('Ledger'))
@@ -2054,14 +2105,14 @@ try {
   await React.act(async () => scale.setVisibleLogicalRange({ from: plotted.length - 6, to: plotted.length }))
   await tick('load', 175); await flush()
   assert.ok(profileRequests().some(url => url.includes('symbol=GBPX')), 'Custom indices request volume profiles')
-  assert.match(profileControls().textContent, /H1 estimate.*POC/)
+  assert.match(profileControls().textContent, /POC/)
   await click(container.querySelector('[aria-label="Hide Volume Profile"]'))
   const regularVolumeMode = JSON.parse(localStorage.getItem('fyodor.indicators.volume.v1')).mode
   await click(container.querySelector('[aria-label="Volume settings"]'))
   assert.match(container.querySelector('[role="dialog"]').textContent, /Bid moves of the synthetic basket/)
   assert.equal(container.querySelector('[role="dialog"] select'), null, 'Synthetic settings show the applicable mode')
   await click([...container.querySelectorAll('[role="dialog"] [role="tab"]')].find(node => node.textContent === 'Style'))
-  assert.equal(container.querySelectorAll('[role="dialog"] input[type="color"]').length, 6)
+  assert.equal(container.querySelectorAll('[role="dialog"] input[type="color"]').length, 8)
   for (const [label, color] of [['Total Ticks', '#123456'], ['Delta Line', '#654321'],
     ['Red candle divergence', '#112233'], ['Green candle divergence', '#445566']]) {
     await React.act(async () => props(volumeCheckbox(label)).onChange({ target: { value: color } }))

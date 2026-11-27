@@ -1,12 +1,20 @@
 """Explainable attention levels, not predictions of price direction or volatility."""
+from functools import lru_cache
+
 from .relevance import classify, profile_rules
 from .priority import attention_reason
 from .publication import publication_conflict
 
 
 def decision(title, source_id='', url='', feed_url='', include='', exclude='', enabled=False, pinned=False, filter_policy='', summary='', published_at=None):
-    # The relevance cache interns profiles; stars remain separate mutable state.
-    relevant = classify(title, source_id, url, feed_url, *profile_rules(include, exclude, enabled, filter_policy), summary=summary)
+    profile = profile_rules(include, exclude, enabled, filter_policy)
+    return dict(_decision(title, source_id, url, feed_url, profile, pinned, summary[:8000], published_at))
+
+
+@lru_cache(maxsize=65_536)
+def _decision(title, source_id, url, feed_url, profile, pinned, summary, published_at):
+    relevant = classify(title, source_id, url, feed_url, *profile, summary=summary)
+    enabled = profile[2]
     explicit_exclude = relevant['reason'].startswith('Excluded keyword')
     reason = ('Manually starred' if pinned and not explicit_exclude else
               attention_reason(title, summary[:8000] if enabled else '', semantic=enabled) if relevant['included'] else '')

@@ -40,5 +40,18 @@
 .volume-profile-cutoff-stroke { stroke: #6689df; stroke-width: 1.5; pointer-events: none; }
 .volume-profile-cutoff-handle { fill: transparent; pointer-events: auto; cursor: ew-resize; }
 .volume-profile-cutoff-handle:focus-visible { outline: none; fill: rgb(102 137 223 / 18%); }
+.volume-profile-moving-box { fill: rgb(94 128 223 / 8%); stroke: rgb(94 128 223 / 55%); pointer-events: none; }
 .volume-profile-preload-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .volume-profile-preload-actions button:disabled { opacity: 0.55; cursor: default; }
+.vp-alert-dock { display: grid; gap: 10px; padding: 10px; font-size: 12px; }
+.vp-alert-dock form { display: grid; gap: 6px; }
+.vp-alert-dock form label { display: flex; justify-content: space-between; gap: 4px; align-items: center; }
+.vp-alert-dock input[type="number"] { width: 64px; }
+.vp-alert-dock ul { display: grid; gap: 5px; padding: 0; margin: 0; list-style: none; }
+.vp-alert-dock li { display: flex; flex-wrap: wrap; gap: 4px; justify-content: space-between; padding: 5px 0; border-top: 1px solid var(--border); }
+.vp-alert-dock small { display: block; color: var(--text-muted); }
+.vp-alert-notice {
+  position: absolute; z-index: 15; top: 48px; right: 12px; max-width: min(460px, 90%);
+  display: flex; align-items: center; gap: 10px; padding: 6px 10px;
+  border: 1px solid var(--border-strong); border-radius: 6px; background: var(--surface-panel); color: var(--text-strong);
+}

@@ -19,6 +19,7 @@ type ChartWorkspaceHeaderProps = {
   symbol: string
   quote: SymbolQuote | null
   timeframe: ChartTimeframe
+  sessionCursorTime?: number | null
   onSelectTimeframe: (timeframe: ChartTimeframe) => void
   onRefocus?: () => void
   refocusDisabled?: boolean
@@ -88,6 +89,7 @@ export function ChartWorkspaceHeader({
   symbol,
   quote,
   timeframe,
+  sessionCursorTime,
   onSelectTimeframe,
   onRefocus,
   refocusDisabled = false,
@@ -309,7 +311,7 @@ export function ChartWorkspaceHeader({
       </div>
 
       <div className="chart-toolbar-right">
-        <SessionTimeline />
+        <SessionTimeline cursorTime={sessionCursorTime} />
       </div>
     </div>
   )

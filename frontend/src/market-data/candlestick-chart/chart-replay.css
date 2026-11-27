@@ -1,0 +1,23 @@
+.chart-replay { display: grid; gap: 14px; padding: 10px 16px; color: var(--text-strong); }
+.chart-replay-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.chart-replay-controls output { margin: 0 auto 0 8px; font-size: 12px; }
+.chart-replay-controls select { margin-left: 4px; }
+.chart-replay-ruler { border-top: 1px solid var(--border-strong); }
+.chart-replay-ruler input {
+  appearance: none;
+  display: block;
+  width: 100%;
+  margin: 0;
+  height: 32px;
+  background: repeating-linear-gradient(90deg, var(--border-strong) 0 1px, transparent 1px 5%) left top / 100% 7px no-repeat;
+  cursor: ew-resize;
+}
+.chart-replay-ruler input::-webkit-slider-thumb {
+  appearance: none;
+  width: 10px;
+  height: 32px;
+  background: var(--text-strong);
+  clip-path: polygon(0 0, 100% 0, 60% 8px, 60% 100%, 40% 100%, 40% 8px);
+}
+.chart-replay-ruler input::-moz-range-thumb { width: 2px; height: 32px; border: 0; border-radius: 0; background: var(--text-strong); }
+.chart-replay-endpoints { display: flex; justify-content: space-between; gap: 12px; color: var(--text-muted); font-size: 11px; }

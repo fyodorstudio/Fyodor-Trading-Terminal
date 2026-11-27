@@ -4,10 +4,15 @@ from urllib.parse import urlencode
 TREASURY_URL = 'https://home.treasury.gov/news/press-releases'
 DEFAULT_URL = 'https://news.google.com/rss/search?q=when:24h+site:reuters.com&ceid=US:en&hl=en-US&gl=US'
 PROVIDER_MIGRATION = 'starter-providers-v5'
+FXSTREET_FEED_MIGRATION = 'fxstreet-google-feed-v1'
+FXSTREET_LEGACY_URL = 'https://www.fxstreet.com/rss'
 
 
 def google_feed(query, window='7d'):
     return 'https://news.google.com/rss/search?' + urlencode({'q': f'when:{window} {query}', 'ceid': 'US:en', 'hl': 'en-US', 'gl': 'US'})
+
+
+FXSTREET_FEED = google_feed('site:fxstreet.com/news')
 
 
 EUROSTAT_URL = 'https://ec.europa.eu/eurostat/en/search?' + urlencode({
@@ -20,7 +25,7 @@ EUROSTAT_URL = 'https://ec.europa.eu/eurostat/en/search?' + urlencode({
 PROVIDERS = (
     ('reuters', 'Reuters', DEFAULT_URL, ''),
     ('reuters-previews', 'Reuters · Expectations', 'https://news.google.com/rss/search?' + urlencode({'q': 'when:7d site:reuters.com (Fed OR FOMC OR ECB OR RBA OR BoE OR BoJ OR RBNZ OR SNB OR inflation OR payrolls) ("priced in" OR "odds" OR "preview" OR "expected to" OR "markets price")', 'ceid': 'US:en', 'hl': 'en-US', 'gl': 'US'}), ''),
-    ('fxstreet', 'FXStreet', 'https://www.fxstreet.com/rss', 'site:fxstreet.com/news'),
+    ('fxstreet', 'FXStreet (Google News)', FXSTREET_FEED, 'site:fxstreet.com/news'),
     ('fed-policy', 'Federal Reserve · Policy', 'https://www.federalreserve.gov/feeds/press_monetary.xml', 'site:federalreserve.gov/newsevents/pressreleases monetary'),
     ('fed-speeches', 'Federal Reserve · Speeches', 'https://www.federalreserve.gov/feeds/speeches.xml', 'site:federalreserve.gov/newsevents/speech'),
     ('ecb', 'ECB', 'https://www.ecb.europa.eu/rss/press.html', 'site:ecb.europa.eu/press'),

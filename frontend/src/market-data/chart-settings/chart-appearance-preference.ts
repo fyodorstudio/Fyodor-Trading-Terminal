@@ -5,6 +5,8 @@ export type ChartAppearance = {
   downCandleColor: string
   priceLineColor: string
   showGrid: boolean
+  showSessionCursor?: boolean
+  showSessionBreaks?: boolean
   barSpacing: number
   scrollbarStyle: ScrollbarStyle
 }
@@ -14,6 +16,8 @@ export const defaultChartAppearance: ChartAppearance = {
   downCandleColor: '#e45462',
   priceLineColor: '#6478ef',
   showGrid: true,
+  showSessionCursor: false,
+  showSessionBreaks: false,
   barSpacing: 7,
   scrollbarStyle: 'adaptive',
 }
@@ -33,6 +37,8 @@ export function readChartAppearance(): ChartAppearance {
       downCandleColor: colorPattern.test(parsed.downCandleColor ?? '') ? parsed.downCandleColor! : defaultChartAppearance.downCandleColor,
       priceLineColor: colorPattern.test(parsed.priceLineColor ?? '') ? parsed.priceLineColor! : defaultChartAppearance.priceLineColor,
       showGrid: typeof parsed.showGrid === 'boolean' ? parsed.showGrid : defaultChartAppearance.showGrid,
+      showSessionCursor: parsed.showSessionCursor === true,
+      showSessionBreaks: parsed.showSessionBreaks === true,
       barSpacing: typeof parsed.barSpacing === 'number' && parsed.barSpacing >= 3 && parsed.barSpacing <= 16
         ? parsed.barSpacing
         : defaultChartAppearance.barSpacing,

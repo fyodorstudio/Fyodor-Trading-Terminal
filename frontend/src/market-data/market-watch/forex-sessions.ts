@@ -1,4 +1,8 @@
 const hour = 3_600_000
+export const forexSessionDay = 24 * hour
+export function forexSessionDayStart(at: number) {
+  return Math.floor((at + 7 * hour) / forexSessionDay) * forexSessionDay - 7 * hour
+}
 const sessions = [
   { name: 'Sydney', zone: 'Australia/Sydney', open: 7, close: 16, color: '#0284c7' },
   { name: 'Tokyo', zone: 'Asia/Tokyo', open: 9, close: 18, color: '#9333ea' },
@@ -25,7 +29,7 @@ function localToUtc(wall: number, zone: string) {
 const clock = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', hour: 'numeric', minute: '2-digit', hour12: true })
 
 export function forexSessions(now: number) {
-  const start = Math.floor((now + 7 * hour) / (24 * hour)) * 24 * hour - 7 * hour
+  const start = forexSessionDayStart(now)
   return { now: (now - start) / (24 * hour), sessions: sessions.map(session => {
     const date = new Date(localParts(start, session.zone))
     const midnight = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
@@ -49,7 +53,7 @@ export type ForexSessionContext = { names: string[]; key: string; from: number; 
 export function createForexSessionLookup() {
   const days = new Map<number, Array<{ name: string; open: number; close: number }>>()
   return (at: number): ForexSessionContext => {
-    const start = Math.floor((at + 7 * hour) / (24 * hour)) * 24 * hour - 7 * hour
+    const start = forexSessionDayStart(at)
     let windows = days.get(start)
     if (!windows) {
       const unique = new Map<string, { name: string; open: number; close: number }>()

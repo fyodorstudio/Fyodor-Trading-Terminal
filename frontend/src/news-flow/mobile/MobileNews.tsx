@@ -42,7 +42,7 @@ export function MobileNews() {
   const [previousScope, setPreviousScope] = useState(scope)
   if (previousScope !== scope) { setPreviousScope(scope); setIndex(0) }
   const query = newsQuery(settings, sources, index, start, end, term)
-  const { page, error, pending, reveal } = useNewsPage(query, paused)
+  const { page, previewing, error, pending, reveal } = useNewsPage(query, paused)
   useEffect(() => { paused.current = false; if (scroll.current) scroll.current.scrollTop = 0 }, [query])
   return <main className="news-mobile">
     <header><h1>News Flow</h1><span>PC feed · read only</span></header>
@@ -75,6 +75,7 @@ export function MobileNews() {
       {page && !page.items.length && <p>No collected headlines match this view.</p>}
     </div>
     <footer><button type="button" disabled={!index} onClick={() => setIndex(value => value - 1)}>Previous</button>
-      <span>{page?.total ?? 0} headlines</span><button type="button" disabled={!page || (index + 1) * 100 >= page.total} onClick={() => setIndex(value => value + 1)}>Next</button></footer>
+      <span>{previewing ? 'Recent headlines · Loading history' : `${page?.total ?? 0} headlines`}</span>
+      <button type="button" disabled={!page || previewing || (index + 1) * 100 >= page.total} onClick={() => setIndex(value => value + 1)}>Next</button></footer>
   </main>
 }

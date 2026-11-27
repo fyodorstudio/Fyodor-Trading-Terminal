@@ -9,7 +9,7 @@ import re
 from threading import Lock, RLock
 from uuid import uuid4
 
-from .providers import PROVIDERS, PROVIDER_MIGRATION, RETIRED
+from .providers import FXSTREET_FEED, FXSTREET_FEED_MIGRATION, FXSTREET_LEGACY_URL, PROVIDERS, PROVIDER_MIGRATION, RETIRED
 from .rules import matches, priority_reason
 from .policy import policy_currencies, policy_details
 from .diagnostics import SCHEMA, record_check, snapshot as diagnostic_snapshot
@@ -114,6 +114,12 @@ class NewsStore:
                         for identity, url in RETIRED.items():
                             db.execute('UPDATE sources SET collect_enabled=0 WHERE id=? AND url=?', (identity, url))
                         db.execute('INSERT INTO migrations VALUES (?)', (PROVIDER_MIGRATION,))
+                    if not db.execute('SELECT 1 FROM migrations WHERE name=?', (FXSTREET_FEED_MIGRATION,)).fetchone():
+                        db.execute("""UPDATE OR IGNORE sources
+                            SET name=CASE WHEN name='FXStreet' THEN 'FXStreet (Google News)' ELSE name END,
+                                url=?,etag='',modified='',last_success=NULL,error='',next_fetch_at=0,retry_at=0,failures=0
+                            WHERE id='fxstreet' AND url=?""", (FXSTREET_FEED, FXSTREET_LEGACY_URL))
+                        db.execute('INSERT INTO migrations VALUES (?)', (FXSTREET_FEED_MIGRATION,))
                     db.commit()
                     self.initialized = True
                 with db:

@@ -77,6 +77,14 @@ export function ChartSettingsPopover({
             <span><strong>Grid lines</strong><small>Horizontal and vertical guides</small></span>
             <input type="checkbox" checked={appearance.showGrid} onChange={(event) => onChange({ ...appearance, showGrid: event.target.checked })} />
           </label>
+          <label className="toggle-setting">
+            <span><strong>Session cursor</strong><small>Mark the hovered candle on the header timeline</small></span>
+            <input type="checkbox" checked={appearance.showSessionCursor === true} onChange={event => onChange({ ...appearance, showSessionCursor: event.target.checked })} />
+          </label>
+          <label className="toggle-setting">
+            <span><strong>Session breaks</strong><small>Show forex session opens and closes on intraday charts</small></span>
+            <input type="checkbox" checked={appearance.showSessionBreaks === true} onChange={event => onChange({ ...appearance, showSessionBreaks: event.target.checked })} />
+          </label>
           <label className="range-setting">
             <span><strong>Default candle spacing</strong><small>{appearance.barSpacing}px</small></span>
             <input type="range" min="3" max="16" step="1" value={appearance.barSpacing} onChange={(event) => onChange({ ...appearance, barSpacing: Number(event.target.value) })} />

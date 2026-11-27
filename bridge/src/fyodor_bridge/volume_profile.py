@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from itertools import groupby
 
 import numpy as np
 
@@ -27,24 +28,43 @@ def volume_profile_days(mt5, symbol, start, end):
     digits = INDEX_DIGITS
     days = []
     for pair in pairs:
-        info = profile_instrument(mt5, pair)
+        info = mt5.symbol_info(pair)
+        if info is None or not mt5.symbol_select(pair, True):
+            return {"days": [], "digits": digits}
         if not members:
             digits = int(info.digits)
         rates = mt5.copy_rates_range(pair, mt5.TIMEFRAME_D1, candle_time(first), candle_time(end - 1))
+        if rates is None:
+            code, message = mt5.last_error()
+            if code != -4:
+                raise RuntimeError(f"Could not read the trading calendar for {pair}: {message}")
         days.append(set() if rates is None else set((rates["time"] // MAX_PROFILE_PAGE_SECONDS
-                                                     * MAX_PROFILE_PAGE_SECONDS).tolist()))
+                                                      * MAX_PROFILE_PAGE_SECONDS).tolist()))
     if account_identity(mt5) != account:
         raise RuntimeError("MT5 account changed during the volume profile read")
     # A missing constituent session is a coverage gap when other legs traded.
     return {"days": sorted(set.union(*days)), "digits": digits}
 
 
-def price_profile(quotes, digits, missing_minutes):
+def price_profile(quotes, digits, missing, times=None):
     # Keep the full price resolution until all the requested pages are combined.
     prices = np.rint(quotes * 10 ** digits).astype(np.int64)
     levels, counts = np.unique(prices, return_counts=True)
-    return {"digits": digits, "levels": list(zip(levels.tolist(), counts.tolist())),
-            "missing_minutes": missing_minutes}
+    page = {"digits": digits, "levels": list(zip(levels.tolist(), counts.tolist())),
+            "missing_minutes": len(missing) if missing is not None else None}
+    if times is not None:
+        minutes = times // 60_000 * 60
+        order = np.lexsort((prices, minutes))
+        minutes, prices = minutes[order], prices[order]
+        entries = []
+        if prices.size:
+            first = np.r_[0, np.flatnonzero((np.diff(prices) != 0) | (np.diff(minutes) != 0)) + 1]
+            counts = np.diff(np.r_[first, prices.size])
+            entries = zip(minutes[first].tolist(), prices[first].tolist(), counts.tolist())
+        page["slices"] = [(minute, [(price, count) for _, price, count in group])
+                          for minute, group in groupby(entries, key=lambda row: row[0])]
+        page["missing_slices"] = missing
+    return page
 
 
 def missing_quote_minutes(mt5, symbol, start, end, times):
@@ -55,20 +75,21 @@ def missing_quote_minutes(mt5, symbol, start, end, times):
         return None
     expected = rates["time"][(rates["time"] >= start) & (rates["time"] < end) & (rates["tick_volume"] > 0)]
     observed = np.unique(times // 60_000 * 60)
-    return int(np.count_nonzero(~np.isin(expected, observed)))
+    return expected[~np.isin(expected, observed)].tolist()
 
 
-def read_volume_profile(mt5, symbol, start, end):
+def read_volume_profile(mt5, symbol, start, end, slices=False):
     account = account_identity(mt5)
     info = profile_instrument(mt5, symbol)
     use_last = getattr(info, "chart_mode", 0) == CHART_MODE_LAST
     ticks = read_ticks(mt5, symbol, start, end, mt5.COPY_TICKS_TRADE if use_last else None)
     quotes = ticks["last" if use_last else "bid"]
     valid = np.isfinite(quotes) & (quotes > 0)
-    missing = missing_quote_minutes(mt5, symbol, start, end, ticks["time_msc"][valid])
+    times = ticks["time_msc"][valid]
+    missing = missing_quote_minutes(mt5, symbol, start, end, times)
     if account_identity(mt5) != account:
         raise RuntimeError("MT5 account changed during the volume profile read")
-    return price_profile(quotes[valid], int(info.digits), missing)
+    return price_profile(quotes[valid], int(info.digits), missing, times if slices else None)
 
 
 @dataclass
@@ -84,11 +105,11 @@ class VolumeProfileReader:
         self.index_history = index_history
         self.pending = {}
 
-    def read(self, mt5, symbol, start, end, read_id, begin):
+    def read(self, mt5, symbol, start, end, read_id, begin, slices=False):
         account = account_identity(mt5)
         members = MEMBERS.get(symbol) if account[0] == SERVER else None
         if members is None:
-            return read_volume_profile(mt5, symbol, start, end)
+            return read_volume_profile(mt5, symbol, start, end, slices)
 
         state = self.pending.pop(read_id, None)
         if begin:
@@ -96,7 +117,7 @@ class VolumeProfileReader:
             latest = max((quote.time_msc for quote in quotes if quote), default=end * 1000 - 1)
             cutoff = min(end * 1000 - 1, latest)
             if cutoff < start * 1000:
-                return price_profile(np.array([]), INDEX_DIGITS, None)
+                return price_profile(np.array([]), INDEX_DIGITS, None, np.array([], dtype=np.int64) if slices else None)
             state = IndexProfileRead(account, cutoff)
         if state is None or state.account != account:
             raise RuntimeError("The synthetic volume profile read was interrupted")
@@ -118,13 +139,19 @@ class VolumeProfileReader:
         # The same simultaneous Bid changes as Tick Delta, applied to the
         # index's actual opening level. Never substitute constituent prices.
         if any(state.coverage):
-            return price_profile(np.array([]), INDEX_DIGITS, max(minutes or 0 for minutes in state.coverage))
-        _, moves = basket_moves(state.legs)
+            # One missing leg invalidates the reconstructed prices for this
+            # batch. A partial window must also report that loss of coverage.
+            missing = sorted({minute for leg in state.coverage for minute in leg or []})
+            page = price_profile(np.array([]), INDEX_DIGITS, missing, np.array([], dtype=np.int64) if slices else None)
+            if slices:
+                page["missing_slices"] = list(range(start, end, 60))
+            return page
+        times, moves = basket_moves(state.legs)
         self.index_history.set_account(account)
         reference = self.index_history.reference(mt5, members)
         opening = index_price([leg[2] for leg in state.legs], reference)
         prices = opening * np.exp(np.cumsum(moves) / len(members))
-        missing = None if None in state.coverage else 0
+        missing = None if None in state.coverage else []
         if account_identity(mt5) != account:
             raise RuntimeError("MT5 account changed during the volume profile read")
-        return price_profile(prices, INDEX_DIGITS, missing)
+        return price_profile(prices, INDEX_DIGITS, missing, times if slices else None)

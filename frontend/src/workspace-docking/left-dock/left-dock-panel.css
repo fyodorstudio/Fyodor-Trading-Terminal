@@ -18,7 +18,7 @@
   flex: 1;
   min-width: 0;
   height: 34px;
-  padding: 0 12px;
+  padding: 0 5px;
   border: 0;
   border-right: 1px solid var(--border);
   border-bottom: 2px solid transparent;
@@ -50,7 +50,7 @@
 }
 
 .left-dock-tabs > button span {
-  margin-left: 5px;
+  margin-left: 1px;
   padding: 1px 5px;
   border-radius: 999px;
   color: var(--text-muted);
@@ -68,6 +68,7 @@
   height: 100%;
 }
 .left-dock-content > div > .market-watch { height: 100%; }
+.left-dock-vp-alerts { overflow: auto; }
 
 .left-dock-content .market-watch {
   border-right: 0;

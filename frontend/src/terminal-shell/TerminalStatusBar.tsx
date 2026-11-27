@@ -62,6 +62,8 @@ export function TerminalStatusBar({
         <button className={`status-action${bottomDockWindow === 'activity' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('activity')} aria-expanded={bottomDockWindow === 'activity'}>
           Activity <span className="activity-count">{activityCount}</span>
         </button>
+        <button className={`status-action${bottomDockWindow === 'replay' ? ' active' : ''}`} type="button"
+          onClick={() => onToggleBottomDock('replay')} aria-expanded={bottomDockWindow === 'replay'}>Replay</button>
         <button className={`status-action${settingsOpen ? ' active' : ''}`} type="button" onClick={onToggleSettings} aria-expanded={settingsOpen}>
           <span aria-hidden="true">⚙</span> Settings
         </button>

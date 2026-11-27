@@ -31,6 +31,8 @@ host. Provider visibility and collection can be changed independently.
 Reader filters apply before counting, deduplication, pagination and export.
 The reader uses SQLite snapshots so filtering can run alongside collection.
 Repeated page requests reuse results until headline, star or provider content changes.
+The newest filtered view can show a recent page while the archive count loads.
+The reader, copy and alert paths reuse headline decisions for the same rules.
 P1, P2 and Excluded checkboxes select any combination of the three disjoint tiers.
 Selecting all shows every tier; clearing all shows no headlines.
 The backend supplies classification to desktop, phone, copying and notifications;

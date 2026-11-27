@@ -285,7 +285,10 @@ Delta and Total Ticks. Use the pane checkboxes to show and hide lines. Select a 
 and drag the right y-axis to resize it.
 Double-click the axis to return the selected line to the shared automatic scale.
 With both count lines on the shared scale, crossings show where their counts
-meet. The pane saves the visibility and axis selection.
+meet. The pane saves the visibility and axis selection. In
+**Volume → Style → Candle delta numbers**, choose **Above candle** or
+**Below candle** to see signed delta on the price chart. Set the positive and
+negative colours separately. At tight zoom, hover a candle to show its number.
 
 On Pepperstone-Demo, **Currency Activity** ranks all eight major currencies by the
 sum of broker ticks in each currency's seven FX pairs over the selected candle.
@@ -293,8 +296,11 @@ A pair's count contributes to both currencies. A currency with missing pair data
 shows **Unavailable**.
 
 Select **VP** beside **MS** to show the Tick Volume Profile on the price chart.
-**Visible Range** follows the candles on screen as you pan or zoom horizontally.
-The last profile stays visible while the new range loads.
+**Visible Range** shows a moving box with a saved lookback in minutes. Pan the
+chart to move candles through the box and use its handles to adjust the
+lookback or its position in the viewport. Zoom changes the box's width in
+pixels and preserves its time span. The last profile stays visible while the
+new range loads.
 For **Fixed Range**, select **Draw range** and drag a box over the candles. Its
 left and right edges set the time window. Right-click inside the box to clear it.
 For **Vertical Line**, select **Place line** and click a candle. Choose **Left**
@@ -311,27 +317,36 @@ ticks, including updates where Bid stays flat. Last-based charts use trade
 ticks. Custom currency indices count changes reconstructed from the seven
 constituent Bid feeds, grouped into one observation per millisecond.
 
-**Fast Historical (H1)** estimates volume by price using hourly closes weighted
-by broker tick counts. Partial hours receive a proportional weight. For custom
-indices it uses synchronized constituent closes and combined tick activity.
-The chart labels this profile **H1 estimate**. **POC** marks the busiest band,
-while **HVN** and **LVN** mark prominent local peaks and dips.
+**POC** marks the busiest band, while **HVN** and **LVN** mark prominent local
+peaks and dips.
 
-Under **VP → Inputs**, preload the current symbol or all 36 instruments.
-Preload starts at the earliest H1 candle available for each MT5 symbol. Custom
-indices start where their constituent histories overlap. The full list contains
-the 28 major FX crosses, the three broker indices, and the five custom indices.
-The status shows which symbols have cached H1 data and which have gaps.
-Preload runs at low priority in the bridge. Close the settings while it runs,
-or reopen them to check progress, pause, resume, or cancel. Completed H1 data
-stays on disk and can be reused after a restart. Start the same preload again to finish
-any remaining batches. The custom indices reuse cached bars from their
-constituent pairs. The current hour refreshes from MT5.
+Under **VP → Inputs**, preload the current symbol or all 36 instruments. The
+bridge processes broker history from newest to oldest. It saves exact
+price counts by minute and day, so different historical windows can reuse the
+same cache across symbol changes and restarts. Reopen settings to check
+progress, pause, resume, or cancel. A bridge restart preserves the position
+of a saved preload. Missing broker history appears as a coverage gap. **Retry**
+rechecks it. The live end continues to refresh from MT5.
 
-Completed exact day profiles are cached locally by broker, account, and pair.
-Days with minute bars and missing ticks are remembered for seven days. **Retry**
-rechecks incomplete history immediately. Long ranges show days checked, and the
-current broker day refreshes separately in Exact Ticks.
+Choose **Arm alert** on the VP or open **VP Alerts** beside Market Watch and
+Price Alerts. Choose the level and trigger for the current symbol. A live
+lookback can alert on a new level, price reaching a level, or both. A selected
+fixed window can alert when price reaches one of its levels. The terminal
+needs to stay open to monitor armed alerts.
+
+## Replay and sessions
+
+Open **Replay** in the bottom dock. Drag the playhead to a completed candle or
+press **Play** to start near the end of the loaded history. Use **Load earlier
+candles** to extend the timeline and **Return to live** to leave replay. Use the
+speed selector for 0.25× through 2×. Candle indicators and VP follow the
+playhead. Armed alerts keep monitoring the live market.
+
+The chart axis shows abbreviated weekdays, and the crosshair shows the full
+weekday and time in the display timezone. In the rightmost **Settings** popover,
+**Session cursor** adds a dashed line for the hovered candle to the header's
+Jakarta session timeline. The solid line marks the current time. **Session
+breaks** adds the regional opens and closes as vertical guides on intraday charts.
 
 ## Heatmap
 

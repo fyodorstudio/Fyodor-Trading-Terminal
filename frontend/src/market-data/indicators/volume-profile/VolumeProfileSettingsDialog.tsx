@@ -45,16 +45,13 @@ export function VolumeProfileSettingsDialog({ preferences, symbol, connected, br
       </div>
       <div className="rsi-settings-body" role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-${tab}`}>
         {tab === 'inputs' ? <><fieldset><legend>Profile data</legend>
-          <label>Calculation<select value={draft.method} onChange={event => patch({ method: event.target.value as VolumeProfilePreferences['method'] })}>
-            <option value="ticks">Exact Ticks</option><option value="hourly">Fast Historical (H1)</option>
-          </select></label>
           <label>Range<select value={draft.mode} onChange={event => patch({ mode: event.target.value as VolumeProfilePreferences['mode'] })}>
             {profileModeOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select></label>
-          <p>{draft.method === 'hourly' ? 'Estimates activity by weighting hourly closing prices with broker tick counts.'
-            : 'Uses individual tick prices where the broker provides tick history.'}</p>
-        </fieldset><VolumeProfilePreloadControls symbol={symbol} connected={connected} brokerOffset={brokerOffset}
-          onUseFastHistorical={draft.method === 'ticks' ? () => patch({ method: 'hourly' }) : undefined} />
+          {draft.mode === 'visible' && <label>Lookback in minutes<input type="number" min="1" step="1" required
+            value={draft.lookbackMinutes || ''} onChange={event => patch({ lookbackMinutes: Number(event.target.value) })} /></label>}
+          <p>Uses exact tick prices where MT5 provides history.</p>
+        </fieldset><VolumeProfilePreloadControls symbol={symbol} connected={connected} brokerOffset={brokerOffset} />
         </> : <fieldset><legend>Histogram</legend>
           <label>Placement<select value={draft.side} onChange={event => patch({ side: event.target.value as VolumeProfilePreferences['side'] })}>
             <option value="left">Left</option><option value="right">Right</option>

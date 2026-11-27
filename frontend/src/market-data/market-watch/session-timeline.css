@@ -5,4 +5,6 @@
 .session-timeline-body svg { width: 100%; height: 40px; overflow: visible; }
 .session-timeline-grid { stroke: var(--border-strong); vector-effect: non-scaling-stroke; stroke-width: 1; }
 .session-timeline-now { stroke: var(--text-strong); vector-effect: non-scaling-stroke; stroke-width: 1.5; }
+.session-timeline-cursor { stroke: var(--chart-crosshair); vector-effect: non-scaling-stroke; stroke-width: 1.5; stroke-dasharray: 3 2; }
+.session-timeline-cursor-active { color: var(--text-strong); font-weight: 800; text-decoration: underline; }
 .session-timeline-axis { display: flex; justify-content: space-between; margin-left: 50px; padding-top: 2px; font-size: 7px; font-variant-numeric: tabular-nums; }

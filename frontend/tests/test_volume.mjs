@@ -13,6 +13,15 @@ try {
   const { createVolumeCalculator } = await server.ssrLoadModule('./src/market-data/indicators/volume/volume-calculation.ts')
   const { defaultVolumePreferences, readVolumePreferences, saveVolumePreferences } = await server.ssrLoadModule('./src/market-data/indicators/volume/volume-preferences.ts')
   const { buildTickProfile, profileCandleWindow } = await server.ssrLoadModule('./src/market-data/indicators/volume-profile/volume-profile.ts')
+  const { profileAlertEvents } = await server.ssrLoadModule('./src/market-data/indicators/volume-profile/volume-profile-alerts.ts')
+  const initial = { low: 1.101, high: 1.102, count: 100, node: 'POC' }
+  const shifted = { ...initial, low: 1.103, high: 1.104 }
+  const alert = { trigger: 'both', repeat: false, sent: [] }
+  assert.deepEqual(profileAlertEvents([shifted], [initial], 1.1, 1.1025, alert).map(event => event.type), ['touch', 'new-level'])
+  assert.deepEqual(profileAlertEvents([{ ...initial, low: 1.1011, high: 1.1021 }], [initial], 1.101, 1.101, alert), [])
+  alert.sent = [{ type: 'touch', low: initial.low, high: initial.high }]
+  assert.deepEqual(profileAlertEvents([initial], [initial], 1.1, 1.101, alert), [])
+  assert.equal(profileAlertEvents([initial], [initial], 1.1, 1.101, { ...alert, repeat: true })[0].type, 'touch')
   const { replaceRecentBars } = await server.ssrLoadModule('./src/market-data/mt5-feed/market-snapshots.ts')
   const { utcToChartClock } = await server.ssrLoadModule('./src/appearance/time-display/chart-clock.ts')
   const clock = { brokerId: null, brokerOffsetSeconds: 0 }, p = { ...defaultVolumePreferences, lookback: 5, minimumSamples: 3, averageLength: 3 }

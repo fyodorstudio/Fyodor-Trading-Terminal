@@ -27,7 +27,7 @@ export const NewsFlowPanel = memo(function NewsFlowPanel({ onClose }: { onClose:
   const scope = newsQuery(settings, sources, 0, bounds[0], bounds[1], searchTerm)
   const pageIndex = pagination.scope === scope ? pagination.index : 0
   const query = newsQuery(settings, sources, pageIndex, bounds[0], bounds[1], searchTerm)
-  const { page, pending, error, reveal } = useNewsPage(query, paused)
+  const { page, previewing, pending, error, reveal } = useNewsPage(query, paused)
   const history = useNewsHistory(bounds[0], bounds[1], sources, settings.hiddenSources)
   useEffect(() => { paused.current = false; if (scroll.current) scroll.current.scrollTop = 0 }, [query])
   useEffect(() => () => refreshRequest.current?.abort(), [])
@@ -89,9 +89,9 @@ export const NewsFlowPanel = memo(function NewsFlowPanel({ onClose }: { onClose:
       {page && !page.items.length && <p className="news-message">{filterActive ? 'No headlines match these filters.'
         : history.loading ? 'No saved headlines for this date yet.' : settings.date ? 'No headlines available for this date.' : 'Waiting for the first headlines.'}</p>}
     </div>
-    <footer className="news-footer"><div><button type="button" aria-label="Refresh news" disabled={refreshing} onClick={() => void refresh()}>↻</button><span>{page?.total ?? 0} headlines{filterActive ? ' · Filtered' : ''}</span>
+    <footer className="news-footer"><div><button type="button" aria-label="Refresh news" disabled={refreshing} onClick={() => void refresh()}>↻</button><span>{previewing ? 'Recent headlines · Loading history' : `${page?.total ?? 0} headlines${filterActive ? ' · Filtered' : ''}`}</span>
       <button type="button" disabled={!pageIndex} onClick={() => setPagination({ scope, index: pageIndex - 1 })}>Previous</button>
-      <button type="button" disabled={!page || (pageIndex + 1) * 100 >= page.total} onClick={() => setPagination({ scope, index: pageIndex + 1 })}>Next</button>
+      <button type="button" disabled={!page || previewing || (pageIndex + 1) * 100 >= page.total} onClick={() => setPagination({ scope, index: pageIndex + 1 })}>Next</button>
       <NewsCopy query={scope} enabled={sources.length > 0} />
       <span className="news-feed-status" role="img" aria-label={feedStatus} title={feedStatus} tabIndex={0}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7v1"/></svg>

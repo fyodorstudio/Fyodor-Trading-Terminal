@@ -6,8 +6,6 @@ from unittest import IsolatedAsyncioTestCase
 from unittest.mock import patch
 
 from fyodor_bridge import app as bridge
-from fyodor_bridge.hourly_profile_cache import HourlyProfiles
-from fyodor_bridge.hourly_volume_profile import HOURLY_PROFILE_PAGE_SECONDS
 from fyodor_bridge.volume_profile_history import DAY, VolumeProfileCache, profile_windows
 
 START = 20_000 * DAY
@@ -25,9 +23,6 @@ class FakeWorker:
         self.calls.append((operation, arguments))
         if operation == "volume-profile-days":
             return {"days": [START + day * DAY for day in (0, 1, 2, 5, 6, 7, 8)], "digits": 5}
-        if operation == "volume-profile-hourly-bars":
-            bars = [(at, 1.5, 10) for at in range(arguments["start"], arguments["end"], DAY)]
-            return dict(digits=5, bars=bars, gaps=[])
         level = 150000 if arguments["symbol"] == "CADJPY" else 150100
         return dict(digits=5, missing_minutes=0, levels=[(level, 10)])
 
@@ -86,27 +81,20 @@ class VolumeProfileHistoryTest(IsolatedAsyncioTestCase):
             self.assertEqual(list(profile_windows(START + 60, START + DAY + 60)),
                              [(START + DAY, START + DAY + 60), (START + 60, START + DAY)])
 
-    async def test_hourly_range_uses_bounded_bulk_reads_without_writing_exact_cache(self):
+    async def test_preloaded_edges_are_exact_and_skip_mt5_after_restart(self):
         with TemporaryDirectory() as temp:
             path = Path(temp) / "profile.sqlite3"
+            original = VolumeProfileCache(path)
+            scope = ("Test-Demo", 12, "CADJPY")
+            slices = [(START, [(100000, 4)]), (START + 60, [(110000, 8)])]
+            page = dict(digits=5, levels=[(100000, 4), (110000, 8)], missing_minutes=0,
+                        slices=slices, missing_slices=[])
+            original.write_slices(scope, START, START + DAY, page)
             worker = FakeWorker()
-            end = START + 9 * DAY
-            start = end - 2_589 * DAY
-            hourly_path = Path(temp) / "hourly.sqlite3"
-            with patch.object(bridge, "hourly_profiles", HourlyProfiles(hourly_path)):
-                frames = await self.frames(VolumeProfileCache(path), worker, "CADJPY", start, end, method="hourly")
-            self.assertEqual(frames[-1]["checked"], 2_589)
-            self.assertEqual(frames[-1]["total"], 2_589)
-            self.assertTrue(frames[-1]["done"])
-            self.assertTrue(14 <= len(worker.calls) <= 16)
-            self.assertTrue(all(op == "volume-profile-hourly-bars" and args["end"] - args["start"] <= HOURLY_PROFILE_PAGE_SECONDS
-                                for op, args in worker.calls))
-            self.assertFalse(path.exists())
-            worker.calls.clear()
-            with patch.object(bridge, "hourly_profiles", HourlyProfiles(hourly_path)):
-                warm = await self.frames(VolumeProfileCache(path), worker, "CADJPY", start + DAY, end - DAY, method="hourly")
+            frames = await self.frames(VolumeProfileCache(path), worker, "CADJPY", START + 60, START + 120)
             self.assertEqual(worker.calls, [])
-            self.assertEqual(warm[-1]["levels"], [[150000, 25_870]])
+            self.assertEqual(len(frames), 1)
+            self.assertEqual(frames[0]["levels"], [[110000, 8]])
 
     async def test_exact_cache_reuses_legacy_gaps_and_allows_explicit_retry(self):
         with TemporaryDirectory() as temp:
