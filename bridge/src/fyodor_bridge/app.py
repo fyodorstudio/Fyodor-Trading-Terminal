@@ -22,7 +22,7 @@ from .runtime_activity import ActivityLedger, HeartbeatRegistry, utc_millisecond
 from .settings import load_settings
 from .volume_profile import MAX_PROFILE_PAGE_SECONDS
 from .volume_profile_history import DAY, ProfileHistory, VolumeProfileCache, fill_profile_slices, slice_profile, window_days
-from .volume_profile_preload import PRELOAD_SYMBOLS, VolumeProfilePreload
+from .volume_profile_preload import PRELOAD_SYMBOL_GROUPS, PRELOAD_SYMBOLS, VolumeProfilePreload
 
 API_VERSION = "1"
 BRIDGE_VERSION = "1.0.0"
@@ -365,7 +365,7 @@ async def get_volume_profile_range(
 
 @app.get("/api/v1/volume-profile/preload")
 async def get_volume_profile_preload():
-    return {"job": profile_preload.status(mt5_worker.snapshot()), "exact_ticks": True}
+    return {"job": profile_preload.status(mt5_worker.snapshot()), "exact_ticks": True, "symbol_groups": PRELOAD_SYMBOL_GROUPS}
 
 
 @app.post("/api/v1/volume-profile/preload")

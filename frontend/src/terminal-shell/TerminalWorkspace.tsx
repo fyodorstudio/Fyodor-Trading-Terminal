@@ -79,8 +79,13 @@ function TerminalWorkspaceContent() {
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab } = useTerminalWorkspace()
   const brokerOffsetSeconds = bridge.brokerOffsetSeconds
   const replay = useChartReplay(bottomDockWindow === 'replay', `${brokerId}:${bridge.generation}:${activeSymbol}:${timeframe}`,
-    bars, timeframeToSeconds(timeframe), brokerOffsetSeconds)
+    bars, timeframeToSeconds(timeframe), brokerOffsetSeconds, bottomDockWindow === 'inspector')
   const replaying = replay.end !== null
+  const pauseReplay = replay.pause
+  const inspectMacroRelease = useCallback((reading: Parameters<typeof viewMacroRelease>[0]) => {
+    pauseReplay()
+    viewMacroRelease(reading)
+  }, [pauseReplay, viewMacroRelease])
   const recordVpAlert = useCallback((message: string) => appendActivity('Chart', 'Volume Profile alert', message), [appendActivity])
   const vpAlerts = useProfileAlerts(brokerId, recordVpAlert)
   const [vpAlertFixed, setVpAlertFixed] = useState<{ symbol: string; range: ProfileWindow } | null>(null)
@@ -228,6 +233,7 @@ function TerminalWorkspaceContent() {
                   symbol={activeSymbol}
                   bars={replay.bars}
                   replayEnd={replay.end}
+                  replaySeekRevision={replay.seekRevision}
                   fitContentKey={`${activeSymbol}:${timeframe}`}
                   precision={quote?.precision ?? 5}
                   theme={theme}
@@ -261,13 +267,13 @@ function TerminalWorkspaceContent() {
                   onChangeVolumeAxis={changeVolumeAxis}
                   onToggleVolumeLayer={toggleVolumeLayer}
                   rsi={rsi}
-                  macro={replaying ? undefined : macro}
+                  macro={macro}
                   onToggleMacroMetric={toggleMacroSeries}
                   onToggleMacroForecast={toggleMacroForecastSeries}
                   onToggleMacroNumbers={toggleMacroNumberSeries}
                   onChangeMacroPreferences={changeMacro}
                   onSelectMacroMetric={selectMacroSeries}
-                  onInspectMacroRelease={viewMacroRelease}
+                  onInspectMacroRelease={inspectMacroRelease}
                   refocusRequest={refocusRequest}
                   activeDrawingTool={replaying ? null : activeDrawingTool}
                   drawings={drawings}

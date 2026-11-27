@@ -107,8 +107,8 @@ export function formatChartCrosshairTime(time: Time, preference: TimeDisplayPref
   const utc = chartClockToUtc(chartTimeToMilliseconds(time), scope)
   if (utc === null) return 'Time unavailable'
   const { date, timeZone } = displayDate(utc, preference)
-  const day = dateFormatter({ weekday: 'long', month: 'short', day: 'numeric', timeZone }).format(date)
-  return `${day}, ${formatAppTimestamp(utc, preference, 'time-short')}`
+  const weekday = dateFormatter({ weekday: 'short', timeZone }).format(date)
+  return `${weekday}, ${formatAppTimestamp(utc, preference)}`
 }
 
 export function formatChartTick(time: Time, tickType: TickMarkType, preference: TimeDisplayPreference, scope: ChartClockScope = defaultChartClock) {
@@ -120,7 +120,7 @@ export function formatChartTick(time: Time, tickType: TickMarkType, preference: 
     : tickType === TickMarkType.Month
       ? { month: 'short' }
       : tickType === TickMarkType.DayOfMonth
-        ? { weekday: 'short', day: 'numeric' }
+        ? { day: '2-digit', month: 'short' }
         : { hour: '2-digit', minute: '2-digit', second: tickType === TickMarkType.TimeWithSeconds ? '2-digit' : undefined, hourCycle: preference.hour12 ? 'h12' : 'h23' }
   return dateFormatter({ ...options, timeZone }).format(date)
 }

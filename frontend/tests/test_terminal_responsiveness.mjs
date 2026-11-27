@@ -211,6 +211,11 @@ let wildcardFixture = { schema: 1, revision: 0, items: [] }
 let holdProfileRange = false, finishProfileRange
 let preloadJob = null
 const preloadCommands = []
+const preloadSymbolGroups = {
+  'Currency indices': 'USDX EURX JPYX GBPX CHFX CADX AUDX NZDX'.split(' '),
+  'Forex majors': 'AUDUSD EURUSD GBPUSD NZDUSD USDCAD USDCHF USDJPY'.split(' '),
+  'Forex crosses': 'AUDCAD AUDCHF AUDJPY AUDNZD CADCHF CADJPY CHFJPY EURAUD EURCAD EURCHF EURGBP EURJPY EURNZD GBPAUD GBPCAD GBPCHF GBPJPY GBPNZD NZDCAD NZDCHF NZDJPY'.split(' '),
+}
 globalThis.fetch = (url, options = {}) => {
   const u = String(url); requests.push(u)
   if (u.startsWith('/api/v1/volume-profile/preload')) {
@@ -226,7 +231,7 @@ globalThis.fetch = (url, options = {}) => {
         preloadJob = { ...preloadJob, state: { pause: 'paused', resume: 'running', cancel: 'cancelled' }[action] }
       }
     }
-    return Promise.resolve({ ok: true, json: async () => ({ job: preloadJob, exact_ticks: true }) })
+    return Promise.resolve({ ok: true, json: async () => ({ job: preloadJob, exact_ticks: true, symbol_groups: preloadSymbolGroups }) })
   }
   if (u.startsWith('/api/v1/candle-ticks?')) return Promise.resolve({ ok: true,
     json: async () => ({ up: 62, down: 38, flat: 7, unknown: 2, synthetic: false }) })
@@ -439,6 +444,7 @@ try {
   const flush = async () => React.act(async () => { for (const [id, fn] of frames) { frames.delete(id); fn() } })
   await flush()
   assert.equal(plotted.length, 800)
+  assert.equal(container.querySelector('.chart-axis-year').textContent, '2026')
   assert.equal(Math.floor(futureTimes.at(-1).time / 86400), Math.floor(plotted.at(-1).time / 86400) + 90)
   assert.equal(container.querySelector('[aria-label="Volume settings"] svg').outerHTML, container.querySelector('[aria-label="RSI settings"] svg').outerHTML, 'Volume and RSI use the identical gear icon')
   const indicatorControls = container.querySelector('[aria-label="Show RSI"]').parentElement
@@ -587,6 +593,11 @@ try {
   assert.match(profileDialog.textContent, /Paused · 0\/1 symbols/, 'Closing settings leaves the preload running independently')
   await click(button('Resume preload'))
   await click(button('Cancel preload'))
+  const preloadList = profileDialog.querySelector('details')
+  assert.match(preloadList.querySelector('summary').textContent, /View all 36 preload symbols/)
+  assert.deepEqual([...preloadList.querySelectorAll('strong')].map(heading => heading.textContent),
+    ['Currency indices (8)', 'Forex majors (7)', 'Forex crosses (21)'])
+  assert.doesNotMatch(preloadList.textContent, /CNH/)
   await click(button('Preload all 36'))
   assert.equal(preloadCommands.at(-1).searchParams.has('symbol'), false)
   assert.match(profileDialog.textContent, /Preloading · 0\/36 symbols/)
@@ -620,12 +631,16 @@ try {
   assert.equal(profileControls(), null)
   assert.equal(primitives.size, beforeProfilePrimitives.size, 'Hiding VP removes its chart primitives')
   const liveEnd = plotted.at(-1).time
+  await click(container.querySelector('[aria-label="Show MFDI"]'))
+  const replayMacroLegend = container.querySelector('.macro-legend')
+  assert.ok(replayMacroLegend)
   await click(button('Replay'))
   const replayDock = container.querySelector('[aria-label="Chart replay"]')
   const playhead = replayDock.querySelector('[aria-label="Replay playhead"]')
   const replayIndex = bars.length - 10
   await React.act(async () => props(playhead).onChange({ target: { valueAsNumber: replayIndex } }))
   assert.equal(plotted.at(-1).time, bars[replayIndex].time, 'Replay hides candles after the playhead')
+  assert.equal(container.querySelector('.macro-legend'), replayMacroLegend, 'MFDI stays mounted after seeking into replay')
   await click(replayDock.querySelector('[aria-label="Previous candle"]'))
   assert.equal(plotted.at(-1).time, bars[replayIndex - 1].time, 'Replay can step backward')
   assert.deepEqual([...replayDock.querySelector('select').options].map(option => Number(option.value)), [.25, .5, .75, 1, 1.25, 1.5, 1.75, 2])
@@ -636,14 +651,24 @@ try {
   })
   const beforePlaying = new Set(timers.keys())
   await click(button('Play'))
+  const replayChart = container.querySelector('.market-chart-canvas')
+  await pointerEvent(replayChart, 'pointerdown', 240)
+  const pannedReplayRange = { from: replayIndex - 24, to: replayIndex + 2 }
+  await React.act(async () => scale.setVisibleLogicalRange(pannedReplayRange))
+  await pointerEvent(replayChart, 'pointerup', 240)
   const advance = [...timers].find(([id, timer]) => !beforePlaying.has(id) && timer.ms === 500)
   assert.ok(advance, 'At 2× the next candle is scheduled after half a second')
   timers.delete(advance[0])
   await React.act(async () => advance[1].fn())
   assert.equal(plotted.at(-1).time, bars[replayIndex].time)
+  assert.deepEqual(logicalRange, pannedReplayRange, 'An advancing playhead preserves a manually panned viewport')
   await click(button('Pause'))
+  await click(button('Inspector'))
+  assert.equal(plotted.at(-1).time, bars[replayIndex].time, 'Inspector retains the replay position')
+  await click(button('Replay'))
   await click(button('Return to live'))
   assert.equal(plotted.at(-1).time, liveEnd, 'Return to live restores the newest candle')
+  await click(container.querySelector('[aria-label="Hide MFDI"]'))
   await click(button('Replay'))
   await React.act(async () => scale.setVisibleLogicalRange(beforeProfileRange))
   await click(button('VP Alerts'))

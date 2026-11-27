@@ -20,7 +20,7 @@ dom.HTMLCanvasElement.prototype.getContext = function () {
   return contexts.get(this)
 }
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), server: { middlewareMode: true, hmr: false } })
-const { createChart, CandlestickSeries, LineSeries } = await import('../node_modules/lightweight-charts/dist/lightweight-charts.development.mjs')
+const { createChart, CandlestickSeries, LineSeries, TickMarkType } = await import('../node_modules/lightweight-charts/dist/lightweight-charts.development.mjs')
 const chartHost = document.createElement('div'); document.body.append(chartHost)
 const paint = () => {
   for (let pass = 0; frames.size && pass < 10; pass++) {
@@ -64,6 +64,14 @@ try {
   assert.equal(sets, 2); assert.equal(updates, 0); assert.ok(rows.length >= 129600 && rows.length <= 131040)
 
   const ticks = [], utc = { mode: 'utc', utcOffsetMinutes: 0 }
+  const hoverDate = new Date(Date.UTC(2025, 10, 27, 2))
+  const shortWeekday = new Intl.DateTimeFormat(undefined, { weekday: 'short', timeZone: 'UTC' }).format(hoverDate)
+  const hoverLabel = formatChartCrosshairTime(hoverDate.getTime() / 1000, { ...utc, hour12: true })
+  assert.ok(hoverLabel.startsWith(`${shortWeekday}, `))
+  assert.match(hoverLabel, /2025.*02:00/)
+  assert.equal(formatChartTick(hoverDate.getTime() / 1000, TickMarkType.Year, utc), '2025')
+  assert.equal(formatChartTick(hoverDate.getTime() / 1000, TickMarkType.DayOfMonth, utc),
+    new Intl.DateTimeFormat(undefined, { day: '2-digit', month: 'short', timeZone: 'UTC' }).format(hoverDate))
   chart = createChart(chartHost, { width: 800, height: 400, autoSize: false,
     layout: { colorParsers: [color => /^#[\da-f]{6}$/i.test(color) ? [1, 3, 5].map(i => parseInt(color.slice(i, i + 2), 16)).concat(1) : null] },
     timeScale: { timeVisible: true, ignoreWhitespaceIndices: false, tickMarkFormatter: (time, type) => {

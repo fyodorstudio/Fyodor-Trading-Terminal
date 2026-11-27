@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from fyodor_bridge.currency_indices import SERVER
 from fyodor_bridge.volume_profile_history import DAY, VolumeProfileCache
-from fyodor_bridge.volume_profile_preload import PRELOAD_PRIORITY, PRELOAD_SYMBOLS, VolumeProfilePreload
+from fyodor_bridge.volume_profile_preload import PRELOAD_PRIORITY, PRELOAD_SYMBOL_GROUPS, PRELOAD_SYMBOLS, VolumeProfilePreload
 
 START = 20_000 * DAY
 
@@ -50,6 +50,11 @@ class VolumeProfilePreloadTest(IsolatedAsyncioTestCase):
             source = worker.snapshot()
             preload = VolumeProfilePreload(VolumeProfileCache(path), worker.ticks)
             end = START + 2 * DAY + 180
+            self.assertEqual(set(PRELOAD_SYMBOL_GROUPS["Currency indices"]), set("USDX EURX JPYX GBPX CHFX CADX AUDX NZDX".split()))
+            self.assertEqual(set(PRELOAD_SYMBOL_GROUPS["Forex majors"]), set("AUDUSD EURUSD GBPUSD NZDUSD USDCAD USDCHF USDJPY".split()))
+            self.assertEqual(set(PRELOAD_SYMBOL_GROUPS["Forex crosses"]), set(
+                "AUDCAD AUDCHF AUDJPY AUDNZD CADCHF CADJPY CHFJPY EURAUD EURCAD EURCHF EURGBP EURJPY EURNZD "
+                "GBPAUD GBPCAD GBPCHF GBPJPY GBPNZD NZDCAD NZDCHF NZDJPY".split()))
             self.assertEqual(len(set(PRELOAD_SYMBOLS)), 36)
             preload.start(worker, source, PRELOAD_SYMBOLS, None, end)
             await preload.task

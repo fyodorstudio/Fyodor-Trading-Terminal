@@ -4,6 +4,7 @@ import { useDisplayClock } from '../../appearance/time-display/useDisplayClock'
 import {
   CandlestickSeries,
   LineSeries,
+  TickMarkType,
   createChart,
   type IChartApi,
   type ISeriesApi,
@@ -13,7 +14,7 @@ import {
 import type { ColorTheme } from '../../appearance/color-theme/color-theme-preference'
 import { chartClockToUtc } from '../../appearance/time-display/chart-clock'
 import { createSessionBreaks } from '../market-watch/session-breaks'
-import type { TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
+import { formatChartTick, type TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
 import { ChartDrawingOverlay } from '../chart-drawings/ChartDrawingOverlay'
 import { drawingTimeToLogical } from '../chart-drawings/drawing-coordinates'
 import type { ChartDrawingPoint, ChartDrawingRecord } from '../chart-drawings/chart-drawing-record'
@@ -52,6 +53,7 @@ type MarketCandlestickChartProps = {
   symbol?: string
   bars: OhlcBar[]
   replayEnd?: number | null
+  replaySeekRevision?: number | null
   fitContentKey: string
   precision: number
   theme: ColorTheme
@@ -105,6 +107,7 @@ function MarketCandlestickChartComponent({
   symbol,
   bars,
   replayEnd,
+  replaySeekRevision = null,
   fitContentKey,
   precision,
   theme,
@@ -159,7 +162,9 @@ function MarketCandlestickChartComponent({
   const chartRef = useRef<IChartApi | null>(null)
   const seriesRef = useRef<ISeriesApi<'Candlestick', Time> | null>(null)
   const dailyCloseSeriesRef = useRef<ISeriesApi<'Line', Time> | null>(null)
-  const lastReplayEnd = useRef<number | null>(null)
+  const lastReplaySeek = useRef<number | null>(null)
+  const axisYearRef = useRef<HTMLSpanElement>(null)
+  const axisClockRef = useRef({ clock, timeDisplay })
   const sessionBreaksRef = useRef<ReturnType<typeof createSessionBreaks> | null>(null)
   const candles = useMemo(() => hasDailyCloseHistory ? bars.filter(bar => !bar.closeOnly) : bars, [bars, hasDailyCloseHistory])
   const volumePaneRef = useRef<ReturnType<typeof createVolumePane> | null>(null)
@@ -205,6 +210,16 @@ function MarketCandlestickChartComponent({
   // Native range setters are deferred until paint. Keep the requested viewport
   // authoritative across intervening quote, clock, appearance and pane effects.
   const readLogicalRange = useCallback(() => requestedLogicalRangeRef.current ?? chartRef.current?.timeScale().getVisibleLogicalRange() ?? null, [])
+  const updateAxisYear = useCallback((range: { to: number } | null) => {
+    const label = axisYearRef.current
+    if (!label) return
+    const candles = prevBarsRef.current
+    const right = Math.floor(range?.to ?? candles.length - 1)
+    const candle = candles[Math.max(0, Math.min(right, candles.length - 1))]
+    const { clock, timeDisplay } = axisClockRef.current
+    const year = candle ? formatChartTick(candle.time, TickMarkType.Year, timeDisplay, clock) : ''
+    if (label.textContent !== year) label.textContent = year
+  }, [])
   const setLogicalRange = useCallback((range: { from: number; to: number }) => {
     const scale = chartRef.current?.timeScale()
     if (!scale) return
@@ -271,8 +286,10 @@ function MarketCandlestickChartComponent({
         // native zoom clamping and save its widened left edge as the new target.
         if (!range || Math.abs(range.from - requested.from) > 1e-6 || Math.abs(range.to - requested.to) > 1e-6) return
         requestedLogicalRangeRef.current = null
+        updateAxisYear(range)
         return
       }
+      updateAxisYear(range)
       if (range && !applyingDataRef.current && historyPagingArmedRef.current) {
         dateWindowRef.current = captureDateWindow(range, prevBarsRef.current, previousStepRef.current)
         pendingWindowRef.current = false
@@ -324,7 +341,7 @@ function MarketCandlestickChartComponent({
       setSeriesApi(null)
       chart.remove()
     }
-  }, [])
+  }, [updateAxisYear])
 
   useEffect(() => {
     if (!chartApi || !seriesApi || !onSessionCursor) return
@@ -370,6 +387,8 @@ function MarketCandlestickChartComponent({
     if (!chart) return
 
     const currentLogicalRange = readLogicalRange()
+    axisClockRef.current = { clock, timeDisplay }
+    updateAxisYear(currentLogicalRange)
     const barSpacingChanged = prevBarSpacingRef.current !== appearance.barSpacing
     prevBarSpacingRef.current = appearance.barSpacing
 
@@ -405,7 +424,7 @@ function MarketCandlestickChartComponent({
         // Ignored if range cannot be set in current state
       }
     }
-  }, [appearance, theme, timeDisplay, clock, readLogicalRange, setLogicalRange])
+  }, [appearance, theme, timeDisplay, clock, readLogicalRange, setLogicalRange, updateAxisYear])
 
   useLayoutEffect(() => {
     const series = seriesRef.current
@@ -440,10 +459,9 @@ function MarketCandlestickChartComponent({
       dateWindowRef.current = captureDateWindow(previousRange, prevBarsRef.current, previousStepRef.current) ?? dateWindowRef.current
     }
     const prevBars = prevBarsRef.current
-    const nextReplayEnd = replayEnd ?? null
-    const replayMoved = lastReplayEnd.current !== nextReplayEnd
-    lastReplayEnd.current = nextReplayEnd
-    if (replayMoved) {
+    const replaySeeked = lastReplaySeek.current !== replaySeekRevision
+    lastReplaySeek.current = replaySeekRevision
+    if (replaySeeked) {
       liveFollowingRef.current = true
       dateWindowRef.current = null
       pendingWindowRef.current = false
@@ -515,7 +533,7 @@ function MarketCandlestickChartComponent({
         const to = bars.length - 1 + 8
         setLogicalRange({ from: Math.max(0, to - span), to })
       }
-      if (replayMoved) {
+      if (replaySeeked) {
         const span = previousRange ? previousRange.to - previousRange.from : Math.min(120, bars.length + 7)
         const to = bars.length - 1 + 8
         chart.priceScale('right').applyOptions({ autoScale: true })
@@ -531,16 +549,19 @@ function MarketCandlestickChartComponent({
         pendingWindowRef.current = (dateWindowRef.current ?? window).from < bars[0].time - step / 2
         setMissingViewportHistory(pendingWindowRef.current)
       }
-      // The hidden horizon is now the library's last point. Retain normal live
-      // following when an incrementally appended price candle was in view.
-      if (!replayMoved && liveFollowingRef.current && !isNewKey && !replaced && bars.length === prevBars.length + 1 && previousRange &&
+      // The hidden horizon is the library's last point. Follow new live or
+      // replay candles while the latest candle is in view and the user has not panned.
+      if (!replaySeeked && liveFollowingRef.current && !isNewKey && !replaced && bars.length === prevBars.length + 1 && previousRange &&
         previousRange.from <= prevBars.length - 1 && previousRange.to >= prevBars.length - 1) {
         const followingRange = { from: previousRange.from + 1, to: previousRange.to + 1 }
         dateWindowRef.current = window ? advanceDateWindow(window, prevBars, bars, step) : captureDateWindow(followingRange, bars, step)
         setLogicalRange(followingRange)
       }
-    } finally { applyingDataRef.current = false }
-  }, [bars, hasDailyCloseHistory, fitContentKey, symbol, onDataApplied, precision, timeframe, clock.brokerId, readLogicalRange, setLogicalRange, replayEnd])
+    } finally {
+      applyingDataRef.current = false
+      updateAxisYear(readLogicalRange())
+    }
+  }, [bars, hasDailyCloseHistory, fitContentKey, symbol, onDataApplied, precision, timeframe, clock.brokerId, readLogicalRange, setLogicalRange, replaySeekRevision, updateAxisYear])
 
   useLayoutEffect(() => {
     const chart = chartRef.current
@@ -646,12 +667,12 @@ function MarketCandlestickChartComponent({
           changePreferences: onChangeMacroPreferences,
           selectMetric: metric => onSelectMacroMetric?.(metric),
           inspectRelease: onInspectMacroRelease,
-        })
+        }, replayEnd)
         if (changed === false) return
       }
       if (range) setLogicalRange(range)
     } finally { applyingDataRef.current = false }
-  }, [macroEnabled, macro, bars, fitContentKey, timeframe, formatUtc, onToggleMacroMetric, onToggleMacroForecast, onToggleMacroNumbers, onChangeMacroPreferences, onSelectMacroMetric, onInspectMacroRelease, readLogicalRange, setLogicalRange])
+  }, [macroEnabled, macro, bars, fitContentKey, timeframe, formatUtc, replayEnd, onToggleMacroMetric, onToggleMacroForecast, onToggleMacroNumbers, onChangeMacroPreferences, onSelectMacroMetric, onInspectMacroRelease, readLogicalRange, setLogicalRange])
 
   useEffect(() => {
     if (!pendingWindowRef.current || !bars.length || !hasOlderData || isLoadingOlderData) return
@@ -792,6 +813,7 @@ function MarketCandlestickChartComponent({
         onDoubleClick={handleDoubleClick}
         onWheel={() => { requestedLogicalRangeRef.current = null; historyPagingArmedRef.current = true; liveFollowingRef.current = false }}
       />
+      <span ref={axisYearRef} className="chart-axis-year" title="Year at right of chart" />
       {missingViewportHistory && bars.length > 0 && !isLoadingOlderData && <div className="chart-viewport-notice" role="status">
         <span>{hasOlderData ? 'Older history could not reach the selected dates.' : 'MT5 history does not cover the selected dates.'}</span>
         {hasOlderData && <button type="button" onClick={onRequestOlderData}>Retry history</button>}

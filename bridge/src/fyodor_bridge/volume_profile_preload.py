@@ -10,7 +10,13 @@ from .currency_indices import CURRENCIES, MEMBERS
 from .mt5_worker import Mt5UnavailableError
 from .volume_profile_history import DAY, fill_profile_slices
 
-PRELOAD_SYMBOLS = tuple(base + quote for base, quote in combinations(CURRENCIES, 2)) + ("USDX", "EURX", "JPYX", *MEMBERS)
+FX_PAIRS = tuple(combinations(CURRENCIES, 2))
+PRELOAD_SYMBOL_GROUPS = {
+    "Currency indices": ("USDX", "EURX", "JPYX", *MEMBERS),
+    "Forex majors": tuple(base + quote for base, quote in FX_PAIRS if "USD" in (base, quote)),
+    "Forex crosses": tuple(base + quote for base, quote in FX_PAIRS if "USD" not in (base, quote)),
+}
+PRELOAD_SYMBOLS = tuple(base + quote for base, quote in FX_PAIRS) + PRELOAD_SYMBOL_GROUPS["Currency indices"]
 PRELOAD_PRIORITY = 20
 
 

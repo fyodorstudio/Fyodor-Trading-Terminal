@@ -31,6 +31,7 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
   const rateDots = pane.addSeries(LineSeries, { ...base, lineVisible: false, pointMarkersRadius: 4 })
   const series: Record<string, ISeriesApi<'Line'>> = { ...lines, payrolls }
   const releaseMarkers = createMacroReleaseMarkers()
+  let replayThrough: number | null = null
   let numericalInput: unknown[] | undefined
   let markerSource: string | null | undefined
   let markerSnapshot: { history: MacroIndicator['history']; upcoming: MacroIndicator['upcoming']; missing: MacroIndicator['missing']; keys: string } | undefined
@@ -304,8 +305,9 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
     const { key, reading } = releaseHover
     const primary = key === 'rate' ? fedForecast(reading) : undefined
     const now = Date.now()
-    const upcoming = releaseMarkers.all().find(marker => marker.key === key && !marker.actual
+    const upcoming = replayThrough === null ? releaseMarkers.all().find(marker => marker.key === key && !marker.actual
       && !marker.missing && marker.releasedAt > now && marker.forecast !== undefined)
+      : undefined
     releaseTooltip.show(key, primary ? { ...reading, forecastSource: primary.source } : reading,
       primary?.value ?? reading.forecast, formatRelease, indicator.preferences.colorMode === 'ap-delta', upcoming)
   }
@@ -566,6 +568,7 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
       && indicator.preferences.series[hit.key].pointsVisible && Math.abs(event.point!.x - hit.x) <= hit.rx && Math.abs(event.point!.y - hit.y) <= hit.ry) : undefined
   const hitLine = (event: MouseEventParams<Time>) => {
     if (!indicator || !event.point || event.paneIndex !== pane.paneIndex()) return
+    if (replayThrough !== null && (typeof event.time !== 'number' || event.time >= replayThrough)) return
     const { x, y } = event.point
     const top = laneMode ? laneControls.contentTop : 0, height = pane.getHeight()
     if (y < top || y > height) return
@@ -642,7 +645,7 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
   // Project onto the existing future axis without registering forecast timestamps
   // or contributing forecast values to any native price scale.
   const futureCoordinates = () => {
-    if (latestTime === undefined) return
+    if (latestTime === undefined || replayThrough !== null) return
     const scale = chart.timeScale(), anchor = scale.timeToIndex(latestTime as Time), lastTime = latestTime
     if (anchor === null) return
     return (time: number) => {
@@ -708,7 +711,8 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
             const forecastX = forecast && markerCoordinate(forecast.time, futureX)?.x
             for (let index = 0; index < segments.length; index++) {
               const x = chart.timeScale().timeToCoordinate(segments[index].time)
-              const end = index + 1 < segments.length ? chart.timeScale().timeToCoordinate(segments[index + 1].time) : forecastX ?? mediaSize.width
+              const end = index + 1 < segments.length ? chart.timeScale().timeToCoordinate(segments[index + 1].time)
+                : replayThrough === null ? forecastX ?? mediaSize.width : lastX
               if (x === null || end === null) continue
               context.strokeStyle = readingColour(key, segments[index].reading)
               context.beginPath(); context.moveTo(x, y); context.lineTo(end, y); context.stroke()
@@ -893,14 +897,17 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
   return {
     sync(bars: OhlcBar[], next: MacroIndicator, seconds: number, format: (at: number) => string,
       callbacks: { toggleMetric: (metric: MacroMetric) => void; selectMetric: (metric: MacroMetric) => void;
-        toggleForecast?: (metric: MacroMetric) => void; toggleNumbers?: (metric: MacroMetric) => void; changePreferences?: (value: MacroPreferences) => void; inspectRelease?: (reading: MacroReading) => void }) {
+        toggleForecast?: (metric: MacroMetric) => void; toggleNumbers?: (metric: MacroMetric) => void; changePreferences?: (value: MacroPreferences) => void; inspectRelease?: (reading: MacroReading) => void },
+      replayEnd: number | null = null) {
       if (destroyed) return
-      eventRow.sync(next.events ?? [], bars, seconds, macroRowVisible(next.preferences, macroEventRowKey), format)
+      const events = next.events ?? []
+      eventRow.sync(replayEnd === null ? events : events.filter(event => event.time < replayEnd),
+        bars, seconds, macroRowVisible(next.preferences, macroEventRowKey), format)
       const keys = selectedMacroMetrics(next.preferences)
       // Navigation and saved placement changes do not replace chart data or restore
       // the shared time window. Only numerical inputs and styles need that work.
       const presentation = JSON.stringify([selectedAxisFor(next.preferences), next.preferences.colorMode, next.preferences.invertUnemployment, keys.map(key => [key, macroMetricVisible(next.preferences, key), next.preferences.series[key]])])
-      const input = [bars, next.history, next.forecastHistory, next.upcoming, next.missing, presentation, next.preferences.layout?.axisRestoreId, next.sourceId, next.status, next.forecasts, seconds, format]
+      const input = [bars, replayEnd, next.history, next.forecastHistory, next.upcoming, next.missing, presentation, next.preferences.layout?.axisRestoreId, next.sourceId, next.status, next.forecasts, seconds, format]
       if (numericalInput?.every((value, index) => value === input[index])) {
         const changedMode = laneMode !== macroLayout(next.preferences).laneMode
         indicator = next; formatRelease = format; toggleMetric = callbacks.toggleMetric; selectMetric = callbacks.selectMetric
@@ -910,7 +917,11 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
         flattenButton.setAttribute('aria-pressed', String(laneMode)); if (changedMode) applyDisplayMode()
         updateLock(); updateLegend(); requestUpdate(); return false
       }
+      const replayAdvanced = replayEnd !== null && replayThrough !== null && replayEnd > replayThrough
+        && bars.length === markerBars.length + 1 && bars[0] === markerBars[0] && bars.at(-2) === markerBars.at(-1)
+        && numericalInput?.every((value, index) => index < 2 || value === input[index])
       numericalInput = input
+      replayThrough = replayEnd
       if (!restoringPlacements) linkAxes()
       // Capture a user's drag/zoom before moving its series off the right axis.
       // Removing a scale's final source resets its native range and auto mode.
@@ -926,7 +937,10 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
       toggleNumbers = callbacks.toggleNumbers ?? (() => {})
       inspectRelease = callbacks.inspectRelease; changePreferences = callbacks.changePreferences
       laneMode = macroLayout(next.preferences).laneMode; flattenButton.setAttribute('aria-pressed', String(laneMode))
-      forecastHover = undefined; releaseHover = undefined; pendingHover = undefined; releaseTooltip.hide()
+      if (!replayAdvanced) {
+        markerHits = []; pendingHits = []
+        forecastHover = undefined; releaseHover = undefined; pendingHover = undefined; releaseTooltip.hide()
+      }
       markerBackground = getComputedStyle(chart.chartElement()).getPropertyValue('--surface-panel').trim() || '#ffffff'
       outlineColor = getComputedStyle(chart.chartElement()).getPropertyValue('--text-strong').trim() || '#888888'
       latestTime = bars.at(-1)?.time

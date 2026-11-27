@@ -17,12 +17,14 @@ type PreloadJob = {
 }
 const endpoint = '/volume-profile/preload'
 const dateLabel = (time: number) => new Date(time * 1000).toISOString().slice(0, 10)
+type PreloadStatus = { job: PreloadJob | null; exact_ticks?: boolean; symbol_groups?: Record<string, string[]> }
 
 export function VolumeProfilePreloadControls({ symbol, connected, brokerOffset }: {
   symbol: string; connected: boolean; brokerOffset: number
 }) {
   const [job, setJob] = useState<PreloadJob | null>(null)
   const [exactTicks, setExactTicks] = useState<boolean | null>(null)
+  const [symbolGroups, setSymbolGroups] = useState<PreloadStatus['symbol_groups']>()
   const [error, setError] = useState('')
   const [statusError, setStatusError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -36,10 +38,11 @@ export function VolumeProfilePreloadControls({ symbol, connected, brokerOffset }
       if (!action.current) {
         const started = revision.current
         try {
-          const result = await bridgeRequest<{ job: PreloadJob | null; exact_ticks?: boolean }>(endpoint, controller.signal)
+          const result = await bridgeRequest<PreloadStatus>(endpoint, controller.signal)
           if (!controller.signal.aborted && started === revision.current) {
             setJob(result.job)
             setExactTicks(result.exact_ticks === true)
+            setSymbolGroups(result.symbol_groups)
             setStatusError('')
           }
         } catch (failure) {
@@ -86,6 +89,8 @@ export function VolumeProfilePreloadControls({ symbol, connected, brokerOffset }
   const status = job && `${job.state === 'running' ? 'Preloading' : job.state === 'paused' ? 'Paused' : job.state === 'complete' ? 'Complete' : 'Cancelled'} · ${job.completed_symbols}/${job.total_symbols} symbols`
   const firstCandle = job?.first_candles?.[symbol]
   const blocked = busy || !connected || exactTicks !== true
+  const groups = Object.entries(symbolGroups ?? {})
+  const symbolCount = groups.reduce((total, [, symbols]) => total + symbols.length, 0)
   return <fieldset>
     <legend>Preload exact ticks</legend>
     <p>Checks all available broker history, newest dates first. Completed dates are saved locally.</p>
@@ -97,9 +102,13 @@ export function VolumeProfilePreloadControls({ symbol, connected, brokerOffset }
         <button type="button" disabled={busy} onClick={() => void submit(`${endpoint}/cancel`)}>Cancel preload</button>
       </> : <>
         <button type="button" disabled={blocked || !symbol} onClick={() => start(false)}>Preload {symbol}</button>
-        <button type="button" disabled={blocked} onClick={() => start(true)}>Preload all 36</button>
+        {!!symbolCount && <button type="button" disabled={blocked} onClick={() => start(true)}>Preload all {symbolCount}</button>}
       </>}
     </div>
+    {!!symbolCount && <details>
+      <summary>View all {symbolCount} preload symbols</summary>
+      {groups.map(([name, symbols]) => <p key={name}><strong>{name} ({symbols.length})</strong><br />{symbols.join(', ')}</p>)}
+    </details>}
     {job && <p role="status">{status}
       {active && job.symbol && (job.total_chunks
         ? <> · {job.symbol}{job.symbol_start != null && <> from {dateLabel(job.symbol_start)}</>} · {job.completed_chunks}/{job.total_chunks} batches</>
@@ -111,6 +120,7 @@ export function VolumeProfilePreloadControls({ symbol, connected, brokerOffset }
     {!!job?.incomplete_symbols.length && <p>Cached with history gaps for {job.incomplete_symbols.join(', ')}.</p>}
     {!!job?.unavailable_symbols?.length && <p>Tick history unavailable for {job.unavailable_symbols.join(', ')}.</p>}
     {exactTicks === false && <p>Restart the MT5 bridge to enable exact tick preload.</p>}
+    {exactTicks === true && !symbolCount && <p>Restart the MT5 bridge to view the full preload list.</p>}
     {(error || statusError) && <p role="alert">{error || statusError}</p>}
   </fieldset>
 }

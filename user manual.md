@@ -320,8 +320,10 @@ constituent Bid feeds, grouped into one observation per millisecond.
 **POC** marks the busiest band, while **HVN** and **LVN** mark prominent local
 peaks and dips.
 
-Under **VP → Inputs**, preload the current symbol or all 36 instruments. The
-bridge processes broker history from newest to oldest. It saves exact
+Under **VP → Inputs**, preload the current symbol or all 36 instruments. Open
+**View all 36 preload symbols** for the eight currency indices, seven USD majors,
+and 21 crosses among the eight currencies. The bridge processes broker history
+from newest to oldest. It saves exact
 price counts by minute and day, so different historical windows can reuse the
 same cache across symbol changes and restarts. Reopen settings to check
 progress, pause, resume, or cancel. A bridge restart preserves the position
@@ -339,11 +341,13 @@ needs to stay open to monitor armed alerts.
 Open **Replay** in the bottom dock. Drag the playhead to a completed candle or
 press **Play** to start near the end of the loaded history. Use **Load earlier
 candles** to extend the timeline and **Return to live** to leave replay. Use the
-speed selector for 0.25× through 2×. Candle indicators and VP follow the
-playhead. Armed alerts keep monitoring the live market.
+speed selector for 0.25× through 2×. You can pan, zoom, and hover while replay
+runs. Use **Refocus chart** to follow the playhead again. Candle indicators,
+MFDI, and VP follow the playhead. Opening an MFDI release pauses replay for
+inspection. Armed alerts keep monitoring the live market.
 
-The chart axis shows abbreviated weekdays, and the crosshair shows the full
-weekday and time in the display timezone. In the rightmost **Settings** popover,
+The chart axis shows the year at its right edge. Hover a candle to see its
+abbreviated weekday, full date, and time in the display timezone. In the rightmost **Settings** popover,
 **Session cursor** adds a dashed line for the hovered candle to the header's
 Jakarta session timeline. The solid line marks the current time. **Session
 breaks** adds the regional opens and closes as vertical guides on intraday charts.
