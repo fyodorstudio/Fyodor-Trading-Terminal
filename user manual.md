@@ -296,11 +296,11 @@ A pair's count contributes to both currencies. A currency with missing pair data
 shows **Unavailable**.
 
 Select **VP** beside **MS** to show the Tick Volume Profile on the price chart.
-**Visible Range** shows a moving box with a saved lookback in minutes. Pan the
-chart to move candles through the box and use its handles to adjust the
-lookback or its position in the viewport. Zoom changes the box's width in
-pixels and preserves its time span. The last profile stays visible while the
-new range loads.
+**Follow Mode** shows a moving box with a saved lookback in chart minutes. Pan
+the chart to move candles through the box and use its handles to adjust the
+lookback or its position in the viewport. The box counts each candle's timeframe
+and keeps its width across session gaps at the same zoom. Zoom changes the
+box's width in pixels. The last profile stays visible while the new range loads.
 For **Fixed Range**, select **Draw range** and drag a box over the candles. Its
 left and right edges set the time window. Right-click inside the box to clear it.
 For **Vertical Line**, select **Place line** and click a candle. Choose **Left**

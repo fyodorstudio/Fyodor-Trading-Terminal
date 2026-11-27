@@ -6,7 +6,7 @@ export type VolumeProfilePreferences = VolumeProfileStyle & {
 }
 
 export const profileModeOptions = [
-  ['visible', 'Visible Range'], ['fixed', 'Fixed Range'], ['cutoff', 'Vertical Line'],
+  ['visible', 'Follow Mode'], ['fixed', 'Fixed Range'], ['cutoff', 'Vertical Line'],
 ] as const
 export const defaultVolumeProfilePreferences: VolumeProfilePreferences = {
   mode: 'visible', side: 'right', cutoffSide: 'right', lookbackMinutes: 360, anchorRatio: 0.94,

@@ -7,10 +7,14 @@ export type FixedProfileWindow = ProfileWindow & { price1: number; price2: numbe
 
 export function profileTimeCoordinate(chart: IChartApi, bars: DrawingTimeline, step: number, time: number, offset = 0) {
   const logical = drawingTimeToLogical(time, bars, step)
+  return logical === null ? null : profileLogicalCoordinate(chart, logical + offset)
+}
+
+export function profileLogicalCoordinate(chart: IChartApi, logical: number) {
   const scale = chart.timeScale()
   const zero = scale.logicalToCoordinate(0 as Logical), one = scale.logicalToCoordinate(1 as Logical)
   // Native logical coordinates accept whole bar indices only.
-  return logical === null || zero === null || one === null ? null : zero + (logical + offset) * (one - zero)
+  return zero === null || one === null ? null : zero + logical * (one - zero)
 }
 
 export function createVolumeProfileOverlay(chart: IChartApi, series: ISeriesApi<'Candlestick', Time>) {

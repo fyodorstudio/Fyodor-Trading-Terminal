@@ -461,6 +461,9 @@ try {
   assert.equal(panes.length, 1, 'VP overlays the price pane')
   await tick('load', 175); await flush()
   const profileControls = () => container.querySelector('[aria-label="Tick Volume Profile"]')
+  const profileModes = profileControls().querySelector('[aria-label="Volume profile range"]')
+  assert.equal(profileModes.value, 'visible')
+  assert.equal(profileModes.querySelector('option[value="visible"]').textContent, 'Follow Mode')
   const containsWindow = (from, to) => profileRequests().some(url => {
     const query = new URL(url, 'http://localhost').searchParams
     return query.get('symbol') === 'EURUSD' && Number(query.get('start')) === from && Number(query.get('end')) === to
@@ -502,7 +505,7 @@ try {
   holdProfileRange = true
   await tick('load', 175); await flush()
   const historicalProfiles = requests.slice(beforeHistoric).filter(url => url.startsWith('/api/v1/volume-profile'))
-  assert.equal(historicalProfiles.length, 1, 'Historical visible ranges use one streamed request')
+  assert.equal(historicalProfiles.length, 1, 'Historical Follow Mode ranges use one streamed request')
   const historicalQuery = new URL(historicalProfiles[0], 'http://localhost').searchParams
   assert.equal(Number(historicalQuery.get('start')), movingEnd() - 6 * 3600)
   assert.equal(Number(historicalQuery.get('end')), movingEnd())
@@ -581,6 +584,7 @@ try {
   await tick('load', 175); await flush()
   await click(container.querySelector('button[aria-label="Volume Profile settings"]'))
   let profileDialog = container.querySelector('[role="dialog"]')
+  assert.equal(profileDialog.querySelector('option[value="visible"]').textContent, 'Follow Mode')
   await click(button('Preload EURUSD'))
   assert.equal(preloadCommands.at(-1).searchParams.get('symbol'), 'EURUSD')
   assert.equal(preloadCommands.at(-1).searchParams.has('start'), false)

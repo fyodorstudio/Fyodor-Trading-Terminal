@@ -12,7 +12,7 @@ const candle = (utc, ticks = 100, high = 2) => ({ time: utc / 1000, open: 1, hig
 try {
   const { createVolumeCalculator } = await server.ssrLoadModule('./src/market-data/indicators/volume/volume-calculation.ts')
   const { defaultVolumePreferences, readVolumePreferences, saveVolumePreferences } = await server.ssrLoadModule('./src/market-data/indicators/volume/volume-preferences.ts')
-  const { buildTickProfile, profileCandleWindow } = await server.ssrLoadModule('./src/market-data/indicators/volume-profile/volume-profile.ts')
+  const { buildTickProfile, movingProfileWindow, profileCandleWindow } = await server.ssrLoadModule('./src/market-data/indicators/volume-profile/volume-profile.ts')
   const { profileAlertEvents } = await server.ssrLoadModule('./src/market-data/indicators/volume-profile/volume-profile-alerts.ts')
   const initial = { low: 1.101, high: 1.102, count: 100, node: 'POC' }
   const shifted = { ...initial, low: 1.103, high: 1.104 }
@@ -130,6 +130,20 @@ try {
   assert.equal(readVolumePreferences().totalTicksDotsVisible, true)
   const profileWindow = profileCandleWindow(bars, 3, 0, 3600)
   assert.deepEqual(profileWindow, { from: bars[0].time, to: bars[3].time + 3600 }, 'Dragging in either direction selects inclusive candles')
+  // Pepperstone broker timestamps. Friday 23:00 is Saturday 03:00 WIB.
+  const friday = Date.UTC(2026, 9, 16, 16), monday = Date.UTC(2026, 9, 19)
+  const weekendBars = [
+    ...Array.from({ length: 8 }, (_, i) => candle(friday + i * 3600000)),
+    ...Array.from({ length: 3 }, (_, i) => candle(monday + i * 3600000)),
+  ]
+  const beforeClose = movingProfileWindow(weekendBars, 0, 7, 3600, 360, 1)
+  const afterOpen = movingProfileWindow(weekendBars, 1, 8, 3600, 360, 1)
+  assert.deepEqual(beforeClose, { from: weekendBars[2].time, to: weekendBars[7].time + 3600, left: 1.5, right: 7.5 })
+  assert.deepEqual(afterOpen, { from: weekendBars[3].time, to: weekendBars[8].time + 3600, left: 2.5, right: 8.5 },
+    'Follow Mode keeps six H1 candles across the weekend and includes Friday ticks when anchored on Monday')
+  const partial = movingProfileWindow(weekendBars, 1, 8, 3600, 150, 1)
+  assert.deepEqual(partial, { from: weekendBars[6].time + 1800, to: weekendBars[8].time + 3600, left: 6, right: 8.5 },
+    'A partial candle uses its actual minute boundary across a gap')
   assert.equal(profileCandleWindow(bars, bars.length + 2, bars.length + 4, 3600), null, 'Future whitespace has no ticks')
   const profile = buildTickProfile(new Map([[15000, 18], [15001, 2], [15002, 10], [15003, 1]]), 2)
   assert.equal(profile.count, 31)

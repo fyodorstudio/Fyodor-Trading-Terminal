@@ -17,11 +17,21 @@ export function trailingProfileWindow(end: number, lookbackMinutes: number): Pro
 }
 
 export function movingProfileWindow(bars: readonly OhlcBar[], from: number, to: number, step: number,
-  lookbackMinutes: number, anchorRatio: number): ProfileWindow | null {
+  lookbackMinutes: number, anchorRatio: number): (ProfileWindow & { left: number; right: number }) | null {
   if (from > bars.length - 1 || to < 0) return null
-  const index = Math.min(bars.length - 1, Math.floor(from + (to - from) * anchorRatio))
+  const index = Math.max(0, Math.min(bars.length - 1, Math.floor(from + (to - from) * anchorRatio)))
   const anchor = bars[index]
-  return anchor ? trailingProfileWindow(anchor.time + step, lookbackMinutes) : null
+  if (!anchor) return null
+
+  // The chart collapses gaps between candles to one bar of spacing. Count
+  // candle time for the box, then resolve its edges to minute-aligned tick times.
+  const seconds = lookbackMinutes * 60
+  const candleCount = Math.ceil(seconds / step)
+  const firstIndex = index - candleCount + 1
+  const open = bars[firstIndex]?.time ?? bars[0].time + firstIndex * step
+  const right = index + 0.5
+  return { from: Math.max(0, open + candleCount * step - seconds), to: anchor.time + step,
+    left: right - seconds / step, right }
 }
 
 export function profileFromCutoff(bars: readonly OhlcBar[], cutoff: number, step: number, side: ProfileSide): ProfileWindow | null {

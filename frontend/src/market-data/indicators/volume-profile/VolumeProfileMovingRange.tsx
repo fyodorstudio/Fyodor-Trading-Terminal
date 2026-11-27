@@ -1,10 +1,9 @@
 import { useRef, useState, type PointerEvent } from 'react'
 import type { IChartApi, ISeriesApi, Logical, LogicalRange, Time } from 'lightweight-charts'
-import { drawingLogicalToTime } from '../../chart-drawings/drawing-coordinates'
 import { useDrawingViewport } from '../../chart-drawings/useDrawingViewport'
 import type { OhlcBar } from '../../contracts/OhlcBar'
 import { movingProfileWindow } from './volume-profile'
-import { profileTimeCoordinate } from './volume-profile-overlay'
+import { profileLogicalCoordinate } from './volume-profile-overlay'
 import type { VolumeProfilePreferences } from './volume-profile-preferences'
 
 type WindowSettings = Pick<VolumeProfilePreferences, 'lookbackMinutes' | 'anchorRatio'>
@@ -21,8 +20,8 @@ export function VolumeProfileMovingRange({ chart, series, bars, step, visible, s
   const { width, height } = useDrawingViewport(chart, series, svg)
   const { lookbackMinutes, anchorRatio } = { ...settings, ...draft }
   const range = movingProfileWindow(bars, visible.from, visible.to, step, lookbackMinutes, anchorRatio)
-  const left = range && profileTimeCoordinate(chart, bars, step, range.from, -0.5)
-  const right = range && profileTimeCoordinate(chart, bars, step, range.to, -0.5)
+  const left = range && profileLogicalCoordinate(chart, range.left)
+  const right = range && profileLogicalCoordinate(chart, range.right)
   const span = visible.to - visible.from
 
   function change(event: PointerEvent<SVGSVGElement>, edge: Edge): Partial<WindowSettings> | null {
@@ -32,9 +31,8 @@ export function VolumeProfileMovingRange({ chart, series, bars, step, visible, s
     const one = scale.logicalToCoordinate(1 as Logical)
     if (zero === null || one === null || zero === one || !range || span <= 0) return null
     const logical = (x - zero) / (one - zero)
-    if (edge === 'anchorRatio') return { anchorRatio: Math.min(1, Math.max(0, (logical - visible.from + 0.5) / span)) }
-    const time = drawingLogicalToTime(logical + 0.5, bars, step)
-    return time === null ? null : { lookbackMinutes: Math.max(1, Math.round((range.to - time) / 60)) }
+    if (edge === 'anchorRatio') return { anchorRatio: Math.min(1, Math.max(0, (logical - visible.from) / span)) }
+    return { lookbackMinutes: Math.max(1, Math.round((range.right - logical) * step / 60)) }
   }
   function clear() { drag.current = null; setDraft(null) }
 
@@ -67,6 +65,7 @@ export function VolumeProfileMovingRange({ chart, series, bars, step, visible, s
         data-edge={edge} aria-label={name} role="slider" aria-valuemin={edge === 'lookbackMinutes' ? 1 : 0}
         aria-valuemax={edge === 'anchorRatio' ? 100 : undefined}
         aria-valuenow={edge === 'anchorRatio' ? Math.round(anchorRatio * 100) : lookbackMinutes}
+        aria-valuetext={edge === 'lookbackMinutes' ? `${lookbackMinutes} chart minutes` : undefined}
         tabIndex={0} x={x - 5} y={0} width={10} height={height}
         onKeyDown={event => {
           const direction = event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : 0

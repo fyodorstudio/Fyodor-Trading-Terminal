@@ -48,7 +48,7 @@ export function VolumeProfileSettingsDialog({ preferences, symbol, connected, br
           <label>Range<select value={draft.mode} onChange={event => patch({ mode: event.target.value as VolumeProfilePreferences['mode'] })}>
             {profileModeOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select></label>
-          {draft.mode === 'visible' && <label>Lookback in minutes<input type="number" min="1" step="1" required
+          {draft.mode === 'visible' && <label>Lookback in chart minutes<input type="number" min="1" step="1" required
             value={draft.lookbackMinutes || ''} onChange={event => patch({ lookbackMinutes: Number(event.target.value) })} /></label>}
           <p>Uses exact tick prices where MT5 provides history.</p>
         </fieldset><VolumeProfilePreloadControls symbol={symbol} connected={connected} brokerOffset={brokerOffset} />
