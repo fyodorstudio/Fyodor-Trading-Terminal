@@ -17,15 +17,23 @@ export function ChartReplayDock({ source, replay, historyLoading, hasEarlier, lo
   const clock = useDisplayClock()
   const current = replay.index < 0 ? null : source[replay.index]
   const label = (bar: OhlcBar) => formatChartCrosshairTime(bar.time, clock.preference, clock.scope)
-  return <section className="chart-replay" aria-label="Chart replay">
+  return <section className="chart-replay" aria-label="Chart replay" onKeyDown={event => {
+    if (replay.end === null || replay.picking || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey
+      || (event.target as HTMLElement).closest('input, select, textarea, [contenteditable="true"]')) return
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+    event.preventDefault()
+    replay.stepBy(event.key === 'ArrowLeft' ? -1 : 1)
+  }}>
     <header className="chart-replay-controls">
       <button type="button" aria-label="Choose replay start on chart" title="Choose replay start on chart"
         aria-pressed={replay.picking} disabled={replay.latest < 0} onClick={replay.picking ? replay.cancelPicking : onPickStart}>⌖</button>
-      <button type="button" disabled={!current} aria-label="Previous candle" onClick={() => replay.seek(replay.index - 1)}>◀</button>
+      <button type="button" disabled={!current} aria-label="Previous candle" onClick={() => replay.stepBy(-1)}>◀</button>
       <button type="button" disabled={replay.latest < 1 || (replay.anchor === current?.time && replay.index === replay.latest)}
         onClick={replay.togglePlay}>{replay.playing ? 'Pause' : 'Play'}</button>
       <button type="button" disabled={replay.end === null || replay.index >= replay.latest} aria-label="Next candle"
-        onClick={() => replay.seek(replay.index + 1)}>▶</button>
+        onClick={() => replay.stepBy(1)}>▶</button>
+      <label>Jump by <input type="number" min="1" step="1" inputMode="numeric" value={replay.jump}
+        onChange={event => replay.setJump(event.target.valueAsNumber)} /> candles</label>
       <label>Speed <select value={replay.speed} onChange={event => {
         const speed = replaySpeeds.find(value => value === Number(event.target.value))
         if (speed !== undefined) replay.setSpeed(speed)

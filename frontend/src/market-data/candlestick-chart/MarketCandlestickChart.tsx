@@ -54,6 +54,7 @@ type MarketCandlestickChartProps = {
   bars: OhlcBar[]
   replayEnd?: number | null
   replaySeekRevision?: number | null
+  onReplayStep?: (direction: -1 | 1) => void
   replayAnchor?: ReplayAnchorSelection
   fitContentKey: string
   precision: number
@@ -109,6 +110,7 @@ function MarketCandlestickChartComponent({
   bars,
   replayEnd,
   replaySeekRevision = null,
+  onReplayStep,
   replayAnchor,
   fitContentKey,
   precision,
@@ -813,6 +815,14 @@ function MarketCandlestickChartComponent({
         ref={containerRef}
         className="market-chart-canvas"
         aria-label="Candlestick chart"
+        tabIndex={onReplayStep ? 0 : undefined}
+        onKeyDown={event => {
+          if (!onReplayStep || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey
+            || (event.target as HTMLElement).closest('input, select, textarea, button, [contenteditable="true"]')) return
+          if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+          event.preventDefault()
+          onReplayStep(event.key === 'ArrowLeft' ? -1 : 1)
+        }}
         onPointerDown={handlePointerDown}
         onDoubleClick={handleDoubleClick}
         onWheel={() => { requestedLogicalRangeRef.current = null; historyPagingArmedRef.current = true; liveFollowingRef.current = false }}
@@ -828,7 +838,7 @@ function MarketCandlestickChartComponent({
       {replayAnchor && <ChartReplayAnchor {...replayAnchor} chart={chartApi} series={seriesApi} bars={bars} />}
       {renderChartOverlay?.(chartApi, seriesApi)}
       {volumeProfile && <VolumeProfileOverlay {...volumeProfile} chart={chartApi} series={seriesApi}
-        bars={candles} step={timeframeToSeconds(timeframe)} />}
+        bars={volumeProfile.preferences.mode === 'visible' ? bars : candles} step={timeframeToSeconds(timeframe)} />}
       {chartApi && seriesApi && (activeDrawingTool || drawings.length > 0) && (
         <ChartDrawingOverlay
           key={fitContentKey}

@@ -14,14 +14,15 @@ type Chart = { chart: IChartApi; series: ISeriesApi<'Candlestick', Time>; bars: 
 export type VolumeProfileOptions = {
   symbol: string; scope: string; generation: number; precision: number; connected: boolean; brokerOffset: number
   replayEnd?: number | null
+  replaySeekRevision?: number | null
   drawingActive: boolean; onStartDrawing: () => void
   preferences: VolumeProfilePreferences; onChangePreferences: (patch: Partial<VolumeProfilePreferences>) => void
   onArmProfile?: (fixed?: ProfileWindow) => void
 }
 
-export function VolumeProfileOverlay({ chart, series, bars, step, symbol, scope, generation, precision, connected, brokerOffset, replayEnd,
+export function VolumeProfileOverlay({ chart, series, bars, step, symbol, scope, generation, precision, connected, brokerOffset, replayEnd, replaySeekRevision,
   drawingActive, onStartDrawing, preferences, onChangePreferences, onArmProfile }: Chart & VolumeProfileOptions) {
-  const { mode, side, cutoffSide, lookbackMinutes, anchorRatio } = preferences
+  const { mode, side, cutoffSide, lookbackMinutes, anchorRatio, follow = 'camera' } = preferences
   const [selected, setSelected] = useState<{ scope: string; window: FixedProfileWindow } | null>(null)
   const [line, setLine] = useState<{ scope: string; time: number } | null>(null)
   const [drawing, setDrawing] = useState<string | null>(null)
@@ -34,11 +35,11 @@ export function VolumeProfileOverlay({ chart, series, bars, step, symbol, scope,
   const picking = drawing === drawingKey && !drawingActive && connected && mode !== 'visible'
   const selectedRange = mode === 'fixed' ? fixed
     : verticalLine ? cutoff === null ? null : profileFromCutoff(bars, cutoff, step, cutoffSide)
-    : visible && movingProfileWindow(bars, visible.from, visible.to, step, lookbackMinutes, anchorRatio)
+    : visible && movingProfileWindow(bars, visible.from, visible.to, step, lookbackMinutes, anchorRatio, follow === 'price')
   const range = selectedRange && replayEnd != null ? selectedRange.from < replayEnd
     ? { from: selectedRange.from, to: Math.min(selectedRange.to, replayEnd) } : null
     : selectedRange
-  const profileScope = `${scope}:${mode}${replayEnd == null ? '' : `:${replayEnd}`}${verticalLine ? `:${cutoffSide}` : ''}`
+  const profileScope = `${scope}:${step}:${mode}:${replayEnd == null ? 'live' : `replay:${replaySeekRevision}`}${mode === 'visible' ? `:${follow}` : verticalLine ? `:${cutoffSide}` : ''}`
   const { current, profile: loadedProfile, retry } = useVolumeProfile(symbol, profileScope,
     generation, brokerOffset, connected ? range : null, replayEnd == null)
   const profile = connected && (mode === 'visible' || range) ? loadedProfile : null
@@ -96,6 +97,12 @@ export function VolumeProfileOverlay({ chart, series, bars, step, symbol, scope,
       }}>
         {profileModeOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
       </select>
+      {mode === 'visible' && <>
+        <select aria-label="Follow Mode anchor" value={follow} onChange={event => onChangePreferences({ follow: event.target.value === 'price' ? 'price' : 'camera' })}>
+          <option value="camera">Follow Camera</option><option value="price">Follow Last Price</option>
+        </select>
+        <span>Box Size {lookbackMinutes} min</span>
+      </>}
       <label className="volume-profile-side">{verticalLine ? 'Calculation side' : 'Histogram placement'}
         <select aria-label={verticalLine ? 'Volume profile calculation side' : 'Volume profile side'}
           title={verticalLine ? 'Side of the line to calculate' : undefined}

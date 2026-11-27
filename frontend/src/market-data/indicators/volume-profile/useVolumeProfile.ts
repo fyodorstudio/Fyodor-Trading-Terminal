@@ -7,7 +7,7 @@ type HistoryFrame = {
   digits: number | null; levels: [number, number][]; source_generation: number
   done: boolean; incomplete: boolean; checked: number; total: number
 }
-type Reading = { key: string; scope: string; profile: TickProfile | null; loading: boolean; incomplete: boolean; checked: number; total: number }
+type Reading = { key: string; scope: string; to: number; profile: TickProfile | null; loading: boolean; incomplete: boolean; checked: number; total: number }
 const secondsPerDay = 86_400
 
 async function readHistory(query: URLSearchParams, signal: AbortSignal, onFrame: (frame: HistoryFrame) => void) {
@@ -45,6 +45,7 @@ export function useVolumeProfile(symbol: string, scope: string, generation: numb
 
   useEffect(() => {
     if (from === undefined || to === undefined) return
+    const requestedEnd = to
     const controller = new AbortController()
     const { signal } = controller
     const chartNow = () => Date.now() / 1000 + offset
@@ -70,13 +71,14 @@ export function useVolumeProfile(symbol: string, scope: string, generation: numb
         for (const [price, count] of live.levels) levels.set(price, (levels.get(price) ?? 0) + count)
       }
       const next: Reading = {
-        key, scope, profile: digits === undefined ? null : buildTickProfile(levels, digits),
+        key, scope, to: requestedEnd, profile: digits === undefined ? null : buildTickProfile(levels, digits),
         loading: historyLoading || liveLoading,
         incomplete: historyFailed || liveFailed || Boolean(history?.incomplete) || differentPrecision || (!!live && live.missing_minutes !== 0),
         checked: history?.checked ?? 0, total: history?.total ?? 0,
       }
-      setReading(previous => !next.profile && next.loading && previous?.scope === scope
-        ? { ...next, profile: previous.profile } : next)
+      setReading(previous => next.loading && previous?.scope === scope &&
+        (refreshLive ? !next.profile : previous.to <= next.to)
+        ? { ...next, profile: previous.profile, to: previous.to } : next)
     }
     async function loadHistory() {
       if (!historyLoading) return
@@ -126,6 +128,6 @@ export function useVolumeProfile(symbol: string, scope: string, generation: numb
   }, [key, scope, from, to, symbol, generation, offset, attempt, refreshLive])
 
   return { current: key && reading?.key === key ? reading : null,
-    profile: reading?.scope === scope ? reading.profile : null,
+    profile: reading?.scope === scope && (refreshLive || (to !== undefined && reading.to <= to)) ? reading.profile : null,
     retry: () => setRetry({ window: windowKey, version: attempt + 1 }) }
 }

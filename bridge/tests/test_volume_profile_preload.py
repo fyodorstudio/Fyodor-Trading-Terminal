@@ -16,18 +16,21 @@ class Worker:
     def __init__(self):
         self.calendars = {}
         self.calls = []
+        self.timeouts = []
         self.entrance = None
         self.release = None
 
     def snapshot(self):
         return dict(account_server=SERVER, account_login=1, generation=2, connected=True)
 
-    def submit(self, category, operation, arguments, *, priority, supersede):
+    def submit(self, category, operation, arguments, *, priority, supersede, adapter_timeout=None):
+        self.timeouts.append((operation, adapter_timeout))
         self.calls.append((operation, arguments["symbol"], arguments["start"], arguments["end"], priority))
         days = self.calendars.get(arguments["symbol"], [START, START + DAY])
         return dict(digits=5, days=days)
 
-    def ticks(self, symbol, start, end, generation, *, priority, slices):
+    def ticks(self, symbol, start, end, generation, *, priority, slices, adapter_timeout=None):
+        self.timeouts.append(("ticks", adapter_timeout))
         self.calls.append(("ticks", symbol, start, end, priority))
         if self.entrance and not self.entrance.is_set():
             self.entrance.set()
@@ -90,9 +93,12 @@ class VolumeProfilePreloadTest(IsolatedAsyncioTestCase):
             await preload.task
             restarted = VolumeProfilePreload(VolumeProfileCache(path), worker.ticks)
             self.assertEqual(restarted.status(source)["completed_chunks"], 1)
-            restarted.control(worker, source, "resume")
+            worker.timeouts.clear()
+            restarted.control(worker, source, "resume", timeout_seconds=90)
             await restarted.task
             self.assertEqual(restarted.status(source)["state"], "complete")
+            self.assertIn(("volume-profile-days", 90), worker.timeouts)
+            self.assertIn(("ticks", 90), worker.timeouts)
             self.assertEqual(sum(op == "ticks" and at == START + DAY for op, _, at, *_ in worker.calls), 1)
 
     async def test_full_preload_catches_up_only_unread_ticks_after_its_original_cutoff(self):

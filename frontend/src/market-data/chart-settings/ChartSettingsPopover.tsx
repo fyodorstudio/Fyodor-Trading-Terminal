@@ -86,6 +86,13 @@ export function ChartSettingsPopover({
             <input type="checkbox" checked={appearance.showSessionBreaks === true} onChange={event => onChange({ ...appearance, showSessionBreaks: event.target.checked })} />
           </label>
           <label className="range-setting">
+            <span><strong>VP preload timeout</strong><small>Seconds per MT5 call. Blank uses the bridge default.</small></span>
+            <input type="number" min="1" max="600" step="1" placeholder="Bridge default" value={appearance.vpPreloadTimeout ?? ''}
+              onChange={event => {
+                if (event.target.validity.valid) onChange({ ...appearance, vpPreloadTimeout: event.target.value === '' ? undefined : event.target.valueAsNumber })
+              }} />
+          </label>
+          <label className="range-setting">
             <span><strong>Default candle spacing</strong><small>{appearance.barSpacing}px</small></span>
             <input type="range" min="3" max="16" step="1" value={appearance.barSpacing} onChange={(event) => onChange({ ...appearance, barSpacing: Number(event.target.value) })} />
           </label>

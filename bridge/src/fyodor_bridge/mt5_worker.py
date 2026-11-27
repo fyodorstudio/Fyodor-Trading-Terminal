@@ -52,6 +52,7 @@ class _QueuedCall:
     operation: str = field(compare=False)
     arguments: dict[str, object] = field(compare=False)
     future: Future[Any] = field(compare=False)
+    adapter_timeout: float | None = field(default=None, compare=False)
 
 
 class Mt5Worker:
@@ -103,6 +104,7 @@ class Mt5Worker:
         *,
         priority: int = 10,
         timeout: float | None = None,
+        adapter_timeout: float | None = None,
         supersede: bool = True,
     ) -> Any:
         future: Future[Any] = Future()
@@ -120,9 +122,10 @@ class Mt5Worker:
                 operation,
                 arguments or {},
                 future,
+                adapter_timeout,
             )
         self._queue.put(queued)
-        wait_seconds = timeout or self._settings.mt5_call_timeout_seconds + 1
+        wait_seconds = timeout or self._settings.mt5_call_timeout_seconds + (adapter_timeout or 0) + 1
         try:
             return future.result(timeout=wait_seconds)
         except FutureTimeoutError as error:
@@ -151,7 +154,7 @@ class Mt5Worker:
 
             try:
                 self._ensure_connected()
-                result = self._request_adapter(queued.operation, queued.arguments)
+                result = self._request_adapter(queued.operation, queued.arguments, queued.adapter_timeout)
             except Exception as error:
                 mapped_error = self._record_operation_error(error)
                 if not queued.future.cancelled():
@@ -269,7 +272,7 @@ class Mt5Worker:
             "success",
         )
 
-    def _request_adapter(self, operation: str, arguments: dict[str, object]) -> Any:
+    def _request_adapter(self, operation: str, arguments: dict[str, object], timeout: float | None = None) -> Any:
         if not self._adapter_commands:
             raise Mt5UnavailableError("MT5 adapter is not running")
         self._request_sequence += 1
@@ -281,7 +284,7 @@ class Mt5Worker:
                 "arguments": arguments,
             },
         )
-        response = self._wait_for_response(self._settings.mt5_call_timeout_seconds)
+        response = self._wait_for_response(timeout or self._settings.mt5_call_timeout_seconds)
         if response.get("kind") != "result" or int(response.get("request_id", -1)) != request_id:
             raise Mt5UnavailableError("MT5 adapter returned an invalid response")
         if not response.get("ok"):

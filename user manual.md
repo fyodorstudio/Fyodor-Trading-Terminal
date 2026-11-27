@@ -302,6 +302,9 @@ the chart to move candles through the box and use its handles to adjust the
 lookback or its position in the viewport. The box counts each candle's timeframe
 and keeps its width across session gaps at the same zoom. Zoom changes the
 box's width in pixels. The last profile stays visible while the new range loads.
+The toolbar displays **Box Size** in minutes. Choose **Follow Camera** to track
+the viewport or **Follow Last Price** to anchor the box to the last candle
+shown, including during replay. Resize either box from its left edge.
 For **Fixed Range**, select **Draw range** and drag a box over the candles. Its
 left and right edges set the time window. Right-click inside the box to clear it.
 For **Vertical Line**, select **Place line** and click a candle. Choose **Left**
@@ -331,6 +334,8 @@ same cache across symbol changes and restarts. Reopen settings to check
 progress, pause, resume, or cancel. A bridge restart preserves the position
 of a saved preload. Missing broker history appears as a coverage gap. **Retry**
 rechecks it. The live end continues to refresh from MT5.
+If MT5 times out during preload, set **VP preload timeout** in the bottom-right
+**Settings** popover and resume the job. The value is in seconds per MT5 call.
 
 Choose **Arm alert** on the VP or open **VP Alerts** beside Market Watch and
 Price Alerts. Choose the level and trigger for the current symbol. A live
@@ -342,7 +347,9 @@ needs to stay open to monitor armed alerts.
 
 Open **Replay** in the bottom dock. Drag the playhead to a completed candle or
 press **⌖** and click a completed candle to mark the start on the chart. Press
-**Play** to start from there. With no selection, **Play** starts near the end of
+**Play** to start from there. Set **Jump by** to change how many candles the
+arrow buttons and keyboard arrows step. A jump pauses at the destination.
+With no selection, **Play** starts near the end of
 the loaded history. Use **Load earlier
 candles** to extend the timeline and **Return to live** to leave replay. Use the
 speed selector for 0.25× through 2×. You can pan, zoom, and hover while replay

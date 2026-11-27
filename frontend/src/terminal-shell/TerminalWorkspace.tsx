@@ -234,6 +234,7 @@ function TerminalWorkspaceContent() {
                   bars={replay.bars}
                   replayEnd={replay.end}
                   replaySeekRevision={replay.seekRevision}
+                  onReplayStep={replaying && !replay.picking ? replay.stepBy : undefined}
                   replayAnchor={replay.picking || replay.anchor !== null ? {
                     anchor: replay.anchor, onPick: replay.picking ? replay.pickAnchor : undefined, onCancel: replay.cancelPicking,
                   } : undefined}
@@ -260,7 +261,7 @@ function TerminalWorkspaceContent() {
                   } : undefined}
                   volumeProfile={volumeProfileEnabled ? {
                     symbol: activeSymbol, scope: `${brokerId}:${bridge.generation}:${activeSymbol}`, generation: bridge.generation, precision: quote?.precision ?? 5,
-                    connected: bridge.connected, brokerOffset: brokerOffsetSeconds, replayEnd: replay.end,
+                    connected: bridge.connected, brokerOffset: brokerOffsetSeconds, replayEnd: replay.end, replaySeekRevision: replay.seekRevision,
                     drawingActive: Boolean(activeDrawingTool || wildcards.placing || wildcards.editor || replay.picking),
                     onStartDrawing: () => { selectCrosshair(); wildcards.setPlacing(false) },
                     preferences: volumeProfile, onChangePreferences: changeVolumeProfile,
@@ -391,7 +392,7 @@ function TerminalWorkspaceContent() {
         />
       )}
       {volumeSettingsOpen && <VolumeSettingsDialog preferences={volume} synthetic={quote?.synthetic} onSave={changeVolume} onClose={closeVolumeSettings} />}
-      {volumeProfileSettingsOpen && <VolumeProfileSettingsDialog preferences={volumeProfile}
+      {volumeProfileSettingsOpen && <VolumeProfileSettingsDialog preferences={volumeProfile} preloadTimeout={chartAppearance.vpPreloadTimeout}
         symbol={activeSymbol} connected={bridge.connected} brokerOffset={brokerOffsetSeconds}
         onSave={setVolumeProfile} onClose={closeVolumeProfileSettings} />}
       {marketStructureSettingsOpen && <MarketStructureSettingsDialog preferences={marketStructure} onSave={changeMarketStructure} onClose={closeMarketStructureSettings} />}

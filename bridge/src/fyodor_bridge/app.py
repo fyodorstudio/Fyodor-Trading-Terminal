@@ -204,12 +204,12 @@ async def read_candle_ticks(request, symbol, timeframe, start, history=None):
     raise HTTPException(status_code=499, detail="Candle tick read cancelled")
 
 
-def read_volume_profile_page(symbol, start, end, generation, *, priority=10, slices=False):
+def read_volume_profile_page(symbol, start, end, generation, *, priority=10, slices=False, adapter_timeout=None):
     arguments = dict(symbol=symbol, start=start, end=end, read_id=uuid4().hex, begin=True)
     if slices:
         arguments["slices"] = True
     while mt5_worker.snapshot()["generation"] == generation:
-        result = mt5_worker.submit("volume-profile", "volume-profile", arguments, priority=priority, supersede=False)
+        result = mt5_worker.submit("volume-profile", "volume-profile", arguments, priority=priority, supersede=False, adapter_timeout=adapter_timeout)
         if mt5_worker.snapshot()["generation"] != generation:
             break
         if result is not None:
@@ -370,6 +370,7 @@ async def get_volume_profile_preload():
 
 @app.post("/api/v1/volume-profile/preload")
 async def start_volume_profile_preload(
+    timeout_seconds: Annotated[int | None, Query(ge=1, le=600)] = None,
     start: Annotated[int | None, Query(ge=1, le=253402214399)] = None,
     broker_offset: Annotated[int, Query(ge=-50_400, le=50_400)] = 0,
     symbol: Annotated[str | None, Query(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9._#-]+$")] = None,
@@ -381,16 +382,17 @@ async def start_volume_profile_preload(
     if start is not None and (start >= stop or start % MAX_PROFILE_PAGE_SECONDS):
         raise HTTPException(status_code=422, detail={"message": "Choose a start date before the current broker minute"})
     try:
-        job = profile_preload.start(mt5_worker, source, (symbol,) if symbol else PRELOAD_SYMBOLS, start, stop, broker_offset)
+        job = profile_preload.start(mt5_worker, source, (symbol,) if symbol else PRELOAD_SYMBOLS, start, stop, broker_offset, timeout_seconds)
     except ValueError as error:
         raise HTTPException(status_code=409, detail={"message": str(error)}) from error
     return {"job": job}
 
 
 @app.post("/api/v1/volume-profile/preload/{action}")
-async def control_volume_profile_preload(action: Literal["pause", "resume", "cancel"]):
+async def control_volume_profile_preload(action: Literal["pause", "resume", "cancel"],
+                                         timeout_seconds: Annotated[int | None, Query(ge=1, le=600)] = None):
     try:
-        return {"job": profile_preload.control(mt5_worker, mt5_worker.snapshot(), action)}
+        return {"job": profile_preload.control(mt5_worker, mt5_worker.snapshot(), action, timeout_seconds)}
     except ValueError as error:
         raise HTTPException(status_code=409, detail={"message": str(error)}) from error
 

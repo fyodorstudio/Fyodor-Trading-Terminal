@@ -7,6 +7,7 @@ export type ChartAppearance = {
   showGrid: boolean
   showSessionCursor?: boolean
   showSessionBreaks?: boolean
+  vpPreloadTimeout?: number
   barSpacing: number
   scrollbarStyle: ScrollbarStyle
 }
@@ -39,6 +40,8 @@ export function readChartAppearance(): ChartAppearance {
       showGrid: typeof parsed.showGrid === 'boolean' ? parsed.showGrid : defaultChartAppearance.showGrid,
       showSessionCursor: parsed.showSessionCursor === true,
       showSessionBreaks: parsed.showSessionBreaks === true,
+      vpPreloadTimeout: Number.isInteger(parsed.vpPreloadTimeout) && parsed.vpPreloadTimeout! >= 1 && parsed.vpPreloadTimeout! <= 600
+        ? parsed.vpPreloadTimeout : undefined,
       barSpacing: typeof parsed.barSpacing === 'number' && parsed.barSpacing >= 3 && parsed.barSpacing <= 16
         ? parsed.barSpacing
         : defaultChartAppearance.barSpacing,

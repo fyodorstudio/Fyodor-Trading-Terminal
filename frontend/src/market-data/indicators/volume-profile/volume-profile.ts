@@ -17,9 +17,9 @@ export function trailingProfileWindow(end: number, lookbackMinutes: number): Pro
 }
 
 export function movingProfileWindow(bars: readonly OhlcBar[], from: number, to: number, step: number,
-  lookbackMinutes: number, anchorRatio: number): (ProfileWindow & { left: number; right: number }) | null {
-  if (from > bars.length - 1 || to < 0) return null
-  const anchorPosition = Math.max(0, Math.min(bars.length - 1, from + (to - from) * anchorRatio))
+  lookbackMinutes: number, anchorRatio: number, followPrice = false): (ProfileWindow & { left: number; right: number }) | null {
+  if (!followPrice && (from > bars.length - 1 || to < 0)) return null
+  const anchorPosition = followPrice ? bars.length - 1 : Math.max(0, Math.min(bars.length - 1, from + (to - from) * anchorRatio))
   const index = Math.round(anchorPosition)
   const anchor = bars[index]
   if (!anchor) return null

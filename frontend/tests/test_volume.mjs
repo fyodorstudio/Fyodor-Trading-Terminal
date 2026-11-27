@@ -142,6 +142,9 @@ try {
   assert.deepEqual(afterOpen, { from: weekendBars[3].time, to: weekendBars[8].time + 3600, left: 2.5, right: 8.5 },
     'Follow Mode keeps six H1 candles across the weekend and includes Friday ticks when anchored on Monday')
   const partial = movingProfileWindow(weekendBars, 1, 8, 3600, 150, 1)
+  assert.deepEqual(movingProfileWindow(weekendBars, 0, 2, 3600, 120, 0.94, true), {
+    from: weekendBars[9].time, to: weekendBars[10].time + 3600, left: 8.5, right: 10.5,
+  }, 'Follow Last Price remains anchored when the latest candle is off screen')
   assert.deepEqual(partial, { from: weekendBars[6].time + 1800, to: weekendBars[8].time + 3600, left: 6, right: 8.5 },
     'A partial candle uses its actual minute boundary across a gap')
   assert.equal(profileCandleWindow(bars, bars.length + 2, bars.length + 4, 3600), null, 'Future whitespace has no ticks')

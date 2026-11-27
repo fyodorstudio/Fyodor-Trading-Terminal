@@ -42,6 +42,7 @@ class PreloadJob:
     incomplete_symbols: list = field(default_factory=list)
     unavailable_symbols: list = field(default_factory=list)
     message: str | None = None
+    timeout_seconds: int | None = None
 
     def snapshot(self):
         return {
@@ -107,18 +108,18 @@ class VolumeProfilePreload:
         job = self.restore(source)
         return job.snapshot() if job is not None else None
 
-    def start(self, worker, source, symbols, start, end, broker_offset=None):
+    def start(self, worker, source, symbols, start, end, broker_offset=None, timeout_seconds=None):
         if self.task is not None and not self.task.done():
             raise ValueError("A preload is running or finishing its current batch")
         if self.status(source) and self.job.state == "paused":
             raise ValueError("Resume or cancel the paused preload first")
         self.scope = account_scope(source)
-        self.job = PreloadJob(symbols, start, end, broker_offset)
+        self.job = PreloadJob(symbols, start, end, broker_offset, timeout_seconds=timeout_seconds)
         self.checkpoint(self.job)
         self.task = asyncio.create_task(self.run(worker, self.job, self.scope))
         return self.job.snapshot()
 
-    def control(self, worker, source, action):
+    def control(self, worker, source, action, timeout_seconds=None):
         job = self.restore(source)
         if job is None:
             raise ValueError("There is no preload for this MT5 account")
@@ -127,6 +128,7 @@ class VolumeProfilePreload:
         elif action == "resume" and job.state == "paused":
             if not source["connected"]:
                 raise ValueError("Connect MT5 to resume the preload")
+            job.timeout_seconds = timeout_seconds
             job.state, job.message = "running", None
             if self.task is None or self.task.done():
                 self.task = asyncio.create_task(self.run(worker, job, self.scope))
@@ -145,12 +147,13 @@ class VolumeProfilePreload:
                 job.state, job.message = "paused", "MT5 disconnected or switched accounts"
                 break
             symbol = job.symbols[job.completed]
+            timeout = {"adapter_timeout": job.timeout_seconds} if job.timeout_seconds is not None else {}
             try:
                 if calendar is None:
                     start = job.catchup_start if job.catchup_start is not None else job.start
                     result = await run_in_threadpool(worker.submit, "volume-profile", "volume-profile-days",
                         dict(symbol=symbol, start=start or 0, end=job.end),
-                        priority=PRELOAD_PRIORITY, supersede=False)
+                        priority=PRELOAD_PRIORITY, supersede=False, **timeout)
                     if job.state != "running":
                         break
                     if worker.snapshot()["generation"] != current["generation"]:
@@ -176,7 +179,7 @@ class VolumeProfilePreload:
                 scope_for_symbol = (*scope, symbol)
                 def load(start, end):
                     try:
-                        return self.read_ticks(symbol, start, end, current["generation"], priority=PRELOAD_PRIORITY, slices=True)
+                        return self.read_ticks(symbol, start, end, current["generation"], priority=PRELOAD_PRIORITY, slices=True, **timeout)
                     except Mt5UnavailableError:
                         raise
                     except RuntimeError:
@@ -188,9 +191,9 @@ class VolumeProfilePreload:
                     earliest = minutes[0][0]
                     job.symbol_first_bar = earliest if job.symbol_first_bar is None else min(job.symbol_first_bar, earliest)
                 job.symbol_incomplete |= gaps is None or bool(gaps)
-            except Mt5UnavailableError:
+            except Mt5UnavailableError as error:
                 if job.state != "cancelled":
-                    job.state, job.message = "paused", "MT5 could not finish the current batch. Resume to retry."
+                    job.state, job.message = "paused", f"{error}. Resume to retry."
                 break
             except (OSError, DatabaseError):
                 if job.state != "cancelled":

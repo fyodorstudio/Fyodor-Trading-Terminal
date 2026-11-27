@@ -3,6 +3,7 @@ import type { ProfileMode, ProfileSide } from './volume-profile'
 export type VolumeProfileStyle = { side: ProfileSide; colors: Record<'bars' | 'POC' | 'HVN' | 'LVN', string> }
 export type VolumeProfilePreferences = VolumeProfileStyle & {
   mode: ProfileMode; cutoffSide: ProfileSide; lookbackMinutes: number; anchorRatio: number
+  follow?: 'camera' | 'price'
 }
 
 export const profileModeOptions = [
@@ -25,6 +26,7 @@ export function readVolumeProfilePreferences(): VolumeProfilePreferences {
     return {
       mode: saved?.mode === 'fixed' || saved?.mode === 'cutoff' ? saved.mode : defaults.mode,
       side: saved?.side === 'left' ? 'left' : defaults.side,
+      follow: saved?.follow === 'price' ? 'price' : 'camera',
       cutoffSide: saved?.cutoffSide === 'left' ? 'left' : defaults.cutoffSide,
       lookbackMinutes: Number.isSafeInteger(saved?.lookbackMinutes) && saved.lookbackMinutes > 0
         ? saved.lookbackMinutes : defaults.lookbackMinutes,

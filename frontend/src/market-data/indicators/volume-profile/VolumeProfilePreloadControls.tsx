@@ -19,8 +19,8 @@ const endpoint = '/volume-profile/preload'
 const dateLabel = (time: number) => new Date(time * 1000).toISOString().slice(0, 10)
 type PreloadStatus = { job: PreloadJob | null; exact_ticks?: boolean; symbol_groups?: Record<string, string[]> }
 
-export function VolumeProfilePreloadControls({ symbol, connected, brokerOffset }: {
-  symbol: string; connected: boolean; brokerOffset: number
+export function VolumeProfilePreloadControls({ symbol, connected, brokerOffset, timeout }: {
+  symbol: string; connected: boolean; brokerOffset: number; timeout?: number
 }) {
   const [job, setJob] = useState<PreloadJob | null>(null)
   const [exactTicks, setExactTicks] = useState<boolean | null>(null)
@@ -82,6 +82,7 @@ export function VolumeProfilePreloadControls({ symbol, connected, brokerOffset }
 
   function start(all: boolean) {
     const query = new URLSearchParams({ broker_offset: String(brokerOffset) })
+    if (timeout !== undefined) query.set('timeout_seconds', String(timeout))
     if (!all) query.set('symbol', symbol)
     if (startDate) {
       const start = Date.parse(`${startDate}T00:00:00Z`) / 1000
@@ -111,7 +112,7 @@ export function VolumeProfilePreloadControls({ symbol, connected, brokerOffset }
       {active ? <>
         {job.state === 'running'
           ? <button type="button" disabled={busy} onClick={() => void submit(`${endpoint}/pause`)}>Pause preload</button>
-          : <button type="button" disabled={busy || !connected} onClick={() => void submit(`${endpoint}/resume`)}>Resume preload</button>}
+          : <button type="button" disabled={busy || !connected} onClick={() => void submit(`${endpoint}/resume${timeout === undefined ? '' : `?timeout_seconds=${timeout}`}`)}>Resume preload</button>}
         <button type="button" disabled={busy} onClick={() => void submit(`${endpoint}/cancel`)}>Cancel preload</button>
       </> : <>
         <button type="button" disabled={blocked || !symbol} onClick={() => start(false)}>Preload {symbol}</button>

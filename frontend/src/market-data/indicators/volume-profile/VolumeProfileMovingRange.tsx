@@ -6,7 +6,7 @@ import { movingProfileWindow } from './volume-profile'
 import { profileLogicalCoordinate } from './volume-profile-overlay'
 import type { VolumeProfilePreferences } from './volume-profile-preferences'
 
-type WindowSettings = Pick<VolumeProfilePreferences, 'lookbackMinutes' | 'anchorRatio'>
+type WindowSettings = Pick<VolumeProfilePreferences, 'lookbackMinutes' | 'anchorRatio' | 'follow'>
 type Edge = 'lookbackMinutes' | 'anchorRatio'
 
 export function VolumeProfileMovingRange({ chart, series, bars, step, visible, settings, interactive, onChange }: {
@@ -20,7 +20,7 @@ export function VolumeProfileMovingRange({ chart, series, bars, step, visible, s
   const { width, height } = useDrawingViewport(chart, series, svg, true)
   const viewport = chart.timeScale().getVisibleLogicalRange() ?? visible
   const { lookbackMinutes, anchorRatio } = { ...settings, ...draft }
-  const range = movingProfileWindow(bars, viewport.from, viewport.to, step, lookbackMinutes, anchorRatio)
+  const range = movingProfileWindow(bars, viewport.from, viewport.to, step, lookbackMinutes, anchorRatio, settings.follow === 'price')
   const left = range && profileLogicalCoordinate(chart, range.left)
   const right = range && profileLogicalCoordinate(chart, range.right)
   const span = viewport.to - viewport.from
@@ -62,7 +62,7 @@ export function VolumeProfileMovingRange({ chart, series, bars, step, visible, s
       x={left} y={0} width={right - left} height={height} />}
     {interactive && ([['lookbackMinutes', left, 'Resize Volume Profile window'],
       ['anchorRatio', right, 'Set Volume Profile window position']] as const).map(([edge, x, name]) =>
-      x !== null && x >= 0 && x <= width && <rect key={edge} className="volume-profile-cutoff-handle"
+      (edge !== 'anchorRatio' || settings.follow !== 'price') && x !== null && x >= 0 && x <= width && <rect key={edge} className="volume-profile-cutoff-handle"
         data-edge={edge} aria-label={name} role="slider" aria-valuemin={edge === 'lookbackMinutes' ? 1 : 0}
         aria-valuemax={edge === 'anchorRatio' ? 100 : undefined}
         aria-valuenow={edge === 'anchorRatio' ? Math.round(anchorRatio * 100) : lookbackMinutes}

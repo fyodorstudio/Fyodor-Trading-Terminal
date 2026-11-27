@@ -6,9 +6,9 @@ import '../rsi/rsi.css'
 
 const colorOptions = [['bars', 'Profile bars'], ['POC', 'Point of control'], ['HVN', 'High-volume nodes'], ['LVN', 'Low-volume nodes']] as const
 
-export function VolumeProfileSettingsDialog({ preferences, symbol, connected, brokerOffset, onSave, onClose }: {
+export function VolumeProfileSettingsDialog({ preferences, symbol, connected, brokerOffset, preloadTimeout, onSave, onClose }: {
   preferences: VolumeProfilePreferences; onSave: (value: VolumeProfilePreferences) => void; onClose: () => void
-  symbol: string; connected: boolean; brokerOffset: number
+  symbol: string; connected: boolean; brokerOffset: number; preloadTimeout?: number
 }) {
   const [draft, setDraft] = useState(preferences)
   const [tab, setTab] = useState<'inputs' | 'style'>('inputs')
@@ -48,10 +48,10 @@ export function VolumeProfileSettingsDialog({ preferences, symbol, connected, br
           <label>Range<select value={draft.mode} onChange={event => patch({ mode: event.target.value as VolumeProfilePreferences['mode'] })}>
             {profileModeOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select></label>
-          {draft.mode === 'visible' && <label>Lookback in chart minutes<input type="number" min="1" step="1" required
+          {draft.mode === 'visible' && <label>Box Size (minutes)<input type="number" min="1" step="1" required
             value={draft.lookbackMinutes || ''} onChange={event => patch({ lookbackMinutes: Number(event.target.value) })} /></label>}
           <p>Uses exact tick prices where MT5 provides history.</p>
-        </fieldset><VolumeProfilePreloadControls symbol={symbol} connected={connected} brokerOffset={brokerOffset} />
+        </fieldset><VolumeProfilePreloadControls symbol={symbol} connected={connected} brokerOffset={brokerOffset} timeout={preloadTimeout} />
         </> : <fieldset><legend>Histogram</legend>
           <label>Placement<select value={draft.side} onChange={event => patch({ side: event.target.value as VolumeProfilePreferences['side'] })}>
             <option value="left">Left</option><option value="right">Right</option>

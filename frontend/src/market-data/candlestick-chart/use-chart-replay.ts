@@ -10,6 +10,7 @@ export function useChartReplay(open: boolean, scope: string, source: OhlcBar[], 
   const [position, setPosition] = useState<ReplayPosition | null>(null)
   const [pickerScope, setPickerScope] = useState<string | null>(null)
   const [speed, setSpeed] = useState<ReplaySpeed>(1)
+  const [jump, setJump] = useState(1)
   const [observed, setObserved] = useState(Date.now)
   const now = observed / 1000 + offset
   const cursor = position?.scope === scope ? position : null
@@ -66,7 +67,9 @@ export function useChartReplay(open: boolean, scope: string, source: OhlcBar[], 
 
   return {
     bars, end, seekRevision: cursor?.seekRevision ?? null, index, latest, playing, speed, setSpeed, pause,
-    anchor, picking, pickAnchor, cancelPicking,
+    anchor, picking, pickAnchor, cancelPicking, jump,
+    setJump(value: number) { if (Number.isSafeInteger(value) && value > 0) setJump(value) },
+    stepBy(direction: -1 | 1) { cancelPicking(); setIndex(index + direction * jump) },
     startPicking() { pause(); setPickerScope(scope) },
     seek(target: number) { cancelPicking(); setIndex(target) },
     togglePlay() {
